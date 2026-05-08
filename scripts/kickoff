@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Thin wrapper around `crosslink kickoff run` that always passes
+# --skip-permissions. The host environment provides an outer sandbox,
+# so interactive permission prompts inside the sandbox add no security
+# and only stall autonomous progress. See .crosslink/rules/project.md.
+set -euo pipefail
+exec crosslink kickoff run --skip-permissions "$@"
