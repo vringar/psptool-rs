@@ -1,0 +1,20 @@
+[package]
+name = "psptool-cli"
+description = "Command-line interface for psptool-rs (binary name: psptool)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# The binary name matches the upstream Python tool so existing scripts and
+# argv-based test corpora work unchanged.
+[[bin]]
+name = "psptool"
+path = "src/main.rs"
+
+[dependencies]
+psptool-core.workspace = true
+psptool-ops.workspace = true
+clap.workspace = true

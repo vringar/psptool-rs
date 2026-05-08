@@ -1,0 +1,27 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/psptool-core",
+    "crates/psptool-ops",
+    "crates/psptool-cli",
+    "crates/psptool-fixtures",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/PSPReverse/psptool-rs"
+authors = ["psptool-rs contributors"]
+
+[workspace.dependencies]
+psptool-core = { path = "crates/psptool-core", version = "0.0.0" }
+psptool-ops = { path = "crates/psptool-ops", version = "0.0.0" }
+psptool-fixtures = { path = "crates/psptool-fixtures", version = "0.0.0" }
+
+clap = { version = "4.5", features = ["derive"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

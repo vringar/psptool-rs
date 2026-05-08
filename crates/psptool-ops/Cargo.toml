@@ -1,0 +1,14 @@
+[package]
+name = "psptool-ops"
+description = "High-level PSP firmware operations: list, extract, replace, sign, verify, search-keys."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+
+[dependencies]
+psptool-core.workspace = true
