@@ -10,6 +10,15 @@ authors.workspace = true
 
 [lib]
 
+[features]
+# `corpus` opts the corpus_roundtrip integration test into iterating
+# `vendor/test-corpus/test_files/`. Default-on so plain `cargo test` runs the
+# headline byte-exact roundtrip test. The test self-skips with a clean exit
+# when `PSPTOOL_TEST_CORPUS` is unset; when the env var IS set, the test fails
+# loudly if no trials are collected (rather than silently passing).
+default = ["corpus"]
+corpus = ["psptool-fixtures/corpus"]
+
 [dependencies]
 binrw = "0.14"
 bytes = "1.7"
@@ -25,5 +34,13 @@ rsa = { version = "0.9", features = ["sha2"] }
 sha2 = "0.10"
 
 [dev-dependencies]
+libtest-mimic = "0.8"
 psptool-fixtures = { workspace = true }
 rand = "0.8"
+
+# Custom harness so the corpus integration test can register one named test
+# per ROM file at runtime (via libtest_mimic). Compiles and runs as a clean
+# no-op when the corpus submodule is absent (env var unset).
+[[test]]
+name = "corpus_roundtrip"
+harness = false

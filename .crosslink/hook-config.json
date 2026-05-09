@@ -69,6 +69,9 @@
   "intervention_tracking": true,
   "kickoff_verification": "local",
   "reminder_drift_threshold": "0",
+  "sandbox": {
+    "command": "crosslink-sandbox --project-dir {{worktree}} --"
+  },
   "sentinel": {
     "default_agent": {
       "model": "claude-sonnet-4-6",
