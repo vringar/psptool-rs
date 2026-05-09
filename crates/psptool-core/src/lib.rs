@@ -24,6 +24,13 @@
 //!
 //! Subsequent issues (#7–#9) layer entry-kind dispatch, `HeaderFile` decode,
 //! and the byte-exact writer on top.
+//!
+//! Issue #9 adds the **byte-exact diff-and-patch writer** — see [`writer`]:
+//!
+//! * [`writer::BlobEditor`] — wraps a [`SourceBytes`] blob and accumulates
+//!   non-overlapping patches (absolute flash offset → replacement bytes).
+//! * [`writer::EntryEditor`] — convenience helper for setting an [`Entry`]
+//!   body without touching the surrounding directory record.
 
 #![forbid(unsafe_code)]
 
@@ -36,6 +43,7 @@ pub mod fletcher;
 pub mod id;
 pub mod magic;
 pub mod source;
+pub mod writer;
 
 pub use address::{Address, AddressMode, FlashOffset, ResolveContext, ResolveError, RomSize};
 pub use directory::{
@@ -52,6 +60,7 @@ pub use magic::{
     Magic, PL2_MAGIC, PS1_MAGIC, PSP_MAGIC, directory_family,
 };
 pub use source::SourceBytes;
+pub use writer::{BlobEditor, EntryEditor, PatchError};
 
 /// Crate version, sourced from Cargo at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
