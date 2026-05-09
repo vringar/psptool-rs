@@ -15,5 +15,15 @@ binrw = "0.14"
 bytes = "1.7"
 thiserror = "2"
 
+# Body-access crypto stack (issue #8). The minimum needed to expose
+# decompressed/decrypted views and verify entry signatures. `aes` re-exports
+# the `cipher` traits, so we don't depend on `cipher` directly.
+aes = "0.8"
+cbc = "0.1"
+flate2 = "1.1"
+rsa = { version = "0.9", features = ["sha2"] }
+sha2 = "0.10"
+
 [dev-dependencies]
 psptool-fixtures = { workspace = true }
+rand = "0.8"

@@ -35,6 +35,7 @@
 #![forbid(unsafe_code)]
 
 pub mod address;
+pub mod body;
 pub mod directory;
 pub mod entry;
 pub mod error;
@@ -46,6 +47,7 @@ pub mod source;
 pub mod writer;
 
 pub use address::{Address, AddressMode, FlashOffset, ResolveContext, ResolveError, RomSize};
+pub use body::{BodyError, Ikek, VerifyError};
 pub use directory::{
     BiosDirectory, BiosEntry, ComboDirectory, ComboEntry, Directory, DirectoryHeader, DirectoryRef,
     PspDirectory, PspEntry, walk_directories,
