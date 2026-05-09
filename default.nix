@@ -16,9 +16,46 @@ let
   rustToolchain = pkgs.rust-bin.stable.latest.default.override {
     extensions = [ "rust-src" "rust-analyzer" "clippy" "rustfmt" ];
   };
+
+  rustPlatform = pkgs.makeRustPlatform {
+    cargo = rustToolchain;
+    rustc = rustToolchain;
+  };
+
+  cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 in
 {
   inherit pkgs rustToolchain;
+
+  package = rustPlatform.buildRustPackage {
+    pname = "psptool";
+    inherit (cargoToml.workspace.package) version;
+
+    # Limit src to files cargo needs so the giant vendor/test-corpus
+    # submodule, .crosslink/, scripts/, and docs/ never enter the build sandbox.
+    src = pkgs.lib.fileset.toSource {
+      root = ./.;
+      fileset = pkgs.lib.fileset.unions [
+        ./Cargo.toml
+        ./Cargo.lock
+        ./crates
+      ];
+    };
+
+    cargoLock.lockFile = ./Cargo.lock;
+
+    # Build only the CLI; psptool-fixtures isn't a dep of psptool-cli and
+    # we don't want it pulled into the release artifact.
+    cargoBuildFlags = [ "--package" "psptool-cli" ];
+    cargoTestFlags = [ "--workspace" ];
+
+    meta = with pkgs.lib; {
+      description = "AMD PSP firmware inspection and modification tool (Rust port of PSPTool)";
+      homepage = "https://github.com/PSPReverse/psptool-rs";
+      license = with licenses; [ mit asl20 ];
+      mainProgram = "psptool";
+    };
+  };
 
   shell = pkgs.mkShell {
     name = "psptool-rs-dev";
