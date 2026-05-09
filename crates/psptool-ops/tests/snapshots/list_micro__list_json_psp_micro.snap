@@ -1,0 +1,23 @@
+---
+source: crates/psptool-ops/tests/list_micro.rs
+expression: "list_json(&rom, false)"
+---
+[
+  {
+    "address": 684032,
+    "directory": 0,
+    "entries": [
+      {
+        "address": 32,
+        "index": 0,
+        "info": [],
+        "magic": "",
+        "sectionType": "WRAPPED_IKEK~0x21",
+        "size": 16,
+        "version": ""
+      }
+    ],
+    "magic": "$PSP",
+    "secondaryAddresses": []
+  }
+]

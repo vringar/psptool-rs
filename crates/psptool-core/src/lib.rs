@@ -49,8 +49,8 @@ pub mod writer;
 pub use address::{Address, AddressMode, FlashOffset, ResolveContext, ResolveError, RomSize};
 pub use body::{BodyError, Ikek, VerifyError};
 pub use directory::{
-    BiosDirectory, BiosEntry, ComboDirectory, ComboEntry, Directory, DirectoryHeader, DirectoryRef,
-    PspDirectory, PspEntry, walk_directories,
+    BiosDirectory, BiosEntry, ComboDirectory, ComboEntry, Directory, DirectoryHeader,
+    DirectoryProvenance, DirectoryRef, PspDirectory, PspEntry, walk_directories,
 };
 pub use entry::{Entry, EntryClass, EntryRecord, HeaderEntry, PubkeyEntry};
 pub use error::ParseError;
