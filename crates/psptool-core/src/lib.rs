@@ -14,16 +14,36 @@
 //!   that every parsed structure retains so the writer can do diff-and-patch
 //!   roundtripping (`docs/firmware-layout.md` §8).
 //!
-//! Subsequent issues (#6–#9) build the parser/serializer on top of these.
+//! Issue #6 layers the **wire-format parsers** on top of that substrate:
+//!
+//! * [`fletcher`] — Fletcher-32 checksum used by directory headers (§2.4).
+//! * [`fet`] — `Fet` + `FetSlot`, multi-FET candidate scanner (§1.1, §1.2).
+//! * [`directory`] — `$PSP`/`$PL2`/`$BHD`/`$BL2` and combo (`2PSP`/`2BHD`)
+//!   directory parsers, plus the FET → directory traversal walk (§2, §3).
+//! * [`error`] — shared `ParseError` enum.
+//!
+//! Subsequent issues (#7–#9) layer entry-kind dispatch, `HeaderFile` decode,
+//! and the byte-exact writer on top.
 
 #![forbid(unsafe_code)]
 
 pub mod address;
+pub mod directory;
+pub mod error;
+pub mod fet;
+pub mod fletcher;
 pub mod id;
 pub mod magic;
 pub mod source;
 
 pub use address::{Address, AddressMode, FlashOffset, ResolveContext, ResolveError, RomSize};
+pub use directory::{
+    BiosDirectory, BiosEntry, ComboDirectory, ComboEntry, Directory, DirectoryHeader, DirectoryRef,
+    PspDirectory, PspEntry, walk_directories,
+};
+pub use error::ParseError;
+pub use fet::{Fet, FetSlot, FetSlotRecord, scan_fet_candidates};
+pub use fletcher::fletcher32;
 pub use id::{DirectoryId, DirectoryKind, EntryType, PspGenerationId, ZenGeneration};
 pub use magic::{
     BHD_MAGIC, BL2_MAGIC, COMBO_BHD_MAGIC, COMBO_PSP_MAGIC, DirectoryFamily, FET_MAGIC, KDB_MAGIC,

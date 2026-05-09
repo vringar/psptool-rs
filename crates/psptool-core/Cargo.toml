@@ -14,3 +14,6 @@ authors.workspace = true
 binrw = "0.14"
 bytes = "1.7"
 thiserror = "2"
+
+[dev-dependencies]
+psptool-fixtures = { workspace = true }

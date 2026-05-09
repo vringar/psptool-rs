@@ -52,9 +52,14 @@ impl core::fmt::Debug for Magic {
     }
 }
 
-/// FET magic (§1.2). The 4-byte word *before* this magic must be `0x00000000`
-/// or `0xFFFFFFFF` — see §1.1 — but that pad lives outside the FET itself.
-pub const FET_MAGIC: Magic = Magic::new([0x55, 0xAA, 0x55, 0xAA]);
+/// FET magic (§1.1). On-disk bytes are `AA 55 AA 55` — same byte sequence
+/// PSPTool searches for via `_FIRMWARE_ENTRY_MAGIC = b'\xAA\x55\xAA\x55'`.
+/// The 4-byte word *before* this magic must be `0x00000000` or `0xFFFFFFFF`
+/// — see §1.1 — but that pad lives outside the FET itself.
+///
+/// (The hex dump in `docs/firmware-layout.md` §1.2 transposes the byte
+/// order; §1.1 and the committed FET fixture are the authority.)
+pub const FET_MAGIC: Magic = Magic::new([0xAA, 0x55, 0xAA, 0x55]);
 
 /// Primary PSP directory (§2).
 pub const PSP_MAGIC: Magic = Magic::from_ascii(b"$PSP");
@@ -130,10 +135,11 @@ mod tests {
 
     #[test]
     fn fet_magic_byte_order() {
-        // §1.2 sample dump shows `55 AA 55 AA` at the start of the FET on
-        // disk. The u32 little-endian read is therefore 0xAA55_AA55.
-        assert_eq!(FET_MAGIC.as_bytes(), &[0x55, 0xAA, 0x55, 0xAA]);
-        assert_eq!(FET_MAGIC.as_u32_le(), 0xAA55_AA55);
+        // On-disk bytes are `AA 55 AA 55` — same byte string PSPTool
+        // searches for (`b'\xaa\x55\xaa\x55'`) and the same bytes the
+        // committed FET fixture writes. u32 little-endian read = 0x55AA55AA.
+        assert_eq!(FET_MAGIC.as_bytes(), &[0xAA, 0x55, 0xAA, 0x55]);
+        assert_eq!(FET_MAGIC.as_u32_le(), 0x55AA_55AA);
     }
 
     #[test]

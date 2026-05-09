@@ -235,6 +235,7 @@ version = "0.0.0"
 dependencies = [
  "binrw",
  "bytes",
+ "psptool-fixtures",
  "thiserror",
 ]
 
