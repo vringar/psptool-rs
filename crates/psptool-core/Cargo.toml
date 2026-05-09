@@ -9,3 +9,8 @@ repository.workspace = true
 authors.workspace = true
 
 [lib]
+
+[dependencies]
+binrw = "0.14"
+bytes = "1.7"
+thiserror = "2"
