@@ -161,7 +161,7 @@ offset  size  field            notes
 `additional_info` bit layout (`directory.py:address_mode`):
 
 ```
-bit 31:    version flag (1 = "v2", 0 = "v1")
+bit 31:    version flag (1 = "v1", 0 = "v2")
 if version == 1:
     bits [25:24] = address_mode  (00 .. 11)
 else:
