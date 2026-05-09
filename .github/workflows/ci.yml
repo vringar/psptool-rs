@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: fmt + clippy + build + test
+    runs-on: ubuntu-latest
+    steps:
+      # Corpus is private; do NOT initialize submodules. Corpus-gated tests skip.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build dev shell
+        run: nix-shell default.nix -A shell --run "echo dev shell ready"
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock', 'default.nix') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: cargo fmt --check
+        run: nix-shell default.nix -A shell --run "cargo fmt --all --check"
+
+      - name: cargo clippy
+        run: nix-shell default.nix -A shell --run "cargo clippy --workspace -- -D warnings"
+
+      - name: cargo build
+        run: nix-shell default.nix -A shell --run "cargo build --workspace"
+
+      - name: cargo nextest
+        run: nix-shell default.nix -A shell --run "cargo nextest run --workspace"
