@@ -41,4 +41,13 @@ pub enum ParseError {
     /// all-zero (§2.3 — PSPTool asserts).
     #[error("combo directory at {offset} has non-zero reserved bytes at +0x10..+0x20")]
     ComboReservedNonZero { offset: FlashOffset },
+
+    /// An entry-parsing call asked for a record index past the end of the
+    /// parent directory's entry vector.
+    #[error("entry index {index} out of range for directory at {offset} (count = {count})")]
+    EntryIndexOutOfRange {
+        offset: FlashOffset,
+        index: usize,
+        count: usize,
+    },
 }

@@ -29,6 +29,7 @@
 
 pub mod address;
 pub mod directory;
+pub mod entry;
 pub mod error;
 pub mod fet;
 pub mod fletcher;
@@ -41,6 +42,7 @@ pub use directory::{
     BiosDirectory, BiosEntry, ComboDirectory, ComboEntry, Directory, DirectoryHeader, DirectoryRef,
     PspDirectory, PspEntry, walk_directories,
 };
+pub use entry::{Entry, EntryClass, EntryRecord, HeaderEntry, PubkeyEntry};
 pub use error::ParseError;
 pub use fet::{Fet, FetSlot, FetSlotRecord, scan_fet_candidates};
 pub use fletcher::fletcher32;
