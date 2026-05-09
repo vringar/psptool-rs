@@ -363,12 +363,14 @@ mod tests {
     }
 
     #[test]
-    fn additional_info_observed_corpus_values() {
-        // Both `0x0000_0500` and `0x0000_0420` are mentioned in the spec as
-        // common in the corpus. They are v2 (bit 31 clear), so address mode
-        // comes from bits [30:29]:
-        //   0x0000_0500 = 0b...0_0101_0000_0000  -> bits[30:29] = 00 -> PhysicalX86
-        //   0x0000_0420 = 0b...0_0100_0010_0000  -> bits[30:29] = 00 -> PhysicalX86
+    fn additional_info_decode_ignores_unused_bits() {
+        // `from_additional_info` consults only the version flag (bit 31) and
+        // the mode bits ([25:24] for v1, [30:29] for v2). All other bits are
+        // unused by mode decoding. Two corpus-derived values exercise this:
+        //   0x0000_0500 = 0b...0_0101_0000_0000  -> v2, bits[30:29]=00 -> PhysicalX86
+        //   0x0000_0420 = 0b...0_0100_0010_0000  -> v2, bits[30:29]=00 -> PhysicalX86
+        // The non-mode bits (0x500, 0x420) must be preserved on a roundtrip,
+        // but that is a serializer concern (#9) and not asserted here.
         assert_eq!(
             AddressMode::from_additional_info(0x0000_0500),
             AddressMode::PhysicalX86
