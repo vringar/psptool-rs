@@ -28,9 +28,6 @@ jobs:
       - name: Cache Nix store
         uses: DeterminateSystems/magic-nix-cache-action@v8
 
-      - name: Build dev shell
-        run: nix-shell default.nix -A shell --run "echo dev shell ready"
-
       - name: Cache cargo registry and target
         uses: actions/cache@v4
         with:
@@ -42,14 +39,12 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-
 
-      - name: cargo fmt --check
-        run: nix-shell default.nix -A shell --run "cargo fmt --all --check"
-
-      - name: cargo clippy
-        run: nix-shell default.nix -A shell --run "cargo clippy --workspace -- -D warnings"
-
-      - name: cargo build
-        run: nix-shell default.nix -A shell --run "cargo build --workspace"
-
-      - name: cargo nextest
-        run: nix-shell default.nix -A shell --run "cargo nextest run --workspace"
+      - name: fmt + clippy + build + nextest
+        run: |
+          nix-shell default.nix -A shell --run '
+            set -euo pipefail
+            cargo fmt --all --check
+            cargo clippy --workspace -- -D warnings
+            cargo build --workspace
+            cargo nextest run --workspace
+          '

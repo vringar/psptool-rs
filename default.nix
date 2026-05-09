@@ -13,7 +13,11 @@ let
     overlays = [ (import pinnedRustOverlay) ];
   };
 
-  rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+  # Pinned explicitly so the toolchain version is legible at a glance without
+  # resolving the rust-overlay snapshot, and so a future overlay bump (which
+  # would change the SHA above) doesn't quietly move rustc as a side effect.
+  # Must stay in sync with Cargo.toml's `rust-version`.
+  rustToolchain = pkgs.rust-bin.stable."1.95.0".default.override {
     extensions = [ "rust-src" "rust-analyzer" "clippy" "rustfmt" ];
   };
 
