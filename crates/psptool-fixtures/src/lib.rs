@@ -1,38 +1,23 @@
-//! `psptool-fixtures` — shared test-corpus discovery and micro-fixtures.
+//! `psptool-fixtures` — shared test-corpus discovery and micro-fixtures for
+//! `psptool-core`, `psptool-ops`, `psptool-cli`, and downstream consumers.
 //!
-//! This skeleton ships only the corpus-root lookup (the env var is already
-//! exported by `shell.nix` when the submodule is present). Issue #16 layers
-//! the real corpus loader and micro-fixtures on top.
+//! Two flavours of fixture are exposed:
+//!
+//! * [`micro`] — handcrafted, byte-stable fixtures committed under
+//!   `crates/psptool-fixtures/data/`. They cover every parser branch (FET,
+//!   directory, entry kinds, signed entry, encrypted body, compressed body,
+//!   pubkey) without requiring the private corpus.
+//! * [`corpus`] — a loader for the optional `vendor/test-corpus` submodule,
+//!   keyed off the `PSPTOOL_TEST_CORPUS` environment variable. When the
+//!   variable is unset, [`corpus()`] returns `None` and corpus-gated tests
+//!   skip cleanly — by design, not a stub.
+//!
+//! Tests that want to opt into the corpus path can use the `corpus`
+//! cargo feature as a build-time switch (see `Cargo.toml`).
 
 #![forbid(unsafe_code)]
 
-use std::path::PathBuf;
+pub mod corpus;
+pub mod micro;
 
-/// Environment variable that points at the `vendor/test-corpus` checkout.
-///
-/// Set by `shell.nix` whenever the submodule is populated; absent otherwise so
-/// corpus-gated integration tests can skip cleanly.
-pub const CORPUS_ENV: &str = "PSPTOOL_TEST_CORPUS";
-
-/// Returns the corpus root if `PSPTOOL_TEST_CORPUS` is set in the environment.
-///
-/// Returns `None` when the variable is unset or empty — callers should treat
-/// this as "skip the corpus-gated test", not as an error.
-pub fn corpus_root() -> Option<PathBuf> {
-    match std::env::var_os(CORPUS_ENV) {
-        Some(value) if !value.is_empty() => Some(PathBuf::from(value)),
-        _ => None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::CORPUS_ENV;
-
-    #[test]
-    fn corpus_env_var_name_is_stable() {
-        // The shell.nix and downstream tooling key off this exact name; if it
-        // changes, both sides need to move together.
-        assert_eq!(CORPUS_ENV, "PSPTOOL_TEST_CORPUS");
-    }
-}
+pub use corpus::{CORPUS_ENV, CorpusRom, corpus, corpus_roms, corpus_roms_in};

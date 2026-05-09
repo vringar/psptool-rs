@@ -9,3 +9,16 @@ repository.workspace = true
 authors.workspace = true
 
 [lib]
+
+[features]
+# When `corpus` is enabled, downstream tests opt into the corpus-using paths.
+# The actual `PSPTOOL_TEST_CORPUS` environment variable still gates whether
+# any files are present at runtime; with the feature off, only micro-fixtures
+# are exercised.
+default = []
+corpus = []
+
+[dev-dependencies]
+# Used only by `examples/build_fixtures.rs` to produce the committed
+# `data/header_compressed.bin` zlib stream. Not a runtime dependency.
+flate2 = "1.0"
