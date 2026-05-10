@@ -14,6 +14,7 @@
 mod extract;
 mod list;
 mod replace;
+mod search_keys;
 mod sign;
 mod table;
 #[cfg(test)]
@@ -25,6 +26,9 @@ pub use extract::{ExtractError, extract_decompressed, extract_decrypted, extract
 pub use list::{RomListing, list_default, list_json, list_verbose};
 pub use replace::{
     ReplaceError, replace_bios_entry_body, replace_entry_body, replace_psp_entry_body,
+};
+pub use search_keys::{
+    EntryRef, KeyHit, KeyHitLocation, search_keys, search_keys_with_directories,
 };
 pub use sign::{SignError, sign_entry, sign_entry_with_rng};
 pub use types::readable_type;
