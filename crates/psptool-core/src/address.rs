@@ -190,11 +190,20 @@ impl AddressMode {
 /// Resolution context: information the caller threads into address-mode
 /// arithmetic. The directory header offset is needed for
 /// [`AddressMode::DirectoryRelative`] and
-/// [`AddressMode::PartitionRelative`].
+/// [`AddressMode::PartitionRelative`]; `rom_origin` is the file offset of
+/// "ROM-flash-offset 0" inside the input blob (zero for a bare flash dump,
+/// non-zero for capsule-wrapped images per `docs/firmware-layout.md` §1.1).
 #[derive(Copy, Clone, Debug)]
 pub struct ResolveContext {
     pub rom_size: RomSize,
     pub directory_base: FlashOffset,
+    /// Origin of the ROM within the input blob.
+    ///
+    /// PSPTool's `blob.py` constructs every `Rom` with
+    /// `rom_offset = fet_position - fet_offset`, so for an image whose FET
+    /// magic lives at file offset `0x20800` and matches the §1.1 entry
+    /// `0x020000`, `rom_origin` is `0x800`. `0` for non-wrapped images.
+    pub rom_origin: FlashOffset,
 }
 
 /// Errors returned by [`AddressMode::resolve`] when a raw pointer cannot be
@@ -228,8 +237,8 @@ impl AddressMode {
     /// [`ResolveError::NeedsEntryMode`] in that case.
     pub fn resolve(self, raw: Address, ctx: ResolveContext) -> Result<FlashOffset, ResolveError> {
         match self {
-            Self::PhysicalX86 => Ok(normalise_physical(raw, ctx.rom_size)),
-            Self::FlashOffset => Ok(FlashOffset(raw.0 as u64)),
+            Self::PhysicalX86 => Ok(normalise_physical(raw, ctx.rom_size, ctx.rom_origin)),
+            Self::FlashOffset => Ok(rom_relative_to_file(raw, ctx.rom_origin)),
             Self::DirectoryRelative | Self::PartitionRelative => Err(ResolveError::NeedsEntryMode),
         }
     }
@@ -243,11 +252,11 @@ impl AddressMode {
         ctx: ResolveContext,
     ) -> FlashOffset {
         match self {
-            Self::PhysicalX86 => normalise_physical(raw, ctx.rom_size),
-            Self::FlashOffset => FlashOffset(raw.0 as u64),
+            Self::PhysicalX86 => normalise_physical(raw, ctx.rom_size, ctx.rom_origin),
+            Self::FlashOffset => rom_relative_to_file(raw, ctx.rom_origin),
             Self::DirectoryRelative | Self::PartitionRelative => match entry_mode {
-                Self::PhysicalX86 => normalise_physical(raw, ctx.rom_size),
-                Self::FlashOffset => FlashOffset(raw.0 as u64),
+                Self::PhysicalX86 => normalise_physical(raw, ctx.rom_size, ctx.rom_origin),
+                Self::FlashOffset => rom_relative_to_file(raw, ctx.rom_origin),
                 Self::DirectoryRelative | Self::PartitionRelative => {
                     FlashOffset(ctx.directory_base.0.wrapping_add(raw.0 as u64))
                 }
@@ -265,15 +274,25 @@ impl AddressMode {
 
 /// §1.3 normalisation. Forces the 16 MiB window for >16 MiB ROMs when the
 /// pointer looks like an x86 physical address, otherwise masks with
-/// `rom_size - 1`.
+/// `rom_size - 1`. The `rom_origin` is added so the result is a *file* offset
+/// rather than a ROM-flash-offset (§1.1: capsule-wrapped images carry envelope
+/// bytes before the ROM).
 #[inline]
-fn normalise_physical(raw: Address, rom_size: RomSize) -> FlashOffset {
+fn normalise_physical(raw: Address, rom_size: RomSize, rom_origin: FlashOffset) -> FlashOffset {
     let raw = raw.0 as u64;
-    if raw > 0xFF00_0000 && rom_size.bytes() > RomSize::MIB_16.bytes() {
-        FlashOffset(raw & 0x00FF_FFFF)
+    let rom_flash = if raw > 0xFF00_0000 && rom_size.bytes() > RomSize::MIB_16.bytes() {
+        raw & 0x00FF_FFFF
     } else {
-        FlashOffset(raw & rom_size.addr_mask())
-    }
+        raw & rom_size.addr_mask()
+    };
+    FlashOffset(rom_origin.0.wrapping_add(rom_flash))
+}
+
+/// Treat `raw` as a ROM-relative flash offset and translate it to a file
+/// offset by adding the ROM origin (§1.1).
+#[inline]
+fn rom_relative_to_file(raw: Address, rom_origin: FlashOffset) -> FlashOffset {
+    FlashOffset(rom_origin.0.wrapping_add(raw.0 as u64))
 }
 
 #[cfg(test)]
@@ -418,6 +437,7 @@ mod tests {
         ResolveContext {
             rom_size: RomSize::MIB_16,
             directory_base: FlashOffset(0xA7000),
+            rom_origin: FlashOffset(0),
         }
     }
 
@@ -449,6 +469,7 @@ mod tests {
         let ctx = ResolveContext {
             rom_size: RomSize::MIB_32,
             directory_base: FlashOffset(0),
+            rom_origin: FlashOffset(0),
         };
         assert_eq!(
             AddressMode::PhysicalX86
@@ -521,6 +542,43 @@ mod tests {
         assert_eq!(
             dir_mode.resolve_with_entry(AddressMode::PartitionRelative, Address(0x100), ctx,),
             FlashOffset(0xA7100),
+        );
+    }
+
+    #[test]
+    fn resolve_physical_x86_with_capsule_envelope() {
+        // Capsule-wrapped image: ROM origin is 0x800 inside the file
+        // (per docs/firmware-layout.md §1.1, e.g. ASUS_PRIME-X470-PRO-4011.CAP).
+        // 0xFF158000 must resolve to file offset 0x800 + 0x158000 = 0x158800,
+        // not 0x158000 — otherwise the directory parse reads from the
+        // capsule envelope and fails with BadMagic.
+        let ctx = ResolveContext {
+            rom_size: RomSize::MIB_16,
+            directory_base: FlashOffset(0),
+            rom_origin: FlashOffset(0x800),
+        };
+        assert_eq!(
+            AddressMode::PhysicalX86
+                .resolve(Address(0xFF15_8000), ctx)
+                .unwrap(),
+            FlashOffset(0x0015_8800),
+        );
+    }
+
+    #[test]
+    fn resolve_flash_offset_with_capsule_envelope() {
+        // Mode 01 ("flash offset" — really ROM-relative offset) also needs
+        // the rom_origin shift.
+        let ctx = ResolveContext {
+            rom_size: RomSize::MIB_16,
+            directory_base: FlashOffset(0),
+            rom_origin: FlashOffset(0x800),
+        };
+        assert_eq!(
+            AddressMode::FlashOffset
+                .resolve(Address(0x0038_8000), ctx)
+                .unwrap(),
+            FlashOffset(0x0038_8800),
         );
     }
 

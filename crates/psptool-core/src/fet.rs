@@ -15,10 +15,105 @@
 //! wins"; this module exposes the candidates and the parser separately so the
 //! caller can decide.
 
-use crate::address::{Address, FlashOffset};
+use crate::address::{Address, FlashOffset, RomSize};
 use crate::error::ParseError;
 use crate::magic::{FET_MAGIC, Magic};
 use crate::source::SourceBytes;
+
+/// Known FET-relative-to-ROM-start offsets (`docs/firmware-layout.md` §1.1).
+///
+/// PSPTool tries each of these as the FET's offset *within the ROM*; the
+/// implied ROM origin in the input file is `fet_position - fet_offset`. The
+/// list is in PSPTool/blob.py order so observed corpus images get a quick
+/// match on the first try.
+pub const KNOWN_FET_OFFSETS: &[u64] = &[
+    0x0002_0000,
+    0x00FA_0000,
+    0x00F2_0000,
+    0x00E2_0000,
+    0x00C2_0000,
+    0x0082_0000,
+    0x0012_0000,
+];
+
+/// Layout of one ROM within the input blob: where the ROM starts in the
+/// file (the §1.1 origin), the §1.3 mask size, and the parsed FET. Returned
+/// by [`detect_rom_layout`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RomLayout {
+    /// File offset of "ROM-flash-offset 0" — `0` for a bare flash dump,
+    /// non-zero for a capsule-wrapped image (e.g. `0x800` for ASUS `.CAP`
+    /// files).
+    pub rom_origin: FlashOffset,
+    /// `addr_mask + 1` per §1.3 — used to mask x86 physical pointers.
+    pub rom_size: RomSize,
+    /// The FET parsed from `fet_position`, retained so callers don't re-parse.
+    pub fet: Fet,
+}
+
+/// Try every (rom_size, fet_offset) combination from §1.1 against
+/// `fet_position` (the absolute file offset where the FET magic was found)
+/// and return the first layout where the resulting ROM fits inside `blob`.
+///
+/// Pick order mirrors PSPTool/blob.py: ROM size is the largest power-of-two
+/// that fits in the input, then each known FET-relative offset is tried in
+/// turn. The §1.1 single-ROM page-zero workaround (FET in the first 16 MiB
+/// even when `rom_size > 16 MiB`) is honoured.
+pub fn detect_rom_layout(blob: &SourceBytes, fet_position: FlashOffset) -> Option<RomLayout> {
+    let blob_start = blob.offset().get();
+    let blob_len = blob.len() as u64;
+    let blob_end = blob_start.checked_add(blob_len)?;
+    let pos = fet_position.get();
+    if pos < blob_start {
+        return None;
+    }
+
+    // PSPTool selects the largest power-of-two ROM size ≤ buffer_size.
+    let rom_size = if blob_len >= RomSize::MIB_32.bytes() {
+        RomSize::MIB_32
+    } else if blob_len >= RomSize::MIB_16.bytes() {
+        RomSize::MIB_16
+    } else if blob_len >= RomSize::MIB_8.bytes() {
+        RomSize::MIB_8
+    } else {
+        return None;
+    };
+
+    for &fet_offset in KNOWN_FET_OFFSETS {
+        // rom_origin is `fet_position - fet_offset` — must lie at-or-after
+        // the start of the blob.
+        let Some(rom_origin_abs) = pos.checked_sub(fet_offset) else {
+            continue;
+        };
+        if rom_origin_abs < blob_start {
+            continue;
+        }
+        // §1.1 rule 4 / blob.py: when the FET sits in page 0, the ROM may
+        // exceed the 16 MiB page boundary; otherwise the ROM is clamped to
+        // a 16 MiB window. We track that against `blob_end` so capsule-
+        // wrapped images (origin > 0) still pass the bounds check.
+        let rom_page = (pos - blob_start) / RomSize::MIB_16.bytes();
+        let effective_size = if rom_page == 0 {
+            rom_size.bytes()
+        } else {
+            rom_size.bytes().min(RomSize::MIB_16.bytes())
+        };
+        let Some(rom_end) = rom_origin_abs.checked_add(effective_size) else {
+            continue;
+        };
+        if rom_end > blob_end {
+            continue;
+        }
+        if let Ok(fet) = Fet::parse_at(blob, fet_position) {
+            return Some(RomLayout {
+                rom_origin: FlashOffset(rom_origin_abs),
+                rom_size,
+                fet,
+            });
+        }
+    }
+    None
+}
 
 /// Size of the magic at the start of a FET.
 pub const FET_MAGIC_SIZE: usize = 4;
@@ -408,5 +503,85 @@ mod tests {
     #[test]
     fn scan_empty_blob() {
         assert!(scan_fet_candidates(&empty_blob()).is_empty());
+    }
+
+    // ---------------------------------------------------------------------
+    // detect_rom_layout — §1.1 ROM-origin discovery.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn detect_rom_layout_bare_16mib() {
+        // 16 MiB ROM, FET at 0x20000 (Zen 1 / PSPTrace boot location).
+        // rom_origin must be 0.
+        let mut buf = vec![0u8; 0x100_0000];
+        let fet_off = 0x20_000usize;
+        buf[fet_off..fet_off + FET_MAGIC_SIZE].copy_from_slice(FET_MAGIC.as_bytes());
+        buf[fet_off + FET_MAGIC_SIZE..fet_off + FET_MAGIC_SIZE + FET_TERMINATOR_SIZE]
+            .copy_from_slice(&[0xFFu8; FET_TERMINATOR_SIZE]);
+
+        let blob = SourceBytes::from_blob(buf);
+        let layout =
+            detect_rom_layout(&blob, FlashOffset(fet_off as u64)).expect("detect bare 16 MiB");
+        assert_eq!(layout.rom_origin, FlashOffset(0));
+        assert_eq!(layout.rom_size, RomSize::MIB_16);
+    }
+
+    #[test]
+    fn detect_rom_layout_capsule_wrapped_16mib() {
+        // 16 MiB + 0x800 capsule envelope (the ASUS CAP corpus shape — the
+        // L10 failure mode). FET at file-offset 0x20800; matching the
+        // §1.1 entry 0x020000 yields rom_origin = 0x800.
+        let envelope: usize = 0x800;
+        let mut buf = vec![0u8; envelope + 0x100_0000];
+        let fet_file_off = envelope + 0x20_000;
+        buf[fet_file_off..fet_file_off + FET_MAGIC_SIZE].copy_from_slice(FET_MAGIC.as_bytes());
+        buf[fet_file_off + FET_MAGIC_SIZE..fet_file_off + FET_MAGIC_SIZE + FET_TERMINATOR_SIZE]
+            .copy_from_slice(&[0xFFu8; FET_TERMINATOR_SIZE]);
+
+        let blob = SourceBytes::from_blob(buf);
+        let layout = detect_rom_layout(&blob, FlashOffset(fet_file_off as u64))
+            .expect("detect capsule-wrapped");
+        assert_eq!(layout.rom_origin, FlashOffset(envelope as u64));
+        assert_eq!(layout.rom_size, RomSize::MIB_16);
+    }
+
+    #[test]
+    fn detect_rom_layout_returns_none_when_no_offset_fits() {
+        // Tiny blob — no §1.1 offset can give a valid rom_origin where the
+        // ROM also fits.
+        let mut buf = vec![0u8; 0x40];
+        buf[0x10..0x14].copy_from_slice(FET_MAGIC.as_bytes());
+        let blob = SourceBytes::from_blob(buf);
+        assert!(detect_rom_layout(&blob, FlashOffset(0x10)).is_none());
+    }
+
+    #[test]
+    fn detect_rom_layout_underflow_when_fet_below_offset_table() {
+        // FET at file offset 0x100 — smaller than every entry in the table,
+        // so no rom_origin can be derived without underflow.
+        let mut buf = vec![0u8; 0x100_0000];
+        let fet_off = 0x100usize;
+        buf[fet_off..fet_off + FET_MAGIC_SIZE].copy_from_slice(FET_MAGIC.as_bytes());
+        buf[fet_off + FET_MAGIC_SIZE..fet_off + FET_MAGIC_SIZE + FET_TERMINATOR_SIZE]
+            .copy_from_slice(&[0xFFu8; FET_TERMINATOR_SIZE]);
+
+        let blob = SourceBytes::from_blob(buf);
+        assert!(detect_rom_layout(&blob, FlashOffset(fet_off as u64)).is_none());
+    }
+
+    #[test]
+    fn detect_rom_layout_zen_plus_fa0000() {
+        // Zen+/Zen 2 layout: bare 16 MiB image with FET at 0xFA0000.
+        let mut buf = vec![0u8; 0x100_0000];
+        let fet_off = 0xFA_0000usize;
+        buf[fet_off..fet_off + FET_MAGIC_SIZE].copy_from_slice(FET_MAGIC.as_bytes());
+        buf[fet_off + FET_MAGIC_SIZE..fet_off + FET_MAGIC_SIZE + FET_TERMINATOR_SIZE]
+            .copy_from_slice(&[0xFFu8; FET_TERMINATOR_SIZE]);
+
+        let blob = SourceBytes::from_blob(buf);
+        let layout =
+            detect_rom_layout(&blob, FlashOffset(fet_off as u64)).expect("detect 0xFA0000 FET");
+        assert_eq!(layout.rom_origin, FlashOffset(0));
+        assert_eq!(layout.rom_size, RomSize::MIB_16);
     }
 }

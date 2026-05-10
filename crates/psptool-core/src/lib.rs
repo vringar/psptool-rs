@@ -54,7 +54,10 @@ pub use directory::{
 };
 pub use entry::{Entry, EntryClass, EntryRecord, HeaderEntry, PubkeyEntry};
 pub use error::ParseError;
-pub use fet::{Fet, FetSlot, FetSlotRecord, scan_fet_candidates};
+pub use fet::{
+    Fet, FetSlot, FetSlotRecord, KNOWN_FET_OFFSETS, RomLayout, detect_rom_layout,
+    scan_fet_candidates,
+};
 pub use fletcher::fletcher32;
 pub use id::{DirectoryId, DirectoryKind, EntryType, PspGenerationId, ZenGeneration};
 pub use magic::{

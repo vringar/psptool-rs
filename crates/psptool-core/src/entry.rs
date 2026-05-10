@@ -387,6 +387,7 @@ impl Entry {
         parent: &PspDirectory,
         index: usize,
         rom_size: RomSize,
+        rom_origin: FlashOffset,
     ) -> Result<Self, ParseError> {
         let record =
             parent
@@ -410,6 +411,7 @@ impl Entry {
             record.entry_address_mode(),
             record.size,
             rom_size,
+            rom_origin,
         )?;
         let class = classify(record.entry_type, /* is_bios */ false, &body);
         Ok(Self {
@@ -425,6 +427,7 @@ impl Entry {
         parent: &BiosDirectory,
         index: usize,
         rom_size: RomSize,
+        rom_origin: FlashOffset,
     ) -> Result<Self, ParseError> {
         let record =
             parent
@@ -448,6 +451,7 @@ impl Entry {
             record.entry_address_mode(),
             record.size,
             rom_size,
+            rom_origin,
         )?;
         let class = classify(record.entry_type, /* is_bios */ true, &body);
         Ok(Self {
@@ -476,6 +480,7 @@ fn resolve_body(
     entry_mode: AddressMode,
     entry_size: u32,
     rom_size: RomSize,
+    rom_origin: FlashOffset,
 ) -> Result<SourceBytes, ParseError> {
     if entry_type.is_soft_fuse_chain() {
         // §3.4: no separate body — fuse mask is encoded in the entry record's
@@ -486,6 +491,7 @@ fn resolve_body(
     let ctx = ResolveContext {
         rom_size,
         directory_base: dir_base,
+        rom_origin,
     };
     let body_offset = dir_mode.resolve_with_entry(entry_mode, entry_offset, ctx);
     let size = entry_size as u64;
@@ -666,7 +672,8 @@ mod tests {
             Directory::Psp(p) => p,
             other => panic!("expected PSP, got {other:?}"),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).expect("parse entry");
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO)
+            .expect("parse entry");
         // Type 0x21 is WRAPPED_IKEK — a NO_HDR type → Plain.
         assert!(matches!(entry.class, EntryClass::Plain));
         assert_eq!(entry.entry_type(), EntryType(0x21));
@@ -690,7 +697,8 @@ mod tests {
             Directory::Bios(b) => b,
             other => panic!("expected BIOS, got {other:?}"),
         };
-        let entry = Entry::parse_bios(&blob, &dir, 0, RomSize::MIB_16).expect("parse entry");
+        let entry = Entry::parse_bios(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO)
+            .expect("parse entry");
         // Type 0x62 is BIOS — NO_HDR.
         assert!(matches!(entry.class, EntryClass::Plain));
         assert_eq!(entry.entry_type(), EntryType(0x62));
@@ -738,7 +746,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         let pk = match &entry.class {
             EntryClass::Pubkey(p) => p,
             other => panic!("expected Pubkey, got {other:?}"),
@@ -759,7 +767,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         let h = match &entry.class {
             EntryClass::Header(h) => h,
             other => panic!("expected Header, got {other:?}"),
@@ -779,7 +787,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         match &entry.class {
             EntryClass::KeyStore(h) => {
                 assert_eq!(&h.magic, PS1_MAGIC.as_bytes());
@@ -800,7 +808,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         assert!(matches!(entry.class, EntryClass::SecondaryDirectoryPointer));
         assert_eq!(entry.get_bytes().len(), 0x10);
     }
@@ -814,7 +822,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         assert!(matches!(entry.class, EntryClass::TertiaryDirectoryPointer));
     }
 
@@ -845,7 +853,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let parsed = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let parsed = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         assert!(matches!(parsed.class, EntryClass::SoftFuseChain));
         // Body is the entry record itself — preserves byte-exact roundtrip.
         assert_eq!(parsed.get_bytes().as_bytes(), original_record.as_slice());
@@ -883,7 +891,7 @@ mod tests {
             Directory::Bios(b) => b,
             _ => unreachable!(),
         };
-        let parsed = Entry::parse_bios(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let parsed = Entry::parse_bios(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         assert!(matches!(parsed.class, EntryClass::Microcode));
     }
 
@@ -898,7 +906,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let parsed = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let parsed = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
         assert!(matches!(parsed.class, EntryClass::Plain));
     }
 
@@ -910,7 +918,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let err = Entry::parse_psp(&blob, &dir, 5, RomSize::MIB_16).unwrap_err();
+        let err = Entry::parse_psp(&blob, &dir, 5, RomSize::MIB_16, FlashOffset::ZERO).unwrap_err();
         assert!(matches!(err, ParseError::EntryIndexOutOfRange { .. }));
     }
 
@@ -933,7 +941,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
 
         // 1) The directory record's source is at the record's flash offset.
         let rec_src = entry.record.source();

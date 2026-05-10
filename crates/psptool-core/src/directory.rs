@@ -559,7 +559,17 @@ pub struct DirectoryRef {
 /// Tertiary pointers (entry types 0x48 / 0x4A — §3.3) are *not* followed:
 /// they require reading the entry body, which lives in the entry-parser
 /// issue (#7).
-pub fn walk_directories(blob: &SourceBytes, fet: &Fet, rom_size: RomSize) -> Vec<DirectoryRef> {
+///
+/// `rom_origin` is the file offset of the ROM's first byte within `blob`.
+/// For a bare flash dump pass [`FlashOffset::ZERO`]; for a capsule-wrapped
+/// image (§1.1) pass the byte offset of the envelope end. See
+/// [`crate::fet::detect_rom_layout`].
+pub fn walk_directories(
+    blob: &SourceBytes,
+    fet: &Fet,
+    rom_size: RomSize,
+    rom_origin: FlashOffset,
+) -> Vec<DirectoryRef> {
     let mut out = Vec::new();
     let mut visited: Vec<u64> = Vec::new();
 
@@ -591,6 +601,7 @@ pub fn walk_directories(blob: &SourceBytes, fet: &Fet, rom_size: RomSize) -> Vec
         let ctx = ResolveContext {
             rom_size,
             directory_base: FlashOffset(0),
+            rom_origin,
         };
         let target = match AddressMode::PhysicalX86.resolve(raw, ctx) {
             Ok(o) => o,
@@ -616,6 +627,7 @@ pub fn walk_directories(blob: &SourceBytes, fet: &Fet, rom_size: RomSize) -> Vec
                     let ctx = ResolveContext {
                         rom_size,
                         directory_base: FlashOffset(0),
+                        rom_origin,
                     };
                     let target = match AddressMode::PhysicalX86.resolve(entry.pointer, ctx) {
                         Ok(o) => o,
@@ -650,6 +662,7 @@ pub fn walk_directories(blob: &SourceBytes, fet: &Fet, rom_size: RomSize) -> Vec
                     let ctx = ResolveContext {
                         rom_size,
                         directory_base: dir_base,
+                        rom_origin,
                     };
                     let target =
                         dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx);
@@ -680,6 +693,7 @@ pub fn walk_directories(blob: &SourceBytes, fet: &Fet, rom_size: RomSize) -> Vec
                     let ctx = ResolveContext {
                         rom_size,
                         directory_base: dir_base,
+                        rom_origin,
                     };
                     let target =
                         dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx);
@@ -983,7 +997,7 @@ mod tests {
     fn walk_directories_via_single_fet_pointer() {
         let blob = synthetic_blob_with_psp_at(0x100_0000); // 16 MiB
         let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).expect("parse FET");
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
         assert_eq!(dirs.len(), 1);
         let DirectoryRef {
             directory,
@@ -1005,7 +1019,7 @@ mod tests {
         // Leave 0xA7000 zeroed — no directory there.
         let blob = SourceBytes::from_blob(buf);
         let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).expect("parse FET");
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
         assert!(dirs.is_empty());
     }
 
@@ -1039,7 +1053,7 @@ mod tests {
 
         let blob = SourceBytes::from_blob(buf);
         let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).unwrap();
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
 
         assert_eq!(dirs.len(), 2, "combo + child PSP");
         assert!(matches!(dirs[0].directory, Directory::Combo(_)));
@@ -1074,7 +1088,7 @@ mod tests {
 
         let blob = SourceBytes::from_blob(buf);
         let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).unwrap();
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
         assert_eq!(dirs.len(), 1);
         // First pointer wins — provenance records slot 0.
         assert_eq!(
@@ -1126,7 +1140,7 @@ mod tests {
 
         let blob = SourceBytes::from_blob(buf);
         let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).unwrap();
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
 
         assert_eq!(dirs.len(), 2, "parent + L2 child");
         assert!(matches!(&dirs[0].directory, Directory::Psp(p) if p.header.magic == PSP_MAGIC));
@@ -1137,6 +1151,60 @@ mod tests {
                 parent_offset: FlashOffset(parent_off as u64),
                 index: 0,
             }
+        );
+    }
+
+    /// Regression for L10 (capsule-wrapped images, e.g. ASUS_PRIME-X470-PRO):
+    /// the ROM origin is `0x800` inside the file. The FET pointer
+    /// `0xFF158000` must resolve to file offset `0x800 + 0x158000 = 0x158800`,
+    /// not `0x158000`. Without the fix, the directory parse reads from the
+    /// capsule envelope and returns BadMagic, so `walk_directories` yields
+    /// zero directories.
+    #[test]
+    fn walk_directories_traverses_capsule_wrapped_image() {
+        // 16 MiB ROM + 0x800 capsule envelope. Total file size 16 MiB + 0x800
+        // mirrors the corpus failure mode (16779264 bytes).
+        let envelope: usize = 0x800;
+        let rom_size_bytes: usize = 0x100_0000;
+        let mut buf = vec![0u8; envelope + rom_size_bytes];
+
+        // FET in the ROM at ROM-relative offset 0x20000 → file offset 0x20800.
+        let fet_off_in_rom = 0x20_000usize;
+        let fet_file_off = envelope + fet_off_in_rom;
+        buf[fet_file_off..fet_file_off + 4].copy_from_slice(FET_MAGIC.as_bytes());
+        // FET slot 0: x86 physical pointer 0xFF158000 → ROM-flash 0x158000
+        // → file offset envelope + 0x158000.
+        buf[fet_file_off + 4..fet_file_off + 8].copy_from_slice(&0xFF15_8000u32.to_le_bytes());
+        // 16-byte terminator.
+        buf[fet_file_off + 8..fet_file_off + 24].copy_from_slice(&[0xFF; 16]);
+
+        // Place a $PSP directory at ROM-relative 0x158000 → file 0x158800.
+        let dir_file_off = envelope + 0x158_000;
+        let dir_bytes = psptool_fixtures::micro::psp_directory();
+        buf[dir_file_off..dir_file_off + dir_bytes.len()].copy_from_slice(dir_bytes);
+
+        let blob = SourceBytes::from_blob(buf);
+        let fet = Fet::parse_at(&blob, FlashOffset(fet_file_off as u64)).expect("parse FET");
+
+        // Without the rom_origin fix, walk_directories reads the directory at
+        // file offset 0x158000 (envelope bytes — zeros) and yields nothing.
+        let dirs_without_origin = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
+        assert!(
+            dirs_without_origin.is_empty(),
+            "control: walk without rom_origin must miss the directory"
+        );
+
+        // With the correct rom_origin = 0x800, the directory is found.
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset(envelope as u64));
+        assert_eq!(
+            dirs.len(),
+            1,
+            "capsule-wrapped image must yield 1 directory"
+        );
+        assert!(matches!(&dirs[0].directory, Directory::Psp(p) if p.header.magic == PSP_MAGIC));
+        assert_eq!(
+            dirs[0].directory.source().offset(),
+            FlashOffset(dir_file_off as u64)
         );
     }
 }

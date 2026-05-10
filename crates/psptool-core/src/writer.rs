@@ -510,7 +510,8 @@ mod tests {
             Directory::Psp(p) => p.clone(),
             _ => unreachable!("$PSP magic"),
         };
-        let entry = Entry::parse_psp(blob, &psp, 0, RomSize::MIB_16).expect("parse entry");
+        let entry = Entry::parse_psp(blob, &psp, 0, RomSize::MIB_16, FlashOffset::ZERO)
+            .expect("parse entry");
         (fet, dir, entry)
     }
 

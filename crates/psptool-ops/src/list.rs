@@ -42,6 +42,9 @@ pub struct RomListing<'a> {
     pub index: usize,
     pub blob: &'a SourceBytes,
     pub rom_size: RomSize,
+    /// File offset of "ROM-flash-offset 0" inside `blob`. `FlashOffset::ZERO`
+    /// for bare flash dumps; non-zero for capsule-wrapped images (§1.1).
+    pub rom_origin: FlashOffset,
     pub fet: &'a Fet,
     pub directories: &'a [DirectoryRef],
 }
@@ -360,7 +363,13 @@ fn entries_for_directory(rom: &RomListing<'_>, dir: &Directory) -> Vec<EntryRow>
 fn parse_psp_entries(rom: &RomListing<'_>, parent: &PspDirectory) -> Vec<EntryRow> {
     let mut out = Vec::with_capacity(parent.entries.len());
     for i in 0..parent.entries.len() {
-        out.push(Entry::parse_psp(rom.blob, parent, i, rom.rom_size));
+        out.push(Entry::parse_psp(
+            rom.blob,
+            parent,
+            i,
+            rom.rom_size,
+            rom.rom_origin,
+        ));
     }
     out
 }
@@ -368,7 +377,13 @@ fn parse_psp_entries(rom: &RomListing<'_>, parent: &PspDirectory) -> Vec<EntryRo
 fn parse_bios_entries(rom: &RomListing<'_>, parent: &BiosDirectory) -> Vec<EntryRow> {
     let mut out = Vec::with_capacity(parent.entries.len());
     for i in 0..parent.entries.len() {
-        out.push(Entry::parse_bios(rom.blob, parent, i, rom.rom_size));
+        out.push(Entry::parse_bios(
+            rom.blob,
+            parent,
+            i,
+            rom.rom_size,
+            rom.rom_origin,
+        ));
     }
     out
 }
@@ -569,6 +584,7 @@ fn secondary_addresses(rom: &RomListing<'_>, dir: &Directory) -> Vec<u64> {
     let ctx = ResolveContext {
         rom_size: rom.rom_size,
         directory_base: dir_offset,
+        rom_origin: rom.rom_origin,
     };
     match dir {
         Directory::Psp(p) => collect_secondary_psp(&p.entries, dir_mode, ctx, &mut out),
@@ -578,6 +594,7 @@ fn secondary_addresses(rom: &RomListing<'_>, dir: &Directory) -> Vec<u64> {
             let combo_ctx = ResolveContext {
                 rom_size: rom.rom_size,
                 directory_base: FlashOffset(0),
+                rom_origin: rom.rom_origin,
             };
             for entry in &c.entries {
                 if let Ok(off) = AddressMode::PhysicalX86.resolve(entry.pointer, combo_ctx) {

@@ -72,7 +72,7 @@ fn build_empty_directories_blob() -> Vec<u8> {
 fn parse_rom(buf: Vec<u8>) -> (SourceBytes, Fet, Vec<psptool_core::DirectoryRef>) {
     let blob = SourceBytes::from_blob(buf);
     let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).expect("parse FET");
-    let directories = walk_directories(&blob, &fet, RomSize::MIB_16);
+    let directories = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO);
     (blob, fet, directories)
 }
 
@@ -84,6 +84,7 @@ fn list_default_psp_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -98,6 +99,7 @@ fn list_verbose_psp_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -112,6 +114,7 @@ fn list_json_psp_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -126,6 +129,7 @@ fn list_json_verbose_psp_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -140,6 +144,7 @@ fn list_default_bhd_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -154,6 +159,7 @@ fn list_json_bhd_micro() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -169,6 +175,7 @@ fn list_default_empty_directories() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
@@ -183,6 +190,7 @@ fn list_json_empty_directories_is_empty_array() {
         index: 0,
         blob: &blob,
         rom_size: RomSize::MIB_16,
+        rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
     };
