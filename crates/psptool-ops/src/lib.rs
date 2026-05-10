@@ -7,10 +7,12 @@
 
 #![forbid(unsafe_code)]
 
+mod extract;
 mod list;
 mod table;
 mod types;
 
+pub use extract::{ExtractError, extract_decompressed, extract_decrypted, extract_raw};
 pub use list::{RomListing, list_default, list_json, list_verbose};
 pub use types::readable_type;
 

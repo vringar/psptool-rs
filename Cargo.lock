@@ -691,11 +691,14 @@ dependencies = [
 name = "psptool-ops"
 version = "0.0.0"
 dependencies = [
+ "aes",
+ "cbc",
  "insta",
  "md-5",
  "psptool-core",
  "psptool-fixtures",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
