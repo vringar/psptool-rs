@@ -124,7 +124,7 @@ mod tests {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap()
+        Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap()
     }
 
     /// Build a header-file body that is BOTH `is_encrypted` and `is_signed`

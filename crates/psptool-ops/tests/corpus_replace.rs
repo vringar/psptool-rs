@@ -35,8 +35,9 @@ use libtest_mimic::{Arguments, Trial};
 use libtest_mimic::Failed;
 #[cfg(feature = "corpus")]
 use psptool_core::{
-    BlobEditor, Directory, DirectoryRef, Entry, EntryClass, Fet, RomSize, SourceBytes,
-    directory::walk_directories, fet::scan_fet_candidates,
+    BlobEditor, Directory, DirectoryRef, Entry, EntryClass, Fet, FlashOffset, RomSize, SourceBytes,
+    directory::walk_directories,
+    fet::{detect_rom_layout, scan_fet_candidates},
 };
 #[cfg(feature = "corpus")]
 use psptool_fixtures::{CorpusRom, corpus_roms};
@@ -63,26 +64,7 @@ fn main() {
 /// Same set as `corpus_roundtrip::SKIP_LIST` — these fail at the parser level
 /// before this test ever gets a chance to mutate them. Tracked as L10.
 #[cfg(feature = "corpus")]
-const SKIP_LIST: &[&str] = &[
-    "ASUS_KNPP-D32-ASUS-0207.CAP",
-    "ASUS_Notebook_TUF_FX505DY-AS.309",
-    "ASUS_PRIME-A320M-A-ASUS-4801.CAP",
-    "ASUS_PRIME-B350-PLUS-4011.CAP",
-    "ASUS_PRIME-B450M-A-ASUS-1201.CAP",
-    "ASUS_PRIME-X370-PRO-3803.CAP",
-    "ASUS_PRIME-X470-PRO-4011.CAP",
-    "ASUS_ROG-STRIX-B350-F-GAMING-ASUS-4801.CAP",
-    "ASUS_ROG-STRIX-B450-F-GAMING-ASUS-2301.CAP",
-    "ASUS_ROG-STRIX-X370-F-GAMING-ASUS-4801.CAP",
-    "ASUS_ROG-STRIX-X399-E-GAMING-ASUS-1002.CAP",
-    "ASUS_TR4_X399_ROG-ZENITH-EXTREME-ASUS-1701.CAP",
-    "ASUS_TUF-B450M-PRO-GAMING-ASUS-1201.CAP",
-    "HP_EliteBook_755_G5_Q81_010700.bin",
-    "HP_ProBook_645_G4_Q82_010701.bin",
-    "Lenovo_Thinkpad_A285_r0xuj33wd.iso",
-    "Lenovo_Thinkpad_A485_r0wuj48wd.iso",
-    "Lenovo_Thinkpad_T495_r12uj35wd.iso",
-];
+const SKIP_LIST: &[&str] = &[];
 
 #[cfg(feature = "corpus")]
 fn collect_trials() -> Vec<Trial> {
@@ -126,9 +108,8 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
     let name = rom.name().to_owned();
     let bytes = rom.into_bytes();
     let blob = SourceBytes::from_blob(bytes.clone());
-    let rom_size = pick_rom_size(bytes.len());
 
-    let (fet, dirs) = match find_fet(&blob, rom_size) {
+    let (fet, dirs, rom_size, rom_origin) = match find_fet(&blob) {
         Some(found) => found,
         None => {
             return Err(Failed::from(format!(
@@ -144,13 +125,14 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
     // body is mutable (non-empty, not aliasing the record). We hand the
     // directory to the family-specific helper so the production code path —
     // re-parse the entry, validate, patch — runs end to end.
-    let (target, body_off, body_len) = match first_replaceable(&blob, &fet, &dirs, rom_size) {
-        Some(t) => t,
-        // Empty / soft-fuse-only ROMs are legitimate; the headline locality
-        // assertion has nothing to chew on but the substrate roundtrip is
-        // already covered by `corpus_roundtrip`.
-        None => return Ok(()),
-    };
+    let (target, body_off, body_len) =
+        match first_replaceable(&blob, &fet, &dirs, rom_size, rom_origin) {
+            Some(t) => t,
+            // Empty / soft-fuse-only ROMs are legitimate; the headline locality
+            // assertion has nothing to chew on but the substrate roundtrip is
+            // already covered by `corpus_roundtrip`.
+            None => return Ok(()),
+        };
 
     let blob_start = blob.offset().get() as usize;
     let local_off = body_off
@@ -165,20 +147,20 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
     let mut editor = BlobEditor::from_blob(blob);
     match target {
         Target::Psp { dir, index } => {
-            replace_psp_entry_body(&mut editor, &dir, index, rom_size, &sentinel).map_err(|e| {
-                Failed::from(format!(
-                    "[{name}] replace_psp_entry_body(idx={index}, len={body_len}) failed: {e}"
-                ))
-            })?;
+            replace_psp_entry_body(&mut editor, &dir, index, rom_size, rom_origin, &sentinel)
+                .map_err(|e| {
+                    Failed::from(format!(
+                        "[{name}] replace_psp_entry_body(idx={index}, len={body_len}) failed: {e}"
+                    ))
+                })?;
         }
         Target::Bios { dir, index } => {
-            replace_bios_entry_body(&mut editor, &dir, index, rom_size, &sentinel).map_err(
-                |e| {
+            replace_bios_entry_body(&mut editor, &dir, index, rom_size, rom_origin, &sentinel)
+                .map_err(|e| {
                     Failed::from(format!(
                         "[{name}] replace_bios_entry_body(idx={index}, len={body_len}) failed: {e}"
                     ))
-                },
-            )?;
+                })?;
         }
     }
     let mutated = editor.serialize();
@@ -235,12 +217,13 @@ fn first_replaceable(
     _fet: &Fet,
     dirs: &[DirectoryRef],
     rom_size: RomSize,
+    rom_origin: FlashOffset,
 ) -> Option<(Target, usize, usize)> {
     for dir_ref in dirs {
         match &dir_ref.directory {
             Directory::Psp(psp) => {
                 for idx in 0..psp.entries.len() {
-                    if let Ok(entry) = Entry::parse_psp(blob, psp, idx, rom_size)
+                    if let Ok(entry) = Entry::parse_psp(blob, psp, idx, rom_size, rom_origin)
                         && is_replaceable(&entry)
                     {
                         return Some((
@@ -256,7 +239,7 @@ fn first_replaceable(
             }
             Directory::Bios(bios) => {
                 for idx in 0..bios.entries.len() {
-                    if let Ok(entry) = Entry::parse_bios(blob, bios, idx, rom_size)
+                    if let Ok(entry) = Entry::parse_bios(blob, bios, idx, rom_size, rom_origin)
                         && is_replaceable(&entry)
                     {
                         return Some((
@@ -287,19 +270,17 @@ fn is_replaceable(entry: &Entry) -> bool {
 }
 
 #[cfg(feature = "corpus")]
-fn pick_rom_size(file_len: usize) -> RomSize {
-    RomSize::new(file_len as u64).unwrap_or(RomSize::MIB_16)
-}
-
-#[cfg(feature = "corpus")]
-fn find_fet(blob: &SourceBytes, rom_size: RomSize) -> Option<(Fet, Vec<DirectoryRef>)> {
+fn find_fet(blob: &SourceBytes) -> Option<(Fet, Vec<DirectoryRef>, RomSize, FlashOffset)> {
+    // §1.1 discovery — same shape as the `corpus_roundtrip` companion test:
+    // each FET candidate's (rom_origin, rom_size) is derived via
+    // `detect_rom_layout` so capsule-wrapped images resolve correctly.
     for cand in scan_fet_candidates(blob) {
-        let Ok(fet) = Fet::parse_at(blob, cand) else {
+        let Some(layout) = detect_rom_layout(blob, cand) else {
             continue;
         };
-        let dirs = walk_directories(blob, &fet, rom_size);
+        let dirs = walk_directories(blob, &layout.fet, layout.rom_size, layout.rom_origin);
         if !dirs.is_empty() {
-            return Some((fet, dirs));
+            return Some((layout.fet, dirs, layout.rom_size, layout.rom_origin));
         }
     }
     None

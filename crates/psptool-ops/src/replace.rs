@@ -38,11 +38,11 @@
 //!   level "valid output" wrapper that recomputes fletcher belongs alongside
 //!   the re-sign work in #13.
 
-use psptool_core::RomSize;
 use psptool_core::directory::{BiosDirectory, PspDirectory};
 use psptool_core::entry::{Entry, EntryClass};
 use psptool_core::error::ParseError;
 use psptool_core::writer::{BlobEditor, PatchError};
+use psptool_core::{FlashOffset, RomSize};
 use thiserror::Error;
 
 /// Byte offset of the `size` field within a 16/24-byte directory entry
@@ -98,9 +98,10 @@ pub fn replace_psp_entry_body(
     parent: &PspDirectory,
     entry_index: usize,
     rom_size: RomSize,
+    rom_origin: FlashOffset,
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
-    let entry = Entry::parse_psp(editor.original(), parent, entry_index, rom_size)?;
+    let entry = Entry::parse_psp(editor.original(), parent, entry_index, rom_size, rom_origin)?;
     apply(editor, &entry, new_body)
 }
 
@@ -112,9 +113,10 @@ pub fn replace_bios_entry_body(
     parent: &BiosDirectory,
     entry_index: usize,
     rom_size: RomSize,
+    rom_origin: FlashOffset,
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
-    let entry = Entry::parse_bios(editor.original(), parent, entry_index, rom_size)?;
+    let entry = Entry::parse_bios(editor.original(), parent, entry_index, rom_size, rom_origin)?;
     apply(editor, &entry, new_body)
 }
 
@@ -287,7 +289,15 @@ mod tests {
 
         let replacement = vec![0xCCu8; 0x20];
         let mut editor = BlobEditor::from_blob(blob);
-        replace_psp_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &replacement).unwrap();
+        replace_psp_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &replacement,
+        )
+        .unwrap();
         let out = editor.serialize();
 
         assert_eq!(out.len(), original.len());
@@ -310,7 +320,15 @@ mod tests {
         let (blob, dir) = parse_psp(bytes);
 
         let mut editor = BlobEditor::from_blob(blob);
-        replace_psp_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &[0xCC; 0x10]).unwrap();
+        replace_psp_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &[0xCC; 0x10],
+        )
+        .unwrap();
         // Exactly one patch — only the body. The record was untouched.
         assert_eq!(editor.patch_count(), 1);
 
@@ -338,7 +356,15 @@ mod tests {
 
         let replacement = vec![0xCCu8; 0x33];
         let mut editor = BlobEditor::from_blob(blob);
-        replace_psp_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &replacement).unwrap();
+        replace_psp_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &replacement,
+        )
+        .unwrap();
         let out = editor.serialize();
 
         // 1) The record's `size` field is now exactly 0x33 (NOT 0x40, NOT
@@ -389,8 +415,15 @@ mod tests {
         let (blob, dir) = parse_psp(bytes);
 
         let mut editor = BlobEditor::from_blob(blob);
-        let err =
-            replace_psp_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &[0; 0x11]).unwrap_err();
+        let err = replace_psp_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &[0; 0x11],
+        )
+        .unwrap_err();
         assert!(matches!(
             err,
             ReplaceError::BodyTooLarge {
@@ -427,6 +460,7 @@ mod tests {
             &dir,
             0,
             RomSize::MIB_16,
+            FlashOffset::ZERO,
             &[0u8; PSP_ENTRY_SIZE],
         )
         .unwrap_err();
@@ -445,7 +479,15 @@ mod tests {
         let (blob, dir) = parse_psp(bytes);
 
         let mut editor = BlobEditor::from_blob(blob);
-        replace_psp_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &[]).unwrap();
+        replace_psp_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &[],
+        )
+        .unwrap();
         let out = editor.serialize();
 
         // Size field is 0.
@@ -499,7 +541,15 @@ mod tests {
 
         let replacement = vec![0xEEu8; 0x15]; // shrink to 0x15 — non-aligned
         let mut editor = BlobEditor::from_blob(blob);
-        replace_bios_entry_body(&mut editor, &dir, 0, RomSize::MIB_16, &replacement).unwrap();
+        replace_bios_entry_body(
+            &mut editor,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+            &replacement,
+        )
+        .unwrap();
         let out = editor.serialize();
 
         // BIOS records ALSO put `size` at +0x04 — the same constant we use.
@@ -525,7 +575,7 @@ mod tests {
         let (bytes, [abs0, abs1]) = psp_dir_with_two_entries([0x21, 0x21], [&body0, &body1]);
         let original = bytes.clone();
         let (blob, dir) = parse_psp(bytes);
-        let entry = Entry::parse_psp(&blob, &dir, 1, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 1, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
 
         let mut editor = BlobEditor::from_blob(blob);
         let replacement = vec![0x33u8; 0x30];

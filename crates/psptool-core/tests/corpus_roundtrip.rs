@@ -39,8 +39,9 @@ use libtest_mimic::{Arguments, Trial};
 use libtest_mimic::Failed;
 #[cfg(feature = "corpus")]
 use psptool_core::{
-    BlobEditor, Directory, DirectoryRef, Entry, EntryClass, Fet, RomSize, SourceBytes,
-    directory::walk_directories, fet::scan_fet_candidates,
+    BlobEditor, Directory, DirectoryRef, Entry, EntryClass, Fet, FlashOffset, RomSize, SourceBytes,
+    directory::walk_directories,
+    fet::{detect_rom_layout, scan_fet_candidates},
 };
 #[cfg(feature = "corpus")]
 use psptool_fixtures::{CorpusRom, corpus_roms};
@@ -72,26 +73,7 @@ fn main() {
 /// `Trial::test(...).with_ignored_flag(true)`, so the failure surfaces in
 /// `cargo test` reports as "ignored" — visible (not silent) but non-fatal.
 #[cfg(feature = "corpus")]
-const SKIP_LIST: &[&str] = &[
-    "ASUS_KNPP-D32-ASUS-0207.CAP",
-    "ASUS_Notebook_TUF_FX505DY-AS.309",
-    "ASUS_PRIME-A320M-A-ASUS-4801.CAP",
-    "ASUS_PRIME-B350-PLUS-4011.CAP",
-    "ASUS_PRIME-B450M-A-ASUS-1201.CAP",
-    "ASUS_PRIME-X370-PRO-3803.CAP",
-    "ASUS_PRIME-X470-PRO-4011.CAP",
-    "ASUS_ROG-STRIX-B350-F-GAMING-ASUS-4801.CAP",
-    "ASUS_ROG-STRIX-B450-F-GAMING-ASUS-2301.CAP",
-    "ASUS_ROG-STRIX-X370-F-GAMING-ASUS-4801.CAP",
-    "ASUS_ROG-STRIX-X399-E-GAMING-ASUS-1002.CAP",
-    "ASUS_TR4_X399_ROG-ZENITH-EXTREME-ASUS-1701.CAP",
-    "ASUS_TUF-B450M-PRO-GAMING-ASUS-1201.CAP",
-    "HP_EliteBook_755_G5_Q81_010700.bin",
-    "HP_ProBook_645_G4_Q82_010701.bin",
-    "Lenovo_Thinkpad_A285_r0xuj33wd.iso",
-    "Lenovo_Thinkpad_A485_r0wuj48wd.iso",
-    "Lenovo_Thinkpad_T495_r12uj35wd.iso",
-];
+const SKIP_LIST: &[&str] = &[];
 
 /// When the `corpus` feature is on, build one trial per ROM file so the
 /// libtest report identifies which file failed. When the feature is off, or
@@ -168,8 +150,7 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
     // parseable directory (the §1.2 discovery rule). A ROM with no parseable
     // FET candidate is unexpected enough to fail the trial — the corpus is
     // real-world AMD firmware and every image should have one.
-    let rom_size = pick_rom_size(bytes.len());
-    let (fet, dirs) = match find_fet(&blob, rom_size) {
+    let (fet, dirs, rom_size, rom_origin) = match find_fet(&blob) {
         Some(found) => found,
         None => {
             return Err(Failed::from(format!(
@@ -183,7 +164,7 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
 
     // (3) Mutation locality: pick one entry, replace its body with a sentinel
     // of identical length, serialise, and verify only that byte range moves.
-    let entry = match first_mutable_entry(&blob, &fet, &dirs, rom_size) {
+    let entry = match first_mutable_entry(&blob, &fet, &dirs, rom_size, rom_origin) {
         Some(e) => e,
         // No entries to mutate is allowed (some directories may be empty);
         // (2) already verified the substrate roundtrip on this ROM.
@@ -256,24 +237,19 @@ fn run_one(rom: CorpusRom) -> Result<(), Failed> {
 }
 
 #[cfg(feature = "corpus")]
-fn pick_rom_size(file_len: usize) -> RomSize {
-    // Most AMD ROMs are 8 / 16 / 32 MiB. For non-standard sizes (capsule
-    // envelopes, partial dumps), default to MIB_16 — address-mode resolution
-    // only needs `rom_size` for the high-bits mask, and any FET pointer
-    // within the blob's flash range will resolve identically under any of
-    // these three sizes.
-    RomSize::new(file_len as u64).unwrap_or(RomSize::MIB_16)
-}
-
-#[cfg(feature = "corpus")]
-fn find_fet(blob: &SourceBytes, rom_size: RomSize) -> Option<(Fet, Vec<DirectoryRef>)> {
+fn find_fet(blob: &SourceBytes) -> Option<(Fet, Vec<DirectoryRef>, RomSize, FlashOffset)> {
+    // §1.1 discovery: scan every byte-aligned FET candidate, derive the
+    // (rom_origin, rom_size) for each via `detect_rom_layout`, then walk the
+    // directory graph. The first candidate whose layout yields ≥1 parseable
+    // directory wins — capsule-wrapped images (e.g. ASUS .CAP) need this so
+    // FET pointers resolve relative to the ROM origin, not the file start.
     for cand in scan_fet_candidates(blob) {
-        let Ok(fet) = Fet::parse_at(blob, cand) else {
+        let Some(layout) = detect_rom_layout(blob, cand) else {
             continue;
         };
-        let dirs = walk_directories(blob, &fet, rom_size);
+        let dirs = walk_directories(blob, &layout.fet, layout.rom_size, layout.rom_origin);
         if !dirs.is_empty() {
-            return Some((fet, dirs));
+            return Some((layout.fet, dirs, layout.rom_size, layout.rom_origin));
         }
     }
     None
@@ -290,12 +266,13 @@ fn first_mutable_entry(
     _fet: &Fet,
     dirs: &[DirectoryRef],
     rom_size: RomSize,
+    rom_origin: FlashOffset,
 ) -> Option<Entry> {
     for dir_ref in dirs {
         match &dir_ref.directory {
             Directory::Psp(psp) => {
                 for idx in 0..psp.entries.len() {
-                    if let Ok(entry) = Entry::parse_psp(blob, psp, idx, rom_size)
+                    if let Ok(entry) = Entry::parse_psp(blob, psp, idx, rom_size, rom_origin)
                         && is_mutable(&entry)
                     {
                         return Some(entry);
@@ -304,7 +281,7 @@ fn first_mutable_entry(
             }
             Directory::Bios(bios) => {
                 for idx in 0..bios.entries.len() {
-                    if let Ok(entry) = Entry::parse_bios(blob, bios, idx, rom_size)
+                    if let Ok(entry) = Entry::parse_bios(blob, bios, idx, rom_size, rom_origin)
                         && is_mutable(&entry)
                     {
                         return Some(entry);
