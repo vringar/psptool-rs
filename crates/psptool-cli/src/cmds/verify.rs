@@ -2,8 +2,8 @@
 
 use std::io::Write;
 
-use anyhow::Result;
-use psptool_ops::{EntryVerification, verify_with_directories};
+use anyhow::{Result, anyhow};
+use psptool_ops::{EntryVerification, VerificationStatus, verify_with_directories};
 use serde_json::{Value, json};
 
 use crate::cli::VerifyArgs;
@@ -24,6 +24,29 @@ pub fn run(args: &VerifyArgs, out: &mut dyn Write) -> Result<()> {
         writeln!(out, "{s}")?;
     } else {
         write_text(&report, args.verbose, out)?;
+    }
+    // Exit non-zero when ANY entry failed chain-of-trust verification. The
+    // success set is `Verified` and `NotSigned` (an unsigned entry isn't a
+    // verification *failure*). `UnknownKey` / `BadSignature` / `Error` all
+    // count as failures so consumers (CI, scripts) can gate on `psptool
+    // verify`'s exit code without parsing stdout.
+    let failures = report
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.status,
+                VerificationStatus::UnknownKey
+                    | VerificationStatus::BadSignature
+                    | VerificationStatus::Error(_)
+            )
+        })
+        .count();
+    if failures > 0 {
+        return Err(anyhow!(
+            "{failures} of {} entr{} failed chain-of-trust verification",
+            report.len(),
+            if failures == 1 { "y" } else { "ies" }
+        ));
     }
     Ok(())
 }

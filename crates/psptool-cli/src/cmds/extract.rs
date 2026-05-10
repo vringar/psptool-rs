@@ -21,7 +21,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
-use psptool_core::{Directory, Entry, EntryClass, Ikek, walk_directories};
+use psptool_core::{Directory, Entry, EntryClass, EntryRecord, Ikek, walk_directories};
 use psptool_ops::{extract_decompressed, extract_decrypted, extract_raw, readable_type};
 use regex::RegexBuilder;
 
@@ -171,10 +171,27 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
             extract_raw(entry)
         };
         let name = readable_type(entry.entry_type(), is_bios);
+        // Mirrors `psptool/__main__.py:202-209`. The bare type name collides
+        // for entries that share a (type, dir, file) but differ in
+        // subprogram/instance or HeaderFile version — without the suffixes
+        // multi-file extract silently overwrites earlier outputs.
         let stem = if args.no_duplicates {
-            name.clone()
+            // Upstream `unique_files` path (line 226): `'%s' % readable_type`,
+            // optionally with `_{readable_version}` for HeaderFile entries.
+            let mut s = name.clone();
+            if let Some(ver) = header_version_suffix(entry) {
+                s.push_str(&ver);
+            }
+            s
         } else {
-            format!("d{:02}_e{:02}_{}", dir_idx, entry_idx, name)
+            let mut s = format!("d{:02}_e{:02}_{}", dir_idx, entry_idx, name);
+            if let Some(suffix) = sub_ins_suffix(entry) {
+                s.push_str(&suffix);
+            }
+            if let Some(ver) = header_version_suffix(entry) {
+                s.push_str(&ver);
+            }
+            s
         };
         let path = outdir.join(sanitize_for_path(&stem));
         if let Err(err) = fs::write(&path, &bytes) {
@@ -187,6 +204,38 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
         return Err(anyhow!("no entries extracted"));
     }
     Ok(())
+}
+
+/// `_SUB_{hex}_INS_{hex}` when either field is non-zero, mirroring upstream's
+/// `if file.entry.subprogram != 0 or file.entry.instance != 0:` branch.
+/// Format matches Python's `hex()` output (`0x0` not `0x00`).
+fn sub_ins_suffix(entry: &Entry) -> Option<String> {
+    let (subprogram, instance) = match &entry.record {
+        EntryRecord::Psp(p) => (p.subprogram, p.instance()),
+        EntryRecord::Bios(b) => (b.subprogram(), b.instance()),
+    };
+    if subprogram == 0 && instance == 0 {
+        return None;
+    }
+    Some(format!("_SUB_{:#x}_INS_{:#x}", subprogram, instance))
+}
+
+/// `_X.Y.Z.W` for HeaderEntry-class entries, mirroring
+/// `HeaderFile.get_readable_version()` (psptool/header_file.py:131-132):
+/// the four `version` bytes, reversed, each rendered as upper-case hex
+/// without a `0x` prefix, joined by `.`.
+fn header_version_suffix(entry: &Entry) -> Option<String> {
+    let header = match &entry.class {
+        EntryClass::Header(h) => h,
+        _ => return None,
+    };
+    let parts: Vec<String> = header
+        .version
+        .iter()
+        .rev()
+        .map(|b| format!("{:X}", b))
+        .collect();
+    Some(format!("_{}", parts.join(".")))
 }
 
 fn parse_entry_at(opened: &OpenedRom, dir: usize, file: usize) -> Result<Entry> {
