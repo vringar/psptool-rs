@@ -694,6 +694,7 @@ dependencies = [
  "aes",
  "cbc",
  "insta",
+ "libtest-mimic",
  "md-5",
  "psptool-core",
  "psptool-fixtures",
