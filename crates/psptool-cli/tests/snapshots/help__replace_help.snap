@@ -1,0 +1,28 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"replace\", \"--help\"])"
+---
+Replace an entry body (and optionally re-sign)
+
+Usage: psptool replace [OPTIONS] --directory-index <DIRECTORY_INDEX> --file-index <FILE_INDEX> --outfile <OUTFILE> <FILE>
+
+Arguments:
+  <FILE>  
+
+Options:
+  -r, --rom-index <ROM_INDEX>
+          [default: 0]
+  -d, --directory-index <DIRECTORY_INDEX>
+          Required
+  -e, --file-index <FILE_INDEX>
+          Required
+  -o, --outfile <OUTFILE>
+          Required
+  -s, --subfile <SUBFILE>
+          Replacement file contents. When omitted, this becomes a "plain re-sign" of the entry (requires `-p`)
+  -p, --privkey <PRIVKEY>
+          Private key (PEM) for re-signing [aliases: --privkeystub]
+  -a, --privkeypass <PRIVKEY_PASS>
+          Passphrase (currently ignored — `rsa::pkcs8::DecodePrivateKey` reads PEM directly; encrypted-PEM support is a follow-up)
+  -h, --help
+          Print help

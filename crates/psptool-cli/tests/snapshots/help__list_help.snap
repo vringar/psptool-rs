@@ -1,0 +1,19 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"list\", \"--help\"])"
+---
+List directories and entries
+
+Usage: psptool list [OPTIONS] <FILE>
+
+Arguments:
+  <FILE>  Firmware image
+
+Options:
+  -r, --rom-index <ROM_INDEX>  ROM index [default: 0]
+  -j, --json                   JSON output
+  -n, --no-duplicates          Iterate unique entries only
+  -t, --key-tree               Print the cert-tree key tree
+  -m, --metrics                Print parsing metrics
+  -v, --verbose                Verbose columns
+  -h, --help                   Print help

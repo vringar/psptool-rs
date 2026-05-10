@@ -1,0 +1,37 @@
+---
+source: crates/psptool-cli/tests/synthetic.rs
+expression: value
+---
+[
+  {
+    "address": 131136,
+    "directory": 0,
+    "entries": [
+      {
+        "address": 131200,
+        "index": 0,
+        "info": [
+          "AMD_CODE_SIGN"
+        ],
+        "magic": "a1a1a1a1",
+        "sectionType": "AMD_PUBLIC_KEY~0x0",
+        "size": 576,
+        "version": ""
+      },
+      {
+        "address": 131840,
+        "index": 1,
+        "info": [
+          "signed",
+          "SIG_UNKNOWN"
+        ],
+        "magic": "$PS1",
+        "sectionType": "PSP_FW_BOOT_LOADER~0x1",
+        "size": 528,
+        "version": "00.00.00.00"
+      }
+    ],
+    "magic": "$PSP",
+    "secondaryAddresses": []
+  }
+]

@@ -1,0 +1,6 @@
+---
+source: crates/psptool-cli/tests/synthetic.rs
+expression: stdout
+---
+  0.0   0x00 not-signed
+  0.1   0x01 verified

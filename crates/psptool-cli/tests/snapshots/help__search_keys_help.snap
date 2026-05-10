@@ -1,0 +1,15 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"search-keys\", \"--help\"])"
+---
+Discover RSA pubkeys (structured + heuristic)
+
+Usage: psptool search-keys [OPTIONS] <FILE>
+
+Arguments:
+  <FILE>  
+
+Options:
+  -r, --rom-index <ROM_INDEX>  [default: 0]
+  -j, --json                   
+  -h, --help                   Print help

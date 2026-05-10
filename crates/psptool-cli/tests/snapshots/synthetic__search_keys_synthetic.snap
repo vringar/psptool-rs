@@ -1,0 +1,5 @@
+---
+source: crates/psptool-cli/tests/synthetic.rs
+expression: stdout
+---
+0x00020080  a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1  modulus=256  structured(d0.e0)

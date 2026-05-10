@@ -1,0 +1,63 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"--help\"])"
+---
+Inspect and modify AMD PSP firmware images.
+
+Usage: psptool [OPTIONS] [FILE] [COMMAND]
+
+Commands:
+  list         List directories and entries [aliases: ls]
+  extract      Extract one or more entry bodies
+  replace      Replace an entry body (and optionally re-sign)
+  sign         Re-sign a signed entry with a caller-supplied private key
+  verify       Walk every directory and report chain-of-trust verification status
+  search-keys  Discover RSA pubkeys (structured + heuristic)
+  help         Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [FILE]  Positional firmware image. Required for any action other than `--version` / no-args (which prints help)
+
+Options:
+  -V, --version
+          Print version (mirrors upstream `-V` / `--version`)
+  -E, --entries
+          List entries — the upstream `-E` action (default when a `file` is supplied with no subcommand and no other action flag)
+  -X, --extract-file
+          Extract one or more entries — upstream `-X`
+  -R, --replace-file
+          Replace an entry's body — upstream `-R`
+  -r, --rom-index <ROM_INDEX>
+          Selector — ROM index inside a multi-ROM blob [default: 0]
+  -d, --directory-index <DIRECTORY_INDEX>
+          Selector — directory index inside the chosen ROM
+  -e, --file-index <FILE_INDEX>
+          Selector — entry index inside the chosen directory
+  -T, --type-regex <TYPE_REGEX>
+          Selector — type-name regex (alternative to `-d -e` for `-X`)
+  -o, --outfile <OUTFILE>
+          Output file (single-file `-X`/`-R`) or output directory (multi-file `-X`)
+  -u, --decompress
+          Decompress when extracting (`-X -u`). Errors when the entry is not compressed in single-file mode
+  -c, --decrypt
+          Decrypt when extracting (`-X -c`). Errors when the entry is not encrypted in single-file mode
+  -k, --pem-key
+          Emit the PEM-encoded pubkey (`-X -k`). Silently ignored for non-pubkey entries in multi-file mode
+  -n, --no-duplicates
+          Iterate unique entries only (`-E -n` / `-X -n`)
+  -j, --json
+          JSON output (`-E -j`)
+  -t, --key-tree
+          Print the certificate-tree key tree (`-E -t`)
+  -m, --metrics
+          Print parsing metrics (`-E -m`)
+  -v, --verbose
+          Verbose output. Adds the `flags / MD5 / size_signed / size_full / size_packed / load_addr` columns to `list`
+  -s, --subfile <SUBFILE>
+          Re-sign: replacement file contents (`-R -s`)
+  -p, --privkey <PRIVKEY>
+          Re-sign: private-key path (`-R -p`). When the upstream flag accepted a stub, this Rust port accepts a single PEM file [aliases: --privkeystub]
+  -a, --privkeypass <PRIVKEY_PASS>
+          Re-sign: passphrase for the private key (`-R -a`)
+  -h, --help
+          Print help

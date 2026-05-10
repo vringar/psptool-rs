@@ -1,0 +1,22 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"extract\", \"--help\"])"
+---
+Extract one or more entry bodies
+
+Usage: psptool extract [OPTIONS] <FILE>
+
+Arguments:
+  <FILE>  
+
+Options:
+  -r, --rom-index <ROM_INDEX>              [default: 0]
+  -d, --directory-index <DIRECTORY_INDEX>  
+  -e, --file-index <FILE_INDEX>            
+  -T, --type-regex <TYPE_REGEX>            
+  -o, --outfile <OUTFILE>                  
+  -u, --decompress                         
+  -c, --decrypt                            
+  -k, --pem-key                            
+  -n, --no-duplicates                      
+  -h, --help                               Print help

@@ -1,0 +1,16 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"verify\", \"--help\"])"
+---
+Walk every directory and report chain-of-trust verification status
+
+Usage: psptool verify [OPTIONS] <FILE>
+
+Arguments:
+  <FILE>  
+
+Options:
+  -r, --rom-index <ROM_INDEX>  [default: 0]
+  -j, --json                   
+  -v, --verbose                
+  -h, --help                   Print help

@@ -1,0 +1,19 @@
+---
+source: crates/psptool-cli/tests/help.rs
+expression: "render_help(&[\"sign\", \"--help\"])"
+---
+Re-sign a signed entry with a caller-supplied private key
+
+Usage: psptool sign [OPTIONS] --directory-index <DIRECTORY_INDEX> --file-index <FILE_INDEX> --outfile <OUTFILE> --privkey <PRIVKEY> <FILE>
+
+Arguments:
+  <FILE>  
+
+Options:
+  -r, --rom-index <ROM_INDEX>              [default: 0]
+  -d, --directory-index <DIRECTORY_INDEX>  
+  -e, --file-index <FILE_INDEX>            
+  -o, --outfile <OUTFILE>                  Output ROM (the input is not modified in-place)
+  -p, --privkey <PRIVKEY>                  Private key (PEM)
+  -a, --privkeypass <PRIVKEY_PASS>         Passphrase (currently ignored)
+  -h, --help                               Print help
