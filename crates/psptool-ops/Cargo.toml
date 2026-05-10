@@ -22,6 +22,12 @@ psptool-core.workspace = true
 md-5 = "0.10"
 serde_json = "1"
 thiserror = "2"
+# Crypto stack for sign + verify (issue #13). `verify` reuses the
+# `HeaderEntry::verify_signature` path already in psptool-core; `sign`
+# generates fresh PSS signatures with caller-provided private keys.
+rsa = { version = "0.9", features = ["sha2"] }
+sha2 = "0.10"
+rand = "0.8"
 
 [dev-dependencies]
 psptool-fixtures = { workspace = true }

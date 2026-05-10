@@ -698,7 +698,10 @@ dependencies = [
  "md-5",
  "psptool-core",
  "psptool-fixtures",
+ "rand",
+ "rsa",
  "serde_json",
+ "sha2",
  "thiserror",
 ]
 
