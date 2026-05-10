@@ -105,10 +105,11 @@ pub fn verify_chain_of_trust(
     blob: &SourceBytes,
     fet: &Fet,
     rom_size: RomSize,
+    rom_origin: FlashOffset,
     ikek: Option<Ikek>,
 ) -> Vec<EntryVerification> {
-    let directories = walk_directories(blob, fet, rom_size);
-    verify_with_directories(blob, &directories, rom_size, ikek)
+    let directories = walk_directories(blob, fet, rom_size, rom_origin);
+    verify_with_directories(blob, &directories, rom_size, rom_origin, ikek)
 }
 
 /// Variant of [`verify_chain_of_trust`] that accepts an already-walked
@@ -118,6 +119,7 @@ pub fn verify_with_directories(
     blob: &SourceBytes,
     directories: &[DirectoryRef],
     rom_size: RomSize,
+    rom_origin: FlashOffset,
     ikek: Option<Ikek>,
 ) -> Vec<EntryVerification> {
     // First pass: parse every entry and stash the parsed forms keyed by
@@ -125,7 +127,12 @@ pub fn verify_with_directories(
     // pubkey lookup table needs to scan all of them before we can verify.
     let mut parsed: Vec<Vec<Result<Entry, ParseError>>> = Vec::with_capacity(directories.len());
     for dir_ref in directories {
-        parsed.push(parse_dir_entries(blob, &dir_ref.directory, rom_size));
+        parsed.push(parse_dir_entries(
+            blob,
+            &dir_ref.directory,
+            rom_size,
+            rom_origin,
+        ));
     }
 
     // Build the pubkey lookup table from successful parses.
@@ -177,10 +184,11 @@ pub fn collect_pubkeys(
     blob: &SourceBytes,
     directories: &[DirectoryRef],
     rom_size: RomSize,
+    rom_origin: FlashOffset,
 ) -> HashMap<KeyId, PubkeyEntry> {
     let mut pubkeys: HashMap<KeyId, PubkeyEntry> = HashMap::new();
     for dir_ref in directories {
-        for entry in parse_dir_entries(blob, &dir_ref.directory, rom_size)
+        for entry in parse_dir_entries(blob, &dir_ref.directory, rom_size, rom_origin)
             .into_iter()
             .filter_map(|e| e.ok())
         {
@@ -200,13 +208,14 @@ fn parse_dir_entries(
     blob: &SourceBytes,
     dir: &Directory,
     rom_size: RomSize,
+    rom_origin: FlashOffset,
 ) -> Vec<Result<Entry, ParseError>> {
     match dir {
         Directory::Psp(p) => (0..p.entries.len())
-            .map(|i| Entry::parse_psp(blob, p, i, rom_size))
+            .map(|i| Entry::parse_psp(blob, p, i, rom_size, rom_origin))
             .collect(),
         Directory::Bios(b) => (0..b.entries.len())
-            .map(|i| Entry::parse_bios(blob, b, i, rom_size))
+            .map(|i| Entry::parse_bios(blob, b, i, rom_size, rom_origin))
             .collect(),
         // Combo directories list pointers, not files — no entries to verify.
         Directory::Combo(_) => Vec::new(),
@@ -255,7 +264,12 @@ fn classify_entry(
     match header.verify_signature(entry.body.as_bytes(), pubkey, ikek) {
         Ok(()) => mk(VerificationStatus::Verified, Some(key_id)),
         Err(e) => match e {
-            psptool_core::VerifyError::BadSignature => {
+            // PSPTool's bootloader_overview.py returns False for both a real
+            // bad-signature outcome and a structurally-invalid signature blob.
+            // Mirror that taxonomy so the chain-of-trust report aligns with
+            // the reference oracle.
+            psptool_core::VerifyError::BadSignature
+            | psptool_core::VerifyError::InvalidSignature => {
                 mk(VerificationStatus::BadSignature, Some(key_id))
             }
             other => mk(VerificationStatus::Error(other.to_string()), Some(key_id)),
@@ -286,7 +300,7 @@ mod tests {
             build_synthetic_rom_with_signed_entry(&priv_key, &pk, b"hello, signed!");
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, None);
+        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
 
         // Expect at least one Verified row for the signed entry, and a NotSigned
         // row for the pubkey itself (it does not carry a HeaderFile prefix).
@@ -314,7 +328,7 @@ mod tests {
         rom_bytes[sig_fp_off..sig_fp_off + 16].copy_from_slice(&[0xDE; 16]);
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, None);
+        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
 
         let unknown = report
             .iter()
@@ -333,7 +347,7 @@ mod tests {
         rom_bytes[body_off + 0x100] ^= 0x01;
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, None);
+        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
 
         let bad = report
             .iter()
@@ -357,8 +371,8 @@ mod tests {
         }
         let blob = SourceBytes::from_blob(rom_bytes.clone());
         let fet = parse_fet_at(&blob, 0);
-        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16);
-        let report = verify_with_directories(&blob, &dirs, RomSize::MIB_16, None);
+        let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset(0));
+        let report = verify_with_directories(&blob, &dirs, RomSize::MIB_16, FlashOffset(0), None);
         assert!(
             report
                 .iter()
@@ -372,7 +386,9 @@ mod tests {
         // Find the parsed signed entry.
         let mut signed_entry: Option<Entry> = None;
         for dir_ref in &dirs {
-            for parsed in parse_dir_entries(&blob, &dir_ref.directory, RomSize::MIB_16) {
+            for parsed in
+                parse_dir_entries(&blob, &dir_ref.directory, RomSize::MIB_16, FlashOffset(0))
+            {
                 if let Ok(entry) = parsed
                     && let EntryClass::Header(h) = &entry.class
                     && h.is_signed()
@@ -394,7 +410,7 @@ mod tests {
         assert_eq!(patched.len(), rom_bytes.len());
         let blob2 = SourceBytes::from_blob(patched);
         let fet2 = parse_fet_at(&blob2, 0);
-        let report2 = verify_chain_of_trust(&blob2, &fet2, RomSize::MIB_16, None);
+        let report2 = verify_chain_of_trust(&blob2, &fet2, RomSize::MIB_16, FlashOffset(0), None);
         assert!(
             report2
                 .iter()

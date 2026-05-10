@@ -137,10 +137,16 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
         });
     }
 
-    let signed = header.get_signed_bytes(entry.body.as_bytes(), ikek)?;
-    let sig_len = header
-        .signature_len()
-        .ok_or(SignError::UnsupportedSignatureType(header.signature_type))?;
+    let body_bytes = entry.body.as_bytes();
+    let signed = header.get_signed_bytes(body_bytes, ikek)?;
+    // Locate (and validate) the trailing signature region via the vetted
+    // core helper. signature_bytes() honours `rom_size`: it falls back to
+    // body.len() when rom_size==0, and rejects rom_size > body.len() as
+    // BodyTooSmall — handling the truncation/extension corner cases that an
+    // ad-hoc offset computation would have to re-derive.
+    let sig_slice = header.signature_bytes(body_bytes)?;
+    let sig_len = sig_slice.len();
+    let offset_in_body = sig_slice.as_ptr() as usize - body_bytes.as_ptr() as usize;
 
     let sig_be: Vec<u8> = match header.signature_type {
         0 => {
@@ -168,17 +174,7 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
     let mut sig_disk = sig_be;
     sig_disk.reverse();
 
-    // Locate the trailing signature region. `header.signature_bytes` returns
-    // a borrowed slice within the entry body; we want the absolute flash
-    // offset to feed into the diff-and-patch writer.
-    let body_offset = entry.body.offset().get();
-    // Effective end honours `rom_size`. If `rom_size == 0`, end == body.len().
-    let end = if header.rom_size == 0 {
-        entry.body.len() as u64
-    } else {
-        header.rom_size as u64
-    };
-    let sig_start = body_offset + (end - sig_len as u64);
+    let sig_start = entry.body.offset().get() + offset_in_body as u64;
     editor.patch(psptool_core::FlashOffset(sig_start), sig_disk)?;
     Ok(())
 }
@@ -198,11 +194,11 @@ mod tests {
 
     fn signed_entry_in(blob: &SourceBytes) -> Entry {
         let fet = parse_fet(blob);
-        let dirs = walk_directories(blob, &fet, RomSize::MIB_16);
+        let dirs = walk_directories(blob, &fet, RomSize::MIB_16, FlashOffset(0));
         for dir_ref in dirs {
             if let psptool_core::Directory::Psp(p) = &dir_ref.directory {
                 for i in 0..p.entries.len() {
-                    if let Ok(entry) = Entry::parse_psp(blob, p, i, RomSize::MIB_16)
+                    if let Ok(entry) = Entry::parse_psp(blob, p, i, RomSize::MIB_16, FlashOffset(0))
                         && let EntryClass::Header(h) = &entry.class
                         && h.is_signed()
                     {
@@ -238,7 +234,7 @@ mod tests {
             psptool_core::Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16).unwrap();
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset(0)).unwrap();
         assert!(matches!(entry.class, EntryClass::Plain));
 
         let (priv_key, _) = generate_test_keypair();
@@ -299,5 +295,36 @@ mod tests {
             "got {err:?}"
         );
         assert!(editor.is_clean());
+    }
+
+    #[test]
+    fn sign_entry_rejects_rom_size_larger_than_body() {
+        // Locks in the round-1 fix: sign_entry must delegate to
+        // HeaderEntry::signature_bytes for the trailing-region offset, so
+        // rom_size > body.len() is rejected as BodyTooSmall (not silently
+        // patched out-of-bounds). Mutate rom_size in the synthetic ROM to
+        // exceed the entry body length, re-parse, and assert the error
+        // surfaces as SignError::Body(BodyError::BodyTooSmall { .. }).
+        use psptool_core::BodyError;
+        let (priv_key, pub_key) = generate_test_keypair();
+        let pk = SyntheticPubkey::from_key(&pub_key, [0xF6; 16], [0xF6; 16]);
+        let (mut rom_bytes, _, header_body_off, _) =
+            build_synthetic_rom_with_signed_entry(&priv_key, &pk, b"oversized-rom");
+        // rom_size lives at header[0x6C..0x70]. Set it to a value larger than
+        // the entry body length (header_total_len). Pick a value clearly past
+        // the body but inside the ROM so the entry_body slice still parses.
+        let rom_size_off = header_body_off + 0x6C;
+        let oversized = u32::MAX / 2;
+        rom_bytes[rom_size_off..rom_size_off + 4].copy_from_slice(&oversized.to_le_bytes());
+
+        let blob = SourceBytes::from_blob(rom_bytes);
+        let entry = signed_entry_in(&blob);
+        let mut editor = BlobEditor::from_blob(blob);
+        let err = sign_entry(&mut editor, &entry, &priv_key, None).unwrap_err();
+        assert!(
+            matches!(err, SignError::Body(BodyError::BodyTooSmall { .. })),
+            "expected BodyTooSmall for rom_size > body.len(), got {err:?}"
+        );
+        assert!(editor.is_clean(), "rejected sign must record no patch");
     }
 }
