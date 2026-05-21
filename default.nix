@@ -27,9 +27,40 @@ let
   };
 
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+
+  # Reference Python PSPTool — the upstream tool this project re-implements,
+  # pinned to the PyPI 3.4 sdist. Consumed only by the corpus-gated
+  # differential integration test (issue #18): `psptool-cli/tests/
+  # differential.rs` shells out to `python3 -m psptool` via the
+  # `PSPTOOL_REFERENCE` env var the dev shell exports. Building it from the
+  # pinned nixpkgs keeps the reference reproducible without a separate clone
+  # or another submodule.
+  referencePsptool = pkgs.python3Packages.buildPythonPackage {
+    pname = "psptool";
+    version = "3.4";
+    format = "pyproject";
+    src = pkgs.fetchPypi {
+      pname = "psptool";
+      version = "3.4";
+      hash = "sha256-/XEELA1A8nOsYbVIuRTEehyzcHSy1acn3yDh8Ckr9YM=";
+    };
+    nativeBuildInputs = with pkgs.python3Packages; [ hatchling hatch-vcs ];
+    propagatedBuildInputs = with pkgs.python3Packages; [ cryptography prettytable ];
+    # hatch-vcs derives the version from VCS metadata, which is absent in the
+    # sdist build sandbox — pin it explicitly so the build does not fail.
+    env.HATCH_VCS_PRETEND_VERSION = "3.4";
+    doCheck = false;
+    pythonImportsCheck = [ "psptool" ];
+  };
+
+  # A python3 interpreter that can `import psptool`. The differential test
+  # invokes `${referencePython}/bin/python3 -m psptool ...`; running the
+  # reference as a module (rather than its `psptool` console script) keeps it
+  # off `PATH` and avoids any name collision with our own `psptool` binary.
+  referencePython = pkgs.python3.withPackages (_: [ referencePsptool ]);
 in
 {
-  inherit pkgs rustToolchain;
+  inherit pkgs rustToolchain referencePython;
 
   package = rustPlatform.buildRustPackage {
     pname = "psptool";
@@ -85,6 +116,10 @@ in
         echo "[psptool-rs] vendor/test-corpus is empty; corpus-gated integration tests will be skipped."
         echo "[psptool-rs] To enable: git submodule update --init vendor/test-corpus"
       fi
+
+      # Reference Python PSPTool for the differential integration test (#18).
+      # Unset elsewhere, the test self-skips; here it always resolves.
+      export PSPTOOL_REFERENCE="${referencePython}/bin/python3"
 
       echo "[psptool-rs] dev shell ready ($(rustc --version))"
     '';

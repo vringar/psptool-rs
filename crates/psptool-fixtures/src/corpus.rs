@@ -72,8 +72,20 @@ impl CorpusRom {
 /// that point at a temp dir, and the "submodule not populated" case where the
 /// corpus root exists but `test_files/` is missing).
 pub fn corpus_roms_in(root: &Path) -> CorpusRoms {
+    CorpusRoms {
+        paths: corpus_rom_paths_in(root).into_iter(),
+    }
+}
+
+/// Paths of every ROM file under `<root>/test_files/`, sorted lexicographically.
+///
+/// Returns an empty vector when the directory does not exist. Unlike
+/// [`corpus_roms_in`] this does not read file contents — useful for tests
+/// (e.g. the issue-#18 differential) that hand the path straight to a
+/// subprocess rather than loading the bytes into the test process.
+pub fn corpus_rom_paths_in(root: &Path) -> Vec<PathBuf> {
     let test_files = root.join(TEST_FILES_DIR);
-    let entries = match fs::read_dir(&test_files) {
+    match fs::read_dir(&test_files) {
         Ok(reader) => {
             let mut paths: Vec<PathBuf> = reader
                 .filter_map(|entry| entry.ok())
@@ -84,9 +96,17 @@ pub fn corpus_roms_in(root: &Path) -> CorpusRoms {
             paths
         }
         Err(_) => Vec::new(),
-    };
-    CorpusRoms {
-        paths: entries.into_iter(),
+    }
+}
+
+/// Paths of every corpus ROM keyed off the `PSPTOOL_TEST_CORPUS` env var.
+///
+/// Returns an empty vector when the variable is unset/empty or `test_files/`
+/// is missing — the corpus-gated test then collects no trials and skips.
+pub fn corpus_rom_paths() -> Vec<PathBuf> {
+    match corpus() {
+        Some(root) => corpus_rom_paths_in(&root),
+        None => Vec::new(),
     }
 }
 
@@ -167,6 +187,25 @@ mod tests {
         assert_eq!(roms[0].bytes(), b"A");
         assert_eq!(roms[1].bytes(), b"MID");
         assert_eq!(roms[2].bytes(), b"ZZ");
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn corpus_rom_paths_in_yields_sorted_file_paths() {
+        let tmp = tempdir_unique("psptool-fixtures-paths");
+        let test_files = tmp.join(TEST_FILES_DIR);
+        fs::create_dir_all(&test_files).unwrap();
+        fs::write(test_files.join("zzz.bin"), b"ZZ").unwrap();
+        fs::write(test_files.join("aaa.bin"), b"A").unwrap();
+        fs::create_dir_all(test_files.join("subdir")).unwrap();
+
+        let paths = corpus_rom_paths_in(&tmp);
+        let names: Vec<&str> = paths
+            .iter()
+            .map(|p| p.file_name().and_then(OsStr::to_str).unwrap())
+            .collect();
+        assert_eq!(names, ["aaa.bin", "zzz.bin"]);
 
         let _ = fs::remove_dir_all(&tmp);
     }

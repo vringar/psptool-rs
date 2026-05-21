@@ -8,6 +8,14 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 
+[features]
+# Opt the `differential` integration test into iterating
+# `vendor/test-corpus/test_files/`. Mirrors the `corpus` flag on
+# `psptool-core` / `psptool-ops`; the test self-skips when either
+# `PSPTOOL_TEST_CORPUS` or `PSPTOOL_REFERENCE` is unset.
+default = ["corpus"]
+corpus = ["psptool-fixtures/corpus"]
+
 # The binary name matches the upstream Python tool so existing scripts and
 # argv-based test corpora work unchanged.
 [[bin]]
@@ -28,3 +36,11 @@ psptool-fixtures = { workspace = true }
 insta = { version = "1", features = ["json"] }
 sha2 = "0.10"
 rand = "0.8"
+libtest-mimic = "0.8"
+
+# Custom harness so the differential integration test can register one named
+# test per ROM file at runtime via libtest_mimic. Mirrors `corpus_roundtrip`
+# in `psptool-core` and `corpus_replace` in `psptool-ops`.
+[[test]]
+name = "differential"
+harness = false

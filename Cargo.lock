@@ -670,6 +670,7 @@ dependencies = [
  "anyhow",
  "clap",
  "insta",
+ "libtest-mimic",
  "psptool-core",
  "psptool-fixtures",
  "psptool-ops",

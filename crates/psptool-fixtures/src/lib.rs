@@ -20,4 +20,7 @@
 pub mod corpus;
 pub mod micro;
 
-pub use corpus::{CORPUS_ENV, CorpusRom, corpus, corpus_roms, corpus_roms_in};
+pub use corpus::{
+    CORPUS_ENV, CorpusRom, corpus, corpus_rom_paths, corpus_rom_paths_in, corpus_roms,
+    corpus_roms_in,
+};
