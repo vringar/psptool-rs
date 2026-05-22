@@ -9,6 +9,7 @@
 .crosslink/daemon.log
 .crosslink/last_test_run
 .crosslink/.active-issue
+.crosslink/.last-hydrated-ref
 .crosslink/keys/
 .crosslink/.hub-cache/
 .crosslink/.knowledge-cache/
