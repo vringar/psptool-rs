@@ -1,6 +1,6 @@
 {
   "next_display_id": 60,
-  "next_comment_id": 52,
+  "next_comment_id": 53,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1481,10 +1481,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T22:49:54.759453537Z",
-      "updated_at": "2026-07-11T22:49:59.546426058Z",
+      "updated_at": "2026-07-11T22:53:22.035727331Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "91eb4ebc-7dc7-4cbb-9a6c-1d4c7df7ff6c": {
+          "display_id": 52,
+          "author": "tLiK",
+          "content": "Failing test at crates/psptool-core/tests/divergence_bios_compressed.rs::divergence_compressed_oversize_bios_entry_sized_from_zlib_header pins this. Currently returns ParseError::Truncated{what:\"entry body\", expected:5242912(=0x500020), available:4096}. Root cause: entry.rs::resolve_body treats the directory record size (uncompressed) as the on-flash body length and its body_end>blob_end guard fires, DROPPING the entry. Upstream file.py:293-311 re-sizes compressed entries from the zlib header (0x100 + le_u32@offset+0x14). Fix is in entry.rs (resolve_body), NOT address.rs — the resolved address 0x1e02000 already matches the reference exactly. Two controls in the same file prove the fixture is sound and that our bounds check is correct for the non-compressed case.",
+          "created_at": "2026-07-11T22:53:22.031126705Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAwASYaTc7Na6RG1JE4/miaGyVwaPPzqSKliZdXZOA6zS6J3UZ9irqTx9ZK75bF7INy5TR1gl1ng1OW5nR3fDJDg=="
+        }
+      }
     },
     "ff92bee9-e6df-4936-9845-a74200067d0b": {
       "uuid": "ff92bee9-e6df-4936-9845-a74200067d0b",
@@ -1886,11 +1897,16 @@
       "agent_id": "tLiK",
       "agent_seq": 73,
       "timestamp": "2026-07-11T22:50:07.098754285Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 74,
+      "timestamp": "2026-07-11T22:53:22.035727331Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T22:50:07.098754285Z",
+    "timestamp": "2026-07-11T22:53:22.035727331Z",
     "agent_id": "tLiK",
-    "agent_seq": 73
+    "agent_seq": 74
   }
 }
