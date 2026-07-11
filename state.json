@@ -1,6 +1,6 @@
 {
   "next_display_id": 67,
-  "next_comment_id": 67,
+  "next_comment_id": 68,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -869,11 +869,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-11T23:53:35.502475238Z",
+      "updated_at": "2026-07-11T23:55:48.808230358Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "412fc547-2dbf-4dbc-ac9d-12b6ae41fa96": {
+          "display_id": 67,
+          "author": "tLiK",
+          "content": "BLOCKED (acto-fixer): fix scope exceeds single file; needs orchestrator-level coordination.\n\nThe minimal fix for #66 is fully specified (see the prior --kind plan comment) and the pin is confirmed RED (length_changing_replace_recomputes_directory_checksum panics at divergence_fletcher.rs:111). BUT the edit to crates/psptool-ops/src/replace.rs is HARD-BLOCKED by the translate-discipline read-gate:\n\n  translate-discipline: no route table entry matches 'crates/psptool-ops/src/replace.rs'.\n\nRoot cause: psptool-ops has NOT yet entered the 8-step loop. There is:\n  - NO route for crates/psptool-ops/src/replace.rs in tooling/translate-routes.toml (routes stop at psptool-core/writer.rs), and\n  - NO design doc .design/psptool-ops/replace.md (the .design/psptool-ops/ directory does not exist at all).\n\nPer goal.md R-XLATE-2 (routeless files are blocked) and R-XLATE-3 (a route whose design doc is missing blocks until acto-doc-author authors it), and the acto-fixer spec (R-FIX-3 single-file scope; 'design doc → doc-author'), this is out of acto-fixer scope. I did NOT circumvent the gate and made NO edits (working tree clean apart from pre-existing vendor/test-corpus + .worktrees).\n\nREQUIRED ORCHESTRATOR COORDINATION before re-dispatching the fixer:\n  1. Dispatch acto-doc-author to author .design/psptool-ops/replace.md grounded in crates/psptool-ops/src/replace.rs + upstream directory.py (update_entry_fields/update_checksum :203-241) + entry.py (:109-110 size setter) + __main__.py (:247 --replace-file). Include a REQ for 'length-changing replace recomputes the parent directory Fletcher-32' (the #66 fix) and one for fletcher32's production consumer (#43).\n  2. Add a [[route]] for crates/psptool-ops/src/replace.rs (upstream = directory.py, entry.py, __main__.py; design = .design/psptool-ops/replace.md; parity_ops = ['differential'] since the CLI replace path is differential-covered).\n  3. Re-dispatch acto-fixer for #66. The exact code change is already planned: thread parent.source into apply() as Option<&SourceBytes>, recompute fletcher32 over post-replace dir[0x08..end-of-entry-table] and patch LE at dir_base+0x04 (mirror directory.py:203-205), add ReplaceError::Checksum(#[from] FletcherError), gate on length-change, replace stale replace.rs:34-39 defer note, un-ignore the pin.\n\nLeaving #66 OPEN and #43 OPEN.",
+          "created_at": "2026-07-11T23:55:48.802330304Z",
+          "kind": "blocker",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAYDdtTPSO4OOlXtGddTO96uS+h6uxKM+mioo+7t2344maKumayncwFBdn63w20Pi0C/JnEFOeoH/oVAGgVw0qCA=="
+        },
         "6614f5c7-16e3-44eb-a921-19de2af6a658": {
           "display_id": 65,
           "author": "tLiK",
@@ -2364,11 +2373,16 @@
       "agent_id": "tLiK",
       "agent_seq": 113,
       "timestamp": "2026-07-11T23:53:35.502475238Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 114,
+      "timestamp": "2026-07-11T23:55:48.808230358Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:53:35.502475238Z",
+    "timestamp": "2026-07-11T23:55:48.808230358Z",
     "agent_id": "tLiK",
-    "agent_seq": 113
+    "agent_seq": 114
   }
 }
