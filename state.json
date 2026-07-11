@@ -1,5 +1,5 @@
 {
-  "next_display_id": 57,
+  "next_display_id": 58,
   "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -23,6 +23,7 @@
     "6354088a-5c59-4f87-ba5b-6da7c3c870e8": 23,
     "648b742f-1539-41eb-9e77-108bd6b73994": 40,
     "665b13a6-5e9a-4363-9fd1-5b8e6722368e": 5,
+    "66f52b44-3710-40c1-a7d8-ec78c4c0b185": 57,
     "6798ce69-9fe3-42b0-af27-75b0efb46e11": 26,
     "67df1b18-4065-4185-b87e-1eb8683f1d46": 50,
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": 2,
@@ -596,6 +597,18 @@
         "68f7ee46-7bae-4a64-8d9a-81f8c443a46d",
         "a23d5372-e916-4105-9e37-4f4f540157fa"
       ]
+    },
+    "66f52b44-3710-40c1-a7d8-ec78c4c0b185": {
+      "uuid": "66f52b44-3710-40c1-a7d8-ec78c4c0b185",
+      "display_id": 57,
+      "title": "upstream-parity: show full PSP-ID hex + CPU codename in generation column (PSPTool #55)",
+      "description": "Upstream: https://github.com/PSPReverse/PSPTool/issues/55 -- OPEN, maintainer receptive.\n\nTable shows coarse 'Zen N'; low bytes of the PSP/zen-generation ID pin the exact SoC. Reporter wants the full ID hex (e.g. 0xBC0C0140) and ideally codename (Zen 3 (Cezanne)). Directly answers the #46 question and disambiguates combo/multi-generation images. coreboot publishes many full IDs so a PSP_ID->codename map is tractable.\n\nImpl: the full ID is already read during combo/tertiary parsing (directory.rs, cf. crosslink #51 step 3); carry it onto the directory and render hex + optional codename lookup in crates/psptool-ops/src/table.rs. Additive column -- guard the differential snapshots. See docs/upstream-issue-review.md.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:56:27.526959772Z",
+      "updated_at": "2026-07-11T21:56:27.526959772Z"
     },
     "6798ce69-9fe3-42b0-af27-75b0efb46e11": {
       "uuid": "6798ce69-9fe3-42b0-af27-75b0efb46e11",
@@ -1751,11 +1764,16 @@
       "agent_id": "tLiK",
       "agent_seq": 62,
       "timestamp": "2026-07-11T21:56:21.036123602Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 63,
+      "timestamp": "2026-07-11T21:56:27.526959772Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:56:21.036123602Z",
+    "timestamp": "2026-07-11T21:56:27.526959772Z",
     "agent_id": "tLiK",
-    "agent_seq": 62
+    "agent_seq": 63
   }
 }
