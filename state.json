@@ -1,6 +1,6 @@
 {
   "next_display_id": 67,
-  "next_comment_id": 65,
+  "next_comment_id": 66,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -869,10 +869,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-11T23:48:18.928869869Z",
+      "updated_at": "2026-07-11T23:49:07.068932888Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "6614f5c7-16e3-44eb-a921-19de2af6a658": {
+          "display_id": 65,
+          "author": "tLiK",
+          "content": "Failing test at crates/psptool-ops/tests/divergence_fletcher.rs:length_changing_replace_recomputes_directory_checksum demonstrates the divergence (stored 0x15190283 stale vs recomputed 0x14cb0276 after a 0x40->0x33 shrink). Control equal_length_replace_keeps_directory_checksum_valid passes, isolating the changed size field as the cause. Fix belongs in crates/psptool-ops/src/replace.rs::apply — after rewrite_size_field, recompute fletcher32 over the parent directory's [0x08..header+table] region and patch the checksum field at record-dir +0x04. Deferral in replace.rs:34-39 pointed at #13, which is CLOSED (R-DEFER-3). writer.rs itself is byte-exact-correct; this is a consumer-side omission surfaced by the writer audit.",
+          "created_at": "2026-07-11T23:49:07.064317435Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAoWBzy5q7o7fyVmgDumTtsGIavRq8ai/sresevQvKYEQ1xhD2TBTAruHdfFQC1bhG5LyKnxR9gkmRrbrznPtMDw=="
+        }
+      }
     },
     "79977ea4-13a2-4642-be11-632dbd1123bd": {
       "uuid": "79977ea4-13a2-4642-be11-632dbd1123bd",
@@ -2334,11 +2345,16 @@
       "agent_id": "tLiK",
       "agent_seq": 111,
       "timestamp": "2026-07-11T23:48:26.617643036Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 112,
+      "timestamp": "2026-07-11T23:49:07.068932888Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:48:26.617643036Z",
+    "timestamp": "2026-07-11T23:49:07.068932888Z",
     "agent_id": "tLiK",
-    "agent_seq": 111
+    "agent_seq": 112
   }
 }
