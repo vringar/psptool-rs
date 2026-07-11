@@ -1,5 +1,5 @@
 {
-  "next_display_id": 49,
+  "next_display_id": 50,
   "next_comment_id": 45,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -34,6 +34,7 @@
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
+    "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
@@ -878,6 +879,16 @@
       "created_at": "2026-05-10T14:25:00.925271528Z",
       "updated_at": "2026-05-10T14:25:33.064674871Z"
     },
+    "b65b2085-2121-4add-945d-707d3c375c64": {
+      "uuid": "b65b2085-2121-4add-945d-707d3c375c64",
+      "display_id": 49,
+      "title": "Translation unit: psptool-core/directory.rs",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T19:42:52.946105173Z",
+      "updated_at": "2026-07-11T19:42:52.946105173Z"
+    },
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": {
       "uuid": "ba4c84df-86af-4f9e-89c3-9a87e00dce5d",
       "display_id": 18,
@@ -1443,11 +1454,16 @@
       "agent_id": "tLiK",
       "agent_seq": 36,
       "timestamp": "2026-07-11T19:41:09.345241830Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 37,
+      "timestamp": "2026-07-11T19:42:52.946105173Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:41:09.345241830Z",
+    "timestamp": "2026-07-11T19:42:52.946105173Z",
     "agent_id": "tLiK",
-    "agent_seq": 36
+    "agent_seq": 37
   }
 }
