@@ -1055,11 +1055,12 @@
       "uuid": "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c",
       "display_id": 63,
       "title": "Latent divergence in fet.rs scan_fet_candidates ordering: upstream blob.py:126-131 yields ALL 0xFFFFFFFF-padded FETs first then ALL 0x00000000-padded (two separate re.finditer passes); Rust scan_fet_candidates (fet.rs:310-316) yields both patterns interleaved in file-position order. For a blob mixing both pad kinds this changes ROM .nth(rom_index) selection order (load.rs:41). Not exercised by current corpus (differential green); pin a fixture + align ordering.",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:16:08.562237194Z",
-      "updated_at": "2026-07-11T23:31:30.250975018Z",
+      "updated_at": "2026-07-11T23:31:35.118759733Z",
+      "closed_at": "2026-07-11T23:31:35.118750516Z",
       "labels": [
         "blocker"
       ],
@@ -2171,11 +2172,16 @@
       "agent_id": "tLiK",
       "agent_seq": 96,
       "timestamp": "2026-07-11T23:31:30.250975018Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 97,
+      "timestamp": "2026-07-11T23:31:35.118759733Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:31:30.250975018Z",
+    "timestamp": "2026-07-11T23:31:35.118759733Z",
     "agent_id": "tLiK",
-    "agent_seq": 96
+    "agent_seq": 97
   }
 }
