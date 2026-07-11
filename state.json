@@ -1,5 +1,5 @@
 {
-  "next_display_id": 47,
+  "next_display_id": 48,
   "next_comment_id": 42,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -17,6 +17,7 @@
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "54e6baa0-7637-4170-925c-b3cdea587722": 15,
     "58ab16e7-59ab-4168-b6e1-d1708dc511e5": 7,
+    "5ec8cbe7-0ce3-428c-8b59-a45a90107616": 47,
     "6354088a-5c59-4f87-ba5b-6da7c3c870e8": 23,
     "648b742f-1539-41eb-9e77-108bd6b73994": 40,
     "665b13a6-5e9a-4363-9fd1-5b8e6722368e": 5,
@@ -460,6 +461,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAd2Eb77l8VmMoj11hx9Qcm1N8u9438pyqlrsKPsm2toX0ZUvOvmDsM9wpbIZQNiONYNWI7s7njZAJAXbivAUGDA=="
         }
       }
+    },
+    "5ec8cbe7-0ce3-428c-8b59-a45a90107616": {
+      "uuid": "5ec8cbe7-0ce3-428c-8b59-a45a90107616",
+      "display_id": 47,
+      "title": "acto-critic audit: psptool-core/entry.rs vs entry.py+file.py",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T19:29:38.763800314Z",
+      "updated_at": "2026-07-11T19:29:38.763800314Z"
     },
     "6354088a-5c59-4f87-ba5b-6da7c3c870e8": {
       "uuid": "6354088a-5c59-4f87-ba5b-6da7c3c870e8",
@@ -1325,11 +1336,16 @@
       "agent_id": "tLiK",
       "agent_seq": 26,
       "timestamp": "2026-07-11T19:28:40.585762523Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 27,
+      "timestamp": "2026-07-11T19:29:38.763800314Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:28:40.585762523Z",
+    "timestamp": "2026-07-11T19:29:38.763800314Z",
     "agent_id": "tLiK",
-    "agent_seq": 26
+    "agent_seq": 27
   }
 }
