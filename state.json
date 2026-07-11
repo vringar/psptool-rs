@@ -1,6 +1,6 @@
 {
   "next_display_id": 64,
-  "next_comment_id": 62,
+  "next_comment_id": 63,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1472,7 +1472,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T21:45:38.365363333Z",
-      "updated_at": "2026-07-11T22:53:26.859829216Z",
+      "updated_at": "2026-07-11T23:32:45.905386735Z",
       "labels": [
         "bug",
         "component:core"
@@ -1486,6 +1486,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAXaRG0HHbLwVprZbz8joSuJKC0WEm4SzTQtdOCdET5/V5Iyvo0GTB6e5IOtivoYgMW+XqWZF2Gu2Q5OmpUKP+DQ=="
+        },
+        "3b791fa9-3322-4c52-a6c6-afea32d858a8": {
+          "display_id": 62,
+          "author": "tLiK",
+          "content": "CLOSING — disproven as an address-mode bug by the acto-critic audit (commit 9001c659). Symptom B (AM5 BIOS entry-4 \"truncated body\") was a COMPRESSED-entry-sizing bug, fixed under #59/#40 (commit 28cc06fe). Symptom A (EPYC entry-11 0x13c8000 vs 0x3c8000) is NOT our bug — our address is address-mode-correct; the reference value is upstream files_by_offset cross-ROM cache echo (file.py:47-54), a #41-family equivalent divergence where OUR output is correct, to be handled by a differential-tolerance rule (tracked under #41). address.rs address math verified correct; no address.md needed. Nothing left actionable here.",
+          "created_at": "2026-07-11T23:32:45.900034577Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAtqifeZLedmmv7NgV0mCBWTfHUGL/YKk1d509EhibIv+ottBi3Bxbqq9qW35XXM6tAHPpUgWR0Fgk1oIr6Q4nAQ=="
         },
         "4ae212fc-bb19-4f7f-8c9e-f18adffa62a7": {
           "display_id": 53,
@@ -2177,11 +2186,16 @@
       "agent_id": "tLiK",
       "agent_seq": 97,
       "timestamp": "2026-07-11T23:31:35.118759733Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 98,
+      "timestamp": "2026-07-11T23:32:45.905386735Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:31:35.118759733Z",
+    "timestamp": "2026-07-11T23:32:45.905386735Z",
     "agent_id": "tLiK",
-    "agent_seq": 97
+    "agent_seq": 98
   }
 }
