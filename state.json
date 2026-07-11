@@ -1,5 +1,5 @@
 {
-  "next_display_id": 63,
+  "next_display_id": 64,
   "next_comment_id": 59,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -40,6 +40,7 @@
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
+    "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": 63,
     "a6322983-624f-4612-bcad-795481ee0f8d": 61,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
@@ -1045,6 +1046,16 @@
           "kind": "plan"
         }
       }
+    },
+    "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": {
+      "uuid": "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c",
+      "display_id": 63,
+      "title": "Latent divergence in fet.rs scan_fet_candidates ordering: upstream blob.py:126-131 yields ALL 0xFFFFFFFF-padded FETs first then ALL 0x00000000-padded (two separate re.finditer passes); Rust scan_fet_candidates (fet.rs:310-316) yields both patterns interleaved in file-position order. For a blob mixing both pad kinds this changes ROM .nth(rom_index) selection order (load.rs:41). Not exercised by current corpus (differential green); pin a fixture + align ordering.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T23:16:08.562237194Z",
+      "updated_at": "2026-07-11T23:16:08.562237194Z"
     },
     "a6322983-624f-4612-bcad-795481ee0f8d": {
       "uuid": "a6322983-624f-4612-bcad-795481ee0f8d",
@@ -2094,11 +2105,16 @@
       "agent_id": "tLiK",
       "agent_seq": 90,
       "timestamp": "2026-07-11T23:15:50.972496744Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 91,
+      "timestamp": "2026-07-11T23:16:08.562237194Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:15:50.972496744Z",
+    "timestamp": "2026-07-11T23:16:08.562237194Z",
     "agent_id": "tLiK",
-    "agent_seq": 90
+    "agent_seq": 91
   }
 }
