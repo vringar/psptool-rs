@@ -1,5 +1,5 @@
 {
-  "next_display_id": 54,
+  "next_display_id": 55,
   "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -42,6 +42,7 @@
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
+    "d434f175-a545-41e6-9748-d52c77e1eb5d": 54,
     "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334": 44,
     "d5cbd6e4-4fb2-4759-9534-84b5ce12f96e": 29,
     "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695": 51,
@@ -1115,6 +1116,18 @@
         }
       }
     },
+    "d434f175-a545-41e6-9748-d52c77e1eb5d": {
+      "uuid": "d434f175-a545-41e6-9748-d52c77e1eb5d",
+      "display_id": 54,
+      "title": "upstream-parity: resolve inline pubkeys in verify (same-ID-as-file) (PSPTool #51)",
+      "description": "Upstream: https://github.com/PSPReverse/PSPTool/issues/51 -- OPEN, confirmed regression (bisected to 0bda1bd). Maintainer memo: 'inline keys that happen to have the same ID as the file itself are not shown', so their signed entries show key_missing instead of verified.\n\npsptool-rs risk: crates/psptool-ops/src/verify.rs builds its key_id->pubkey map from STRUCTURED directory pubkey entries only, while inline keys are discovered separately by the heuristic scan in search_keys.rs (try_heuristic_at). A signature signed by an inline-only key can therefore surface as key_missing -- same failure class. Translating upstream as-is inherits the bug.\n\nImpl: feed heuristic/inline pubkey hits into the verify key map (or make search_keys_with_directories the single key source); ensure a key whose key_id == containing file's own ID is not filtered. Add a fixture whose only signer is an inline key. See docs/upstream-issue-review.md.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:55:35.384219290Z",
+      "updated_at": "2026-07-11T21:55:35.384219290Z"
+    },
     "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334": {
       "uuid": "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334",
       "display_id": 44,
@@ -1673,11 +1686,16 @@
       "agent_id": "tLiK",
       "agent_seq": 56,
       "timestamp": "2026-07-11T21:55:30.380932005Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 57,
+      "timestamp": "2026-07-11T21:55:35.384219290Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:55:30.380932005Z",
+    "timestamp": "2026-07-11T21:55:35.384219290Z",
     "agent_id": "tLiK",
-    "agent_seq": 56
+    "agent_seq": 57
   }
 }
