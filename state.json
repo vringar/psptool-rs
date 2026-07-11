@@ -1,5 +1,5 @@
 {
-  "next_display_id": 59,
+  "next_display_id": 60,
   "next_comment_id": 52,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -59,6 +59,7 @@
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
     "fba50544-5971-4237-8157-aca0c67508f5": 32,
+    "ff3a9562-e292-4ffb-8f75-0c1d07d85917": 59,
     "ff92bee9-e6df-4936-9845-a74200067d0b": 48
   },
   "locks": {
@@ -1468,6 +1469,16 @@
         "refactor"
       ]
     },
+    "ff3a9562-e292-4ffb-8f75-0c1d07d85917": {
+      "uuid": "ff3a9562-e292-4ffb-8f75-0c1d07d85917",
+      "display_id": 59,
+      "title": "Divergence: psptool-core entry.rs resolve_body drops compressed BIOS entries whose directory size overruns the ROM (upstream sizes them via the zlib header)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T22:49:54.759453537Z",
+      "updated_at": "2026-07-11T22:49:54.759453537Z"
+    },
     "ff92bee9-e6df-4936-9845-a74200067d0b": {
       "uuid": "ff92bee9-e6df-4936-9845-a74200067d0b",
       "display_id": 48,
@@ -1853,11 +1864,16 @@
       "agent_id": "tLiK",
       "agent_seq": 70,
       "timestamp": "2026-07-11T22:33:10.036691537Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 71,
+      "timestamp": "2026-07-11T22:49:54.759453537Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T22:33:10.036691537Z",
+    "timestamp": "2026-07-11T22:49:54.759453537Z",
     "agent_id": "tLiK",
-    "agent_seq": 70
+    "agent_seq": 71
   }
 }
