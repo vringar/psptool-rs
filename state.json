@@ -1,5 +1,5 @@
 {
-  "next_display_id": 48,
+  "next_display_id": 49,
   "next_comment_id": 43,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -48,7 +48,8 @@
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
-    "fba50544-5971-4237-8157-aca0c67508f5": 32
+    "fba50544-5971-4237-8157-aca0c67508f5": 32,
+    "ff92bee9-e6df-4936-9845-a74200067d0b": 48
   },
   "locks": {
     "42": {
@@ -1222,6 +1223,16 @@
         "hater-review",
         "refactor"
       ]
+    },
+    "ff92bee9-e6df-4936-9845-a74200067d0b": {
+      "uuid": "ff92bee9-e6df-4936-9845-a74200067d0b",
+      "display_id": 48,
+      "title": "Follow-up audit: entry.rs from_entry drops entry on sub-parser ParseError (file.py:270-272) vs Rust keeps as Plain (entry.rs:537-544)",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T19:37:43.883741054Z",
+      "updated_at": "2026-07-11T19:37:43.883741054Z"
     }
   },
   "next_milestone_id": 1,
@@ -1380,11 +1391,16 @@
       "agent_id": "tLiK",
       "agent_seq": 31,
       "timestamp": "2026-07-11T19:37:38.991053729Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 32,
+      "timestamp": "2026-07-11T19:37:43.883741054Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:37:38.991053729Z",
+    "timestamp": "2026-07-11T19:37:43.883741054Z",
     "agent_id": "tLiK",
-    "agent_seq": 31
+    "agent_seq": 32
   }
 }
