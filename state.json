@@ -376,11 +376,12 @@
       "uuid": "31f3c0b3-cdf0-4a17-b213-93e38140f828",
       "display_id": 65,
       "title": "Design doc: .design/psptool-core/writer.md (diff-and-patch byte-exact writer)",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:38:04.408116228Z",
-      "updated_at": "2026-07-11T23:38:09.186663535Z",
+      "updated_at": "2026-07-11T23:40:49.069981377Z",
+      "closed_at": "2026-07-11T23:40:49.069979704Z",
       "labels": [
         "feature"
       ]
@@ -2279,11 +2280,16 @@
       "agent_id": "tLiK",
       "agent_seq": 106,
       "timestamp": "2026-07-11T23:38:16.444340168Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 107,
+      "timestamp": "2026-07-11T23:40:49.069981377Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:38:16.444340168Z",
+    "timestamp": "2026-07-11T23:40:49.069981377Z",
     "agent_id": "tLiK",
-    "agent_seq": 106
+    "agent_seq": 107
   }
 }
