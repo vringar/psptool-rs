@@ -1,5 +1,5 @@
 {
-  "next_display_id": 64,
+  "next_display_id": 65,
   "next_comment_id": 64,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -37,6 +37,7 @@
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
     "996f2729-3afa-46ec-9ef8-fab57cba7cd1": 17,
+    "9b196228-1911-43b8-9662-c9d1dde70cda": 64,
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
@@ -966,6 +967,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+LL/C9N3zA/fxAtvnXdkSunSjl/ycUbJmhFJtX3VgTfq/ih+1IIiJlWUgXNW/MFojVq+g8i5/X8nz6fChsesDA=="
         }
       }
+    },
+    "9b196228-1911-43b8-9662-c9d1dde70cda": {
+      "uuid": "9b196228-1911-43b8-9662-c9d1dde70cda",
+      "display_id": 64,
+      "title": "Blocker for REQ-4 of writer: equal-length replacement API (BlobEditor::patch_source / EntryEditor::set_body / PatchError::BodyLengthMismatch, mirroring NestedBuffer.set_bytes utils.py:109) has no non-test production consumer; the psptool-ops replace path (replace.rs:171) uses raw BlobEditor::patch with its own shrink-allowing length policy instead. Wire the equal-length API into a production caller or retire it.",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T23:37:38.147981667Z",
+      "updated_at": "2026-07-11T23:37:38.147981667Z"
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -2213,11 +2224,16 @@
       "agent_id": "tLiK",
       "agent_seq": 100,
       "timestamp": "2026-07-11T23:33:39.536312109Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 101,
+      "timestamp": "2026-07-11T23:37:38.147981667Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:33:39.536312109Z",
+    "timestamp": "2026-07-11T23:37:38.147981667Z",
     "agent_id": "tLiK",
-    "agent_seq": 100
+    "agent_seq": 101
   }
 }
