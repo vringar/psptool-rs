@@ -44,3 +44,8 @@
 # Python bytecode (tooling/ hooks)
 __pycache__/
 *.pyc
+
+# Machine-local supplementary corpus (large firmware ROMs, not committed).
+# Point PSPTOOL_TEST_CORPUS here to differential-test against captured images.
+# See tooling/pspdb-collect/README.md to regenerate.
+/.local-corpus/
