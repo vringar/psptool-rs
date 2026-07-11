@@ -1,0 +1,2 @@
+{"agent_id":"Xr6m","agent_seq":1,"timestamp":"2026-05-08T20:07:56.165491500Z","event":{"type":"LockClaimed","issue_display_id":4}}
+{"agent_id":"Xr6m","agent_seq":2,"timestamp":"2026-05-08T20:17:44.373313180Z","event":{"type":"LockReleased","issue_display_id":4}}
