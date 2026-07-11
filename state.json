@@ -1,6 +1,6 @@
 {
   "next_display_id": 50,
-  "next_comment_id": 45,
+  "next_comment_id": 46,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -891,10 +891,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:42:52.946105173Z",
-      "updated_at": "2026-07-11T19:42:57.771374041Z",
+      "updated_at": "2026-07-11T19:49:39.313339501Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "10f8be71-908e-46d9-9929-09985bff49d9": {
+          "display_id": 45,
+          "author": "tLiK",
+          "content": "Authored .design/psptool-core/directory.md (295 lines, 9 REQs: 8 SHIPPED / 1 NOT-STARTED). REQ-6 (checksum verify/recompute) NOT-STARTED under existing blocker #43 (no production fletcher32 caller; writer is diff-and-patch). Verification green: psptool-core 146 passed, corpus_roundtrip 54/0/0, differential 49/0/5-ignored (#40/#41, no directory REQ). Commit bd0c1641.",
+          "created_at": "2026-07-11T19:49:39.308802849Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAk+FG3+RApo0E5/yS/dJIrFShK9JxNBwKbYv1ySHAg05wzIdLRcWvoBsWfIvtXqtMJz3oOtRpz+vHdNfZkkywAg=="
+        }
+      }
     },
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": {
       "uuid": "ba4c84df-86af-4f9e-89c3-9a87e00dce5d",
@@ -1476,11 +1487,16 @@
       "agent_id": "tLiK",
       "agent_seq": 39,
       "timestamp": "2026-07-11T19:43:05.421132760Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 40,
+      "timestamp": "2026-07-11T19:49:39.313339501Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:43:05.421132760Z",
+    "timestamp": "2026-07-11T19:49:39.313339501Z",
     "agent_id": "tLiK",
-    "agent_seq": 39
+    "agent_seq": 40
   }
 }
