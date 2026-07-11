@@ -1,6 +1,6 @@
 {
   "next_display_id": 47,
-  "next_comment_id": 41,
+  "next_comment_id": 42,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -645,10 +645,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:21:21.698289512Z",
-      "updated_at": "2026-07-11T19:21:26.598887426Z",
+      "updated_at": "2026-07-11T19:28:35.707658868Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "ac49c618-6374-409e-9682-c1c29f4fccae": {
+          "display_id": 41,
+          "author": "tLiK",
+          "content": "Authored .design/psptool-core/entry.md (212 lines) grounded in the shipped entry.rs + upstream entry.py/file.py.\n\nREQ breakdown: 6 total — 5 SHIPPED, 1 NOT-STARTED.\n  REQ-1 16B PSP record layout — SHIPPED (directory.rs:131; consumer list.rs:391)\n  REQ-2 24B BIOS record + u64 destination — SHIPPED (directory.rs:183; consumer list.rs:392)\n  REQ-3 file_offset() address-mode application — SHIPPED (entry.rs:473 -> address.rs:248; consumer list.rs:366)\n  REQ-4 soft-fuse 0x0B body=record — SHIPPED (entry.rs:485; consumer replace.rs:143)\n  REQ-5 File.from_entry classification — SHIPPED (entry.rs:524; consumer list.rs:405)\n  REQ-6 compressed size recovery — NOT-STARTED, open prereq blocker #40\n\nVerification (nix-shell, env set): psptool-core 146 passed/0 failed/0 ignored; corpus_roundtrip 54/0/0; differential 49 passed/0 failed/5 ignored (the 5 pinned to #40 x2 and #41 x3; none pin a SHIPPED REQ).\n\nUpstream cited: entry.py:27/38/40/50/61/64/72/104/112/132/137/142/158/166/174; file.py:34/35/235/239/243/244/249/266/287/297/302.\n\nCommit: d92cf868",
+          "created_at": "2026-07-11T19:28:35.702820105Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAx8A2cz9+lr0316ALMApTTFYbVr5+dvW5m4PlJDdYvAAWhRPNTUrBkLYJqmjKZKJ85KSGrfb5blytDstd7EK6CA=="
+        }
+      }
     },
     "82112724-69c6-48bc-87d7-953720d70f0f": {
       "uuid": "82112724-69c6-48bc-87d7-953720d70f0f",
@@ -1303,11 +1314,16 @@
       "agent_id": "tLiK",
       "agent_seq": 24,
       "timestamp": "2026-07-11T19:21:33.974520261Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 25,
+      "timestamp": "2026-07-11T19:28:35.707658868Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:21:33.974520261Z",
+    "timestamp": "2026-07-11T19:28:35.707658868Z",
     "agent_id": "tLiK",
-    "agent_seq": 24
+    "agent_seq": 25
   }
 }
