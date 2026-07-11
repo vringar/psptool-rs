@@ -1,6 +1,6 @@
 {
   "next_display_id": 59,
-  "next_comment_id": 50,
+  "next_comment_id": 51,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1246,7 +1246,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T20:11:58.728409190Z",
-      "updated_at": "2026-07-11T21:57:44.654852592Z",
+      "updated_at": "2026-07-11T22:29:23.702839068Z",
       "labels": [
         "bug",
         "component:core"
@@ -1269,6 +1269,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAEqLDVT8ErnhpNXHKWGfaLkiiNz5Vf10W4w+fD7JPup6RjxLcJ3VNB3Hi1d/Dq/r/5VBjng/zO+L8Wdl/cWW7CQ=="
+        },
+        "e1bec45d-0aae-4499-b850-b3fc80757758": {
+          "display_id": 50,
+          "author": "tLiK",
+          "content": "FIXED and verified. Commit 373f74bc extends walk_directories to follow tertiary (0x48/0x4A) L2 pointers via the Zen 4 double-indirection (32-byte block at entry offset; actual_offset = le_u32(block[16:20]); gen-id le_u32(block[20:24]); unknown gen only warns, still recurses) mirroring directory.py:85-99.\n\nVerification (nix dev shell, committed corpus):\n- crates/psptool-core: 146 lib + 54 + 3 tests, 0 failed\n- divergence_tertiary.rs: BOTH pins now PASS (0x48 known-gen + 0x4A unknown-gen), moved from #[ignore] to #[test]\n- corpus_roundtrip: 54 passed, 0 failed\n- differential (committed corpus): 49 passed, 0 failed, 5 pre-existing ignores\n- clippy -D warnings: clean; fmt: clean\n\nReal-corpus proof: the 3 ASRock AM5 images (B650/X870E/B850) no longer emit the \"directory sets differ / only the reference reports\" mismatch — they now surface all L2 directories. Their remaining differential failure is a SEPARATE address-mode divergence (tracked as #52), not this one. Closing.",
+          "created_at": "2026-07-11T22:29:23.698135362Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAy52v9KKYgvNVbfbmPIG4+HmejQ5o3LaYhB9OLWdccmhT0ezLGbYEZsXtRJNxN+XgG/ESnNw98fyrh5KOGf0KCw=="
         },
         "f9d17d44-1a58-4625-baec-40c09fcad1f4": {
           "display_id": 48,
@@ -1817,11 +1826,16 @@
       "agent_id": "tLiK",
       "agent_seq": 67,
       "timestamp": "2026-07-11T21:57:44.654852592Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 68,
+      "timestamp": "2026-07-11T22:29:23.702839068Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:57:44.654852592Z",
+    "timestamp": "2026-07-11T22:29:23.702839068Z",
     "agent_id": "tLiK",
-    "agent_seq": 67
+    "agent_seq": 68
   }
 }
