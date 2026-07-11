@@ -1,6 +1,6 @@
 {
   "next_display_id": 59,
-  "next_comment_id": 51,
+  "next_comment_id": 52,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1335,11 +1335,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T21:45:38.365363333Z",
-      "updated_at": "2026-07-11T21:45:49.077794394Z",
+      "updated_at": "2026-07-11T22:33:10.036691537Z",
       "labels": [
         "bug",
         "component:core"
-      ]
+      ],
+      "comments": {
+        "270ef305-7da8-4db2-9fcb-d25a35d74c80": {
+          "display_id": 51,
+          "author": "tLiK",
+          "content": "Second symptom, same address-mode root cause — broadens this issue to the full entry address-mode contract (PSP + BIOS). After the #51 tertiary fix, the 3 AM5 images advance past directory discovery and now fail here too.\n\nAM5 BIOS-entry manifestation (ASRock_B650, $BL2 @0x2ed000, entry 4):\n  type=0x62, size=0x500020, src=0x4000000001e02000, dst=0x9afffe0\nThe BIOS directory entry source is a 64-bit field whose TOP BITS select the address mode:\n  e0-e2: src top nibble 0x8000000000000000 (bit 63)\n  e4-e6: src top nibble 0x4000000000000000 (bit 62)\n  e3:    src=0, dst=0xa200000 (destination-based)\nOur tool masks src to the low bits (0x1e02000) and treats size 0x500020 literally -> 0x1e02000+0x500020 overruns the 32MB ROM -> \"truncated entry body\" parse error. Reference honors the mode bits (per PSPTool AddressMode: top-2-bits of the address select physical / rom-relative / dir-relative / other) and places the body correctly, so it does not error.\n\nThe EPYC symptom (entry 11 @0x1332000, ours 0x13c8000 = raw loc 0x3c8000 | 0x1000000) is the SAME contract for PSP 16B entries: we bias by a region base instead of honoring the entrys address mode.\n\nBoth live in the address.rs unit (route: upstream entry.py + directory.py; design doc .design/psptool-core/address.md still MISSING). Fixing the address-mode application should resolve all 5 local-corpus differential failures. Upstream ref: PSPTool address-mode masking in entry.py / blob.py (get_address_mode / the top-2-bit dispatch).",
+          "created_at": "2026-07-11T22:33:10.030757246Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAXaRG0HHbLwVprZbz8joSuJKC0WEm4SzTQtdOCdET5/V5Iyvo0GTB6e5IOtivoYgMW+XqWZF2Gu2Q5OmpUKP+DQ=="
+        }
+      }
     },
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": {
       "uuid": "e6030e67-e9e4-4aa2-9dc7-3d66de67151d",
@@ -1837,11 +1848,16 @@
       "agent_id": "tLiK",
       "agent_seq": 69,
       "timestamp": "2026-07-11T22:29:28.592531921Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 70,
+      "timestamp": "2026-07-11T22:33:10.036691537Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T22:29:28.592531921Z",
+    "timestamp": "2026-07-11T22:33:10.036691537Z",
     "agent_id": "tLiK",
-    "agent_seq": 69
+    "agent_seq": 70
   }
 }
