@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- acto-critic audit: psptool-core/entry.rs vs entry.py+file.py (#47)
+- Translation unit: psptool-core/entry.rs (#46)
 - acto-critic audit: psptool-core/fletcher.rs vs utils.fletcher32 (#44)
 - Translation unit: psptool-core/fletcher.rs (#42)
 
