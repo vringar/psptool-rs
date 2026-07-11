@@ -286,11 +286,12 @@
       "uuid": "37adbfde-9107-49f0-8fa1-9ea76db4eaa3",
       "display_id": 45,
       "title": "Divergence: psptool_core::fletcher32 silently accepts odd-length input; upstream utils.py:291 raises struct.error",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:54:41.283713998Z",
-      "updated_at": "2026-07-11T19:13:08.318398840Z",
+      "updated_at": "2026-07-11T19:13:13.251657196Z",
+      "closed_at": "2026-07-11T19:13:13.251655714Z",
       "labels": [
         "blocker"
       ],
@@ -1264,11 +1265,16 @@
       "agent_id": "tLiK",
       "agent_seq": 20,
       "timestamp": "2026-07-11T19:13:08.318398840Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 21,
+      "timestamp": "2026-07-11T19:13:13.251657196Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:13:08.318398840Z",
+    "timestamp": "2026-07-11T19:13:13.251657196Z",
     "agent_id": "tLiK",
-    "agent_seq": 20
+    "agent_seq": 21
   }
 }
