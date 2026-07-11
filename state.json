@@ -1,6 +1,6 @@
 {
   "next_display_id": 67,
-  "next_comment_id": 66,
+  "next_comment_id": 67,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -869,7 +869,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-11T23:49:07.068932888Z",
+      "updated_at": "2026-07-11T23:53:35.502475238Z",
       "labels": [
         "blocker"
       ],
@@ -882,6 +882,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAoWBzy5q7o7fyVmgDumTtsGIavRq8ai/sresevQvKYEQ1xhD2TBTAruHdfFQC1bhG5LyKnxR9gkmRrbrznPtMDw=="
+        },
+        "bb80da7b-6ade-4b7b-bdaf-19fbcf360ab5": {
+          "display_id": 66,
+          "author": "tLiK",
+          "content": "PLAN (acto-fixer, #66 length-changing replace leaves directory fletcher32 stale):\n\nEDIT SITE: crates/psptool-ops/src/replace.rs::apply (~142), plus the two family entry-points that hold the parent directory (replace_psp_entry_body/replace_bios_entry_body) and the stale defer note (34-39).\n\nWHY UPSTREAM RECOMPUTES: On --replace-file, directory.update_entry_fields (directory.py:207) writes entry.size (entry.py:109-110 -> set_bytes(4,4,...)) then calls update_checksum() UNCONDITIONALLY (directory.py:241). update_checksum (directory.py:203-205) does data=self[0x8:]; checksum.set_bytes(0,4,fletcher32(data)) — self[0x8:] is header[8:] ++ entry table (directory.py:132-134), and the fresh Fletcher-32 lands in the header checksum field at [0x04..0x08] (self.checksum=NestedBuffer(self,4,4), directory.py:135).\n\nREASONING CHAIN -> EDIT: the size field the replace rewrites (replace.rs:rewrite_size_field, record+0x04) lands inside the checksummed region. So after rewrite_size_field + body patch, recompute fletcher32 over the POST-replace directory bytes [0x08 .. end-of-entry-table] and patch the 4-byte LE result at dir_base+0x04. The checksummed region is exactly PspDirectory/BiosDirectory.source (header+entry table); its base+0x08 == dir_base+0x08. Post-replace bytes = dir.source bytes with the new size u32 overlaid at (record_off-dir_base)+0x04 (the only mutation inside the region; the body patch is outside it).\n\nMECHANICS: thread the directory source into apply as Option<&SourceBytes> (Some(&parent.source) for the two family fns used by the CLI + the pin; None for the entry-only replace_entry_body which structurally lacks the parent). Use the fallible psptool_core::fletcher32 (Result, #45) -> new ReplaceError::Checksum(FletcherError) via thiserror; no unwrap/expect/panic (R-CODE-2), no truncating casts (R-CODE-5), only the checksum + already-patched size/body touched (R-CODE-4). Gate on length-change (equal-length leaves the size field + region byte-identical, so the control test + patch_count==1 stay green). Replace the stale replace.rs:34-39 defer-to-#13 note. Un-ignore length_changing_replace_recomputes_directory_checksum. Closes #66; gives fletcher32 its first production consumer (#43).",
+          "created_at": "2026-07-11T23:53:35.497861332Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+K3wiLKy7Qgg7H7X0eci1cyGN+rkP5x0ro6YzIgb5isV0BYVCmgr/r8JOPh0+SgXeRqNQzjUxintQURAwTBXDg=="
         }
       }
     },
@@ -2350,11 +2359,16 @@
       "agent_id": "tLiK",
       "agent_seq": 112,
       "timestamp": "2026-07-11T23:49:07.068932888Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 113,
+      "timestamp": "2026-07-11T23:53:35.502475238Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:49:07.068932888Z",
+    "timestamp": "2026-07-11T23:53:35.502475238Z",
     "agent_id": "tLiK",
-    "agent_seq": 112
+    "agent_seq": 113
   }
 }
