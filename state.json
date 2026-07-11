@@ -1,6 +1,6 @@
 {
   "next_display_id": 64,
-  "next_comment_id": 59,
+  "next_comment_id": 60,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1059,10 +1059,21 @@
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:16:08.562237194Z",
-      "updated_at": "2026-07-11T23:16:13.348628830Z",
+      "updated_at": "2026-07-11T23:27:25.057622608Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "bd484484-af7e-4324-bd93-f177729987ed": {
+          "display_id": 59,
+          "author": "tLiK",
+          "content": "Pinned with a failing fixture test: crates/psptool-core/tests/divergence_fet_scan_order.rs::divergence_scan_order_ff_pass_before_zero_pass. Oracle (blob.py:124-131 _find_fets regex, run in CPython) yields FF-padded-then-zero-padded order [0x204, 0x104]; scan_fet_candidates returns file-position order [0x104, 0x204]. Test is #[ignore]'d tracking #63; a passing control (control_both_fets_found_at_magic_offsets) proves the fixture is sound.",
+          "created_at": "2026-07-11T23:27:25.053021205Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAb5xvd7WzNyIl5aLkbscQHSToZxctyKvJMYd8Ns0gOkGwHYW7CNPO8I/LZyIf/yqAcs4BbUNMJQ7iTjnRmT8yCg=="
+        }
+      }
     },
     "a6322983-624f-4612-bcad-795481ee0f8d": {
       "uuid": "a6322983-624f-4612-bcad-795481ee0f8d",
@@ -2127,11 +2138,16 @@
       "agent_id": "tLiK",
       "agent_seq": 93,
       "timestamp": "2026-07-11T23:16:20.895192588Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 94,
+      "timestamp": "2026-07-11T23:27:25.057622608Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:16:20.895192588Z",
+    "timestamp": "2026-07-11T23:27:25.057622608Z",
     "agent_id": "tLiK",
-    "agent_seq": 93
+    "agent_seq": 94
   }
 }
