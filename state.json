@@ -1,8 +1,9 @@
 {
-  "next_display_id": 43,
+  "next_display_id": 44,
   "next_comment_id": 36,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
+    "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": 30,
     "10c34dc9-1be7-4d9a-8f6a-e6fc9b290523": 13,
     "17ab4b2b-fe87-48e6-9fc9-92db11fbb91a": 42,
@@ -80,6 +81,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAD0TTpFaxenp96z8tUa6UBNuAXt5HMERDV1zurjpU/AfuVjh9ZIZE9QzW0n0VoShkYE9peqciRd9F8cN+hYhtCw=="
         }
       }
+    },
+    "0e3dee61-386f-471e-9b70-03d7531271c2": {
+      "uuid": "0e3dee61-386f-471e-9b70-03d7531271c2",
+      "display_id": 43,
+      "title": "Blocker for REQ-6 of psptool-core/fletcher: no production consumer recomputes fletcher32 — writer.rs is diff-and-patch only (writer.rs:15) and never calls psptool_core::fletcher32; a mutation path that recomputes the directory checksum and writes it LE into header [0x04..0x08] does not exist",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T18:28:58.093783122Z",
+      "updated_at": "2026-07-11T18:28:58.093783122Z"
     },
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": {
       "uuid": "0f24762a-6628-418c-8dba-a35bd76fd3d8",
@@ -1072,11 +1083,16 @@
       "agent_id": "tLiK",
       "agent_seq": 3,
       "timestamp": "2026-07-11T18:25:54.172841060Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 4,
+      "timestamp": "2026-07-11T18:28:58.093783122Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:25:54.172841060Z",
+    "timestamp": "2026-07-11T18:28:58.093783122Z",
     "agent_id": "tLiK",
-    "agent_seq": 3
+    "agent_seq": 4
   }
 }
