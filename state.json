@@ -1,5 +1,5 @@
 {
-  "next_display_id": 58,
+  "next_display_id": 59,
   "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -37,6 +37,7 @@
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
     "996f2729-3afa-46ec-9ef8-fab57cba7cd1": 17,
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
+    "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
@@ -915,6 +916,18 @@
         }
       }
     },
+    "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": {
+      "uuid": "a0d69506-28e3-43b3-9b3d-69c6c1bbf081",
+      "display_id": 58,
+      "title": "upstream-parity: deduplicate entries referenced by multiple directories for mutation correctness (PSPTool #37)",
+      "description": "Upstream: https://github.com/PSPReverse/PSPTool/issues/37 -- OPEN.\n\nOne physical region (start+size) can be pointed at by multiple directory entries across directories (upstream keeps a Rom.unique_entries set).\n\npsptool-rs mutation risk: replace patches by flash offset, but each directory RECORD's size field is a separate location. If two records reference the same region, replace must update BOTH records (and both fletcher checksums) or the second directory keeps a stale size -> corrupt roundtrip. A parse-time cross-reference index makes this correct and detectable.\n\nImpl: build a flash_offset -> Vec<EntryRef> index during the directory walk (crates/psptool-core/src/directory.rs), consumed by crates/psptool-ops/src/replace.rs so a size change fans out to every referencing record. See docs/upstream-issue-review.md.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:56:37.326025901Z",
+      "updated_at": "2026-07-11T21:56:37.326025901Z"
+    },
     "a23d5372-e916-4105-9e37-4f4f540157fa": {
       "uuid": "a23d5372-e916-4105-9e37-4f4f540157fa",
       "display_id": 4,
@@ -1777,11 +1790,16 @@
       "agent_id": "tLiK",
       "agent_seq": 64,
       "timestamp": "2026-07-11T21:56:32.294080981Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 65,
+      "timestamp": "2026-07-11T21:56:37.326025901Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:56:32.294080981Z",
+    "timestamp": "2026-07-11T21:56:37.326025901Z",
     "agent_id": "tLiK",
-    "agent_seq": 64
+    "agent_seq": 65
   }
 }
