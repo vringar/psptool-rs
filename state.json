@@ -1,5 +1,5 @@
 {
-  "next_display_id": 65,
+  "next_display_id": 66,
   "next_comment_id": 64,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -12,6 +12,7 @@
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
+    "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
@@ -366,6 +367,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGyXpD3PiYSRWY7lNoKqMfel64qRllMgDRMlgDSwnqsl6VTDGnqT70wMMG7YL5fF7dX9cF8ywb6TBSK/cllCSDw=="
         }
       }
+    },
+    "31f3c0b3-cdf0-4a17-b213-93e38140f828": {
+      "uuid": "31f3c0b3-cdf0-4a17-b213-93e38140f828",
+      "display_id": 65,
+      "title": "Design doc: .design/psptool-core/writer.md (diff-and-patch byte-exact writer)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T23:38:04.408116228Z",
+      "updated_at": "2026-07-11T23:38:04.408116228Z"
     },
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": {
       "uuid": "37adbfde-9107-49f0-8fa1-9ea76db4eaa3",
@@ -2246,11 +2257,16 @@
       "agent_id": "tLiK",
       "agent_seq": 103,
       "timestamp": "2026-07-11T23:37:50.492505893Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 104,
+      "timestamp": "2026-07-11T23:38:04.408116228Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:37:50.492505893Z",
+    "timestamp": "2026-07-11T23:38:04.408116228Z",
     "agent_id": "tLiK",
-    "agent_seq": 103
+    "agent_seq": 104
   }
 }
