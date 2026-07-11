@@ -1,5 +1,5 @@
 {
-  "next_display_id": 50,
+  "next_display_id": 51,
   "next_comment_id": 46,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -22,6 +22,7 @@
     "648b742f-1539-41eb-9e77-108bd6b73994": 40,
     "665b13a6-5e9a-4363-9fd1-5b8e6722368e": 5,
     "6798ce69-9fe3-42b0-af27-75b0efb46e11": 26,
+    "67df1b18-4065-4185-b87e-1eb8683f1d46": 50,
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": 2,
     "6c23d90d-6db6-43dc-90db-2154af41be59": 12,
     "6e427675-2426-49e2-8f35-d8362d7e331a": 34,
@@ -571,6 +572,16 @@
         "bug",
         "hater-review"
       ]
+    },
+    "67df1b18-4065-4185-b87e-1eb8683f1d46": {
+      "uuid": "67df1b18-4065-4185-b87e-1eb8683f1d46",
+      "display_id": 50,
+      "title": "acto-critic audit: psptool-core/directory.rs vs directory.py",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T19:51:20.573308001Z",
+      "updated_at": "2026-07-11T19:51:20.573308001Z"
     },
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": {
       "uuid": "68f7ee46-7bae-4a64-8d9a-81f8c443a46d",
@@ -1498,11 +1509,16 @@
       "agent_id": "tLiK",
       "agent_seq": 41,
       "timestamp": "2026-07-11T19:49:44.108822294Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 42,
+      "timestamp": "2026-07-11T19:51:20.573308001Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:49:44.108822294Z",
+    "timestamp": "2026-07-11T19:51:20.573308001Z",
     "agent_id": "tLiK",
-    "agent_seq": 41
+    "agent_seq": 42
   }
 }
