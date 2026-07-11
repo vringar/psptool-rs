@@ -90,7 +90,10 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:28:58.093783122Z",
-      "updated_at": "2026-07-11T18:28:58.093783122Z"
+      "updated_at": "2026-07-11T18:29:02.859853224Z",
+      "labels": [
+        "blocker"
+      ]
     },
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": {
       "uuid": "0f24762a-6628-418c-8dba-a35bd76fd3d8",
@@ -1088,11 +1091,16 @@
       "agent_id": "tLiK",
       "agent_seq": 4,
       "timestamp": "2026-07-11T18:28:58.093783122Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 5,
+      "timestamp": "2026-07-11T18:29:02.859853224Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:28:58.093783122Z",
+    "timestamp": "2026-07-11T18:29:02.859853224Z",
     "agent_id": "tLiK",
-    "agent_seq": 4
+    "agent_seq": 5
   }
 }
