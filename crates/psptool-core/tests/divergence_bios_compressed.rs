@@ -157,11 +157,10 @@ fn control_uncompressed_oversize_is_rejected_by_both() {
 /// `ParseError::Truncated` because it uses the record `size` literally and the
 /// `body_end > blob_end` guard fires — dropping the BIOS body.
 ///
-/// Un-`#[ignore]` this test as part of the fix (R-DEFER-3): it closes #59 only
-/// when `resolve_body` sizes compressed over-ROM entries from the zlib header.
+/// This test is now active (R-DEFER-3): `resolve_body` sizes compressed
+/// over-ROM entries from the zlib header, so #59 is fixed.
 ///
 /// Tracking: #59
-#[ignore = "divergence: compressed BIOS entry must be sized from its zlib header, not dropped as Truncated; tracking #59"]
 #[test]
 fn divergence_compressed_oversize_bios_entry_sized_from_zlib_header() {
     let result = parse_first_bios(build(true, UNCOMPRESSED_SIZE));

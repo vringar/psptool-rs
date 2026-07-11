@@ -410,6 +410,10 @@ impl Entry {
             record.offset,
             record.entry_address_mode(),
             record.size,
+            // PSP-family entries are never compressed (upstream sets
+            // `self.compressed = False` for non-`BiosDirectoryEntry` at
+            // `file.py:282-283`).
+            false,
             rom_size,
             rom_origin,
         )?;
@@ -450,6 +454,8 @@ impl Entry {
             record.offset,
             record.entry_address_mode(),
             record.size,
+            // BIOS `compressed` = `flags[3]` (upstream `file.py:280-281`).
+            record.is_compressed(),
             rom_size,
             rom_origin,
         )?;
@@ -479,6 +485,7 @@ fn resolve_body(
     entry_offset: Address,
     entry_mode: AddressMode,
     entry_size: u32,
+    compressed: bool,
     rom_size: RomSize,
     rom_origin: FlashOffset,
 ) -> Result<SourceBytes, ParseError> {
@@ -498,22 +505,80 @@ fn resolve_body(
     let blob_start = blob.offset().get();
     let blob_end = blob_start.saturating_add(blob.len() as u64);
     let body_end = body_offset.get().saturating_add(size);
-    if body_offset.get() < blob_start || body_end > blob_end {
+    // An entry starting before the input window is always unrecoverable.
+    if body_offset.get() < blob_start {
         return Err(ParseError::Truncated {
             what: "entry body",
             offset: body_offset,
             expected: entry_size as usize,
-            available: blob_end.saturating_sub(body_offset.get().max(blob_start)) as usize,
+            available: 0,
         });
     }
     let local = (body_offset.get() - blob_start) as usize;
-    blob.slice(local, entry_size as usize)
-        .ok_or(ParseError::Truncated {
+    // On-flash body length. Normally the record `size`; but when a *compressed*
+    // BIOS entry's declared (uncompressed) `size` overruns the ROM window,
+    // upstream recovers the real on-flash length from the embedded zlib stream
+    // instead of dropping the entry: `body = zlib_hdr + zlib_size`, where
+    // `zlib_hdr = zlib_find_header(blob[offset:])` and
+    // `zlib_size = le_u32(blob[offset+0x14:+4])` (`file.py:302-311`,
+    // `utils.zlib_find_header` at `utils.py:218-234`). A non-compressed overrun
+    // is still rejected, matching upstream's `file.py:316-318` warning + drop.
+    let body_len = if body_end > blob_end {
+        let overrun = || ParseError::Truncated {
             what: "entry body",
             offset: body_offset,
             expected: entry_size as usize,
-            available: blob.len().saturating_sub(local),
-        })
+            available: blob_end.saturating_sub(body_offset.get()) as usize,
+        };
+        if !compressed {
+            return Err(overrun());
+        }
+        let raw = blob.as_bytes();
+        let after = raw.get(local..).ok_or_else(overrun)?;
+        // `file.py:313-314`: compressed but no zlib header found → drop.
+        let zlib_hdr = zlib_find_header(after).ok_or_else(overrun)?;
+        // `file.py:306-309`: zlib_size = le_u32 at absolute `offset + 0x14`.
+        let zsz_at = local.checked_add(0x14).ok_or_else(overrun)?;
+        let zlib_size = raw
+            .get(zsz_at..zsz_at + 4)
+            .and_then(|b| <[u8; 4]>::try_from(b).ok())
+            .map(u32::from_le_bytes)
+            .ok_or_else(overrun)? as usize;
+        zlib_hdr.checked_add(zlib_size).ok_or_else(overrun)?
+    } else {
+        entry_size as usize
+    };
+    blob.slice(local, body_len).ok_or(ParseError::Truncated {
+        what: "entry body",
+        offset: body_offset,
+        expected: body_len,
+        available: blob.len().saturating_sub(local),
+    })
+}
+
+/// Mirror of upstream `utils.zlib_find_header` (`utils.py:218-234`): scan the
+/// first `0x500` bytes of `s` for a zlib magic and return its offset within
+/// `s`, checking the common `0x100` location first to avoid false positives.
+/// Returns `None` when no magic is found.
+fn zlib_find_header(s: &[u8]) -> Option<usize> {
+    // `utils.py:210-214` — the four documented zlib magic byte pairs.
+    const ZLIB_MAGICS: [[u8; 2]; 4] = [
+        [0x78, 0xDA], // best compression
+        [0x78, 0x9C], // default compression
+        [0x78, 0x5E], // compressed
+        [0x78, 0x01], // header, no compression
+    ];
+    let window = &s[..s.len().min(0x500)];
+    for magic in &ZLIB_MAGICS {
+        // `utils.py:225-227`: check the most common location at 0x100 first.
+        if window.get(0x100..0x102) == Some(magic.as_slice()) {
+            return Some(0x100);
+        }
+        if let Some(pos) = window.windows(2).position(|w| w == magic) {
+            return Some(pos);
+        }
+    }
+    None
 }
 
 /// Classify an entry body by `entry_type`. See [`EntryClass`].

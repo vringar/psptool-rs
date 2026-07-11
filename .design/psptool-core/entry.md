@@ -106,7 +106,7 @@ classification.
 | REQ-3 (address-mode `file_offset`) | SHIPPED | Impl `entry.rs:473` (`resolve_body`) computes the body offset via `entry.rs:496` `dir_mode.resolve_with_entry(entry_mode, entry_offset, ctx)` (`address.rs:248`), which applies mode `00` masking + the `>0xFF000000 && >16 MiB` window at `address.rs:281` (`normalise_physical`, mirrors `entry.py:50-60`), mode `01` flash offset (`entry.py:61-63`), and modes `10`/`11` directory-base add with the entry-level `rsv0[31:30]` override (`entry.py:44-48`, `entry.py:64-70`). Non-test consumer: `entry.rs:404`/`444` (`parse_psp`/`parse_bios`), themselves called from `psptool-ops/src/list.rs:366`/`380` and `psptool-cli/src/cmds/list.rs:124`. Verification: `cargo test -p psptool-core --test corpus_roundtrip` (54 passed, 0 failed, 0 ignored). |
 | REQ-4 (soft-fuse no body) | SHIPPED | Impl `entry.rs:485-490` (`resolve_body`): `if entry_type.is_soft_fuse_chain() { return Ok(record_source.clone()); }` (`id.rs:45`, `0x0B`) — returns the 16-byte record as the body, matching `entry.py:40-42` and `file.py:287-292` (`NO_SIZE_ENTRY_TYPES`, buffer of `entry.ENTRY_SIZE` at `dir_start + entry_offset`). Classified `SoftFuseChain` at `entry.rs:531`. Non-test consumer: `psptool-ops/src/replace.rs:143` (`matches!(entry.class, EntryClass::SoftFuseChain)` guards a replace). Verification: `classifies_soft_fuse_chain_uses_record_as_body` (in the 146-test pass). |
 | REQ-5 (type classification) | SHIPPED | Impl `entry.rs:524` (`classify`) dispatches secondary (`id.rs:32`, `0x40/0x49/0x70` — `file.py:34`), tertiary (`id.rs:39`, `0x48/0x4A` — `file.py:35`), soft-fuse, pubkey (`id.rs:51` — `file.py:235`), key-store (`id.rs:60` — `file.py:244`), BIOS-`0x66` microcode (`file.py:266`), then `!has_no_header` → signed header (`id.rs:75` — `file.py:239/264`), else plain — mirroring `file.py:249-272`. Non-test consumer: `psptool-ops/src/list.rs:405` (`magic_id_string(class: &EntryClass)`) and `list.rs:474` (`EntryClass::Pubkey`), plus `psptool-ops/src/verify.rs:246` (`EntryClass::Header \| EntryClass::KeyStore`). Verification: the `classifies_*` suite (pubkey/header/keystore/secondary/tertiary/microcode/plain) in the 146-test pass, plus `differential` (49 passed, 0 failed). |
-| REQ-6 (compressed size recovery) | NOT-STARTED | open prereq blocker #40. `resolve_body` (`entry.rs:501-508`) returns `ParseError::Truncated` whenever `body_end > blob_end`; it never inspects the `compressed` flag nor recovers `zlib_hdr + zlib_size` from the stream the way `file.py:302-311` does. The two ROMs that need it (`ASRock-A520M-HSV-1.31.ROM`, `AORUS_X570_X57AOXT2.FCd`) are the two `#40` entries in the differential `SKIP_LIST` (`crates/psptool-cli/tests/differential.rs:118-131`). |
+| REQ-6 (compressed size recovery) | SHIPPED | `resolve_body` (`entry.rs`) threads the BIOS `compressed` flag (`record.is_compressed()`, `flags[3]` — `file.py:280-281`) and, when `body_end > blob_end` AND the entry is compressed, sizes the on-flash body to `zlib_hdr + zlib_size` via `zlib_find_header` (mirrors `utils.py:218-234`) reading `zlib_size = le_u32(blob[offset+0x14:+4])` (`file.py:302-311`); a non-compressed overrun still returns `Truncated` (`file.py:316-318`). Non-test consumer: `parse_bios` (`entry.rs`), called from `psptool-ops/src/list.rs:380` and `psptool-cli/src/cmds/list.rs`. Verification: `divergence_bios_compressed` (3 passed, incl. the now-active pin) + `ASRock-A520M-HSV-1.31.ROM` passes the real `differential`. `AORUS_X570_X57AOXT2.FCd` no longer errors on the overrun but has a distinct type-0x5c naming divergence tracked as #60. Tracking issues #40/#59 closed. |
 
 ## Architecture
 
@@ -178,8 +178,10 @@ the body window against the whole input `blob` (`entry.rs:498-508`) and returns
 (`list.rs:366`, `search_keys.rs:100`) treat as "skip this entry" — matching the
 `File.ParseError → return None` skip in `file.py:270-272` for the *uncompressed*
 overrun case (`file.py:316-318`). The *compressed* overrun case, where upstream
-recovers the length from the zlib stream, is the sole divergence and is REQ-6 /
-blocker #40.
+recovers the length from the zlib stream (`file.py:302-311`), is now handled by
+`resolve_body` (REQ-6 SHIPPED): a compressed entry whose declared size overruns
+the ROM is sized to `zlib_hdr + zlib_size` instead of erroring (blockers
+#40/#59 closed).
 
 ## Verification
 

@@ -116,18 +116,14 @@ const COMBO_MAGICS: &[&str] = &["2PSP", "2BHD"];
 /// silently passing.
 #[cfg(feature = "corpus")]
 const SKIP_LIST: &[(&str, &str)] = &[
-    // Our parser rejects a compressed entry whose directory-declared size
-    // overruns the ROM ("truncated entry body"); upstream recovers the real
-    // payload size from the zlib stream and parses it. Parser-strictness gap.
-    (
-        "ASRock-A520M-HSV-1.31.ROM",
-        "compressed entry overruns ROM; our parser errors where upstream \
-         recovers the size from the zlib stream (crosslink issue #40)",
-    ),
+    // After the #40 compressed-entry fix (zlib-header sizing) this ROM no
+    // longer errors on the overrun; it now surfaces a distinct, previously
+    // masked divergence at directory @0x670000 entry 26 — our type-0x5c name
+    // "SPI_ROM_CONFIG" vs upstream "WMOS" (HeaderFile). Tracked separately.
     (
         "AORUS_X570_X57AOXT2.FCd",
-        "compressed entry overruns ROM; our parser errors where upstream \
-         recovers the size from the zlib stream (crosslink issue #40)",
+        "entry-26 type-0x5c classification divergence: ours SPI_ROM_CONFIG, \
+         reference WMOS/HeaderFile (crosslink issue #60)",
     ),
     // Multi-ROM blobs: the ROM-1 BIOS directory diverges — our tool applies
     // the ROM-1 base to BIOS-region entry addresses where upstream does not,
