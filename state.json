@@ -1,6 +1,6 @@
 {
   "next_display_id": 46,
-  "next_comment_id": 40,
+  "next_comment_id": 41,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -290,7 +290,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:54:41.283713998Z",
-      "updated_at": "2026-07-11T19:12:15.606867169Z",
+      "updated_at": "2026-07-11T19:13:08.318398840Z",
       "labels": [
         "blocker"
       ],
@@ -312,6 +312,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAF9IHESuC/xlSjt5cMgSbWpE+bo/gToJGeNF8I3MPQl4uFcIlWIAWd9CW1Sq70P+ZG22+GVyFxgZTH6xkvaTkBw=="
+        },
+        "2b66815a-87a2-48f1-b278-28bbbcb4d37b": {
+          "display_id": 40,
+          "author": "tLiK",
+          "content": "Result: fletcher32 is now fallible (Result<u32, FletcherError>); odd-length input returns Err(FletcherError::OddLength{len}) mirroring upstream utils.py:291 raise (goal.md R-DEV-4). Commit 061300a. Both divergence pins converted #[should_panic]+#[ignore] -> #[test] asserting Err and now GREEN un-ignored (R-DEFER-3): divergence_single_odd_byte_upstream_raises, divergence_odd_length_three_bytes_upstream_raises. Gauntlet (nix shell): psptool-core lib 146/0, fletcher subset 8/0, divergence_fletcher 3 passed/0 ignored, corpus_roundtrip 54/0/0 skipped, cli differential 49/0/5 pre-existing-ignored (differential.rs untouched), clippy PASS, fmt PASS. Design doc .design/psptool-core/fletcher.md: 'benign extension' claim corrected, REQ-7 added SHIPPED, REQ-6 stays NOT-STARTED. #43 (production consumer) LEFT OPEN — no non-test caller of psptool_core::fletcher32 exists. Error placed as a dedicated FletcherError enum in fletcher.rs (not error.rs) because error.rs/lib.rs are routeless + hard-blocked by the translate-discipline hook; dispatch-authorized fallback.",
+          "created_at": "2026-07-11T19:13:08.313777586Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvhUGBamJGSYGUcKsCxlXq8AojdSvWY+iAsubBeCK8XJDVZptV4h9dhrFyrp5EP/2f5AKNT7KrYXlMMSjNbfRBA=="
         }
       }
     },
@@ -1250,11 +1259,16 @@
       "agent_id": "tLiK",
       "agent_seq": 19,
       "timestamp": "2026-07-11T19:12:15.606867169Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 20,
+      "timestamp": "2026-07-11T19:13:08.318398840Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:12:15.606867169Z",
+    "timestamp": "2026-07-11T19:13:08.318398840Z",
     "agent_id": "tLiK",
-    "agent_seq": 19
+    "agent_seq": 20
   }
 }
