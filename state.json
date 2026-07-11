@@ -1,6 +1,6 @@
 {
   "next_display_id": 60,
-  "next_comment_id": 53,
+  "next_comment_id": 54,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1340,7 +1340,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T21:45:38.365363333Z",
-      "updated_at": "2026-07-11T22:33:10.036691537Z",
+      "updated_at": "2026-07-11T22:53:26.859829216Z",
       "labels": [
         "bug",
         "component:core"
@@ -1354,6 +1354,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAXaRG0HHbLwVprZbz8joSuJKC0WEm4SzTQtdOCdET5/V5Iyvo0GTB6e5IOtivoYgMW+XqWZF2Gu2Q5OmpUKP+DQ=="
+        },
+        "4ae212fc-bb19-4f7f-8c9e-f18adffa62a7": {
+          "display_id": 53,
+          "author": "tLiK",
+          "content": "Oracle audit (PSPTOOL_REFERENCE vs live corpus) reclassifies both #52 symptoms — NEITHER is an address-mode bug:\n\nSYMPTOM B (AM5 BIOS, ASRock_B650): NOT address-mode. Reference and ours BOTH resolve $BL2@0x2ed000 e4 to address 0x1e02000 (identical). The divergence is body SIZE: record size=0x500020 is the UNCOMPRESSED size; the entry is compressed (flags bit3). Upstream sizes it from the zlib header to 0x8ab51 (fits); ours uses 0x500020 literally, overruns the 32MB ROM, returns Truncated, and DROPS e4/e5. Root cause: entry.rs::resolve_body. Filed as #59 with a failing pin.\n\nSYMPTOM A (EPYC upper-half, GENOAD8HM3 dir@0x1332000): NOT a code bug. Side-by-side vs reference shows EVERY entry address matches (idx0-10,12-15) EXCEPT idx11. Our idx11=0x13c8000 (type 0x1b) is the address-mode-CORRECT value (upper-ROM origin 0x1000000 + flash offset 0x3c8000 — exactly upstream's own arithmetic, proven by all sibling entries matching). Reference idx11=0x3c8000 (type 0x21 WRAPPED_IKEK) is upstream's files_by_offset cross-ROM CACHE ECHO (file.py:47-54): the rom-relative file_offset 0x3c8000 collides with dir@0x331000 in the lower ROM, and upstream reuses the first File. That is the documented equivalent-divergence #40, handled by the differential tolerance layer — not a production address bug. No test pinned for A (pinning ref's 0x3c8000 would assert upstream's cache quirk as the address contract).\n\naddress.rs arithmetic is correct; .design/psptool-core/address.md is NOT required for the fix.",
+          "created_at": "2026-07-11T22:53:26.855203663Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAW4GzQpTL6H4dp0bRrzgosG+dT5YZxwqmb2CqTv53R6mgEMw+dJXYLEXRC1wvBbS6iJ6Z+1ggTTUYEQI/3dDjCw=="
         }
       }
     },
@@ -1902,11 +1911,16 @@
       "agent_id": "tLiK",
       "agent_seq": 74,
       "timestamp": "2026-07-11T22:53:22.035727331Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 75,
+      "timestamp": "2026-07-11T22:53:26.859829216Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T22:53:22.035727331Z",
+    "timestamp": "2026-07-11T22:53:26.859829216Z",
     "agent_id": "tLiK",
-    "agent_seq": 74
+    "agent_seq": 75
   }
 }
