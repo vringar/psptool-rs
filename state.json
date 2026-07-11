@@ -1,6 +1,6 @@
 {
   "next_display_id": 46,
-  "next_comment_id": 39,
+  "next_comment_id": 40,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -290,7 +290,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:54:41.283713998Z",
-      "updated_at": "2026-07-11T18:56:12.120497585Z",
+      "updated_at": "2026-07-11T19:12:15.606867169Z",
       "labels": [
         "blocker"
       ],
@@ -303,6 +303,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAyr7/gJlZVJqWxH1HuiHsTac51z013BEfNNKZIS0dD91YarqH3ED3Ezwh4VnGZiE0t3ZmMsncre3kLb0lSQndBQ=="
+        },
+        "1d724a50-a638-49e1-8978-fd290567f6c5": {
+          "display_id": 39,
+          "author": "tLiK",
+          "content": "Plan: make psptool_core::fletcher32 fallible to mirror upstream's odd-length raise (utils.py:291, chunker utils.py:177). Abstraction: change signature to Result<u32, FletcherError>; reject odd-length via !len.is_multiple_of(2) -> Err(OddLength{len}); even-length algorithm byte-identical (0xFFFF seed, 360-word fold, double final fold, LE words). Error lives as a dedicated thiserror enum in fletcher.rs because error.rs + lib.rs are routeless/hard-blocked by the translate-discipline hook (editing them needs an out-of-scope route + design-doc addition); the dispatch authorized this fallback. Wiring/tests: convert the two #[should_panic]+#[ignore] divergence pins to plain #[test] asserting Err(OddLength) (R-DEFER-3), unwrap the even-length control + the ~8 in-crate test call sites, rewrite odd_length_uses_remainder_byte -> odd_length_input_is_rejected. Doc: correct the 'benign extension' claim in .design/psptool-core/fletcher.md, add REQ-7 + AC-6, refresh REQ table. #43 (production consumer) stays OPEN.",
+          "created_at": "2026-07-11T19:12:15.602321457Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAF9IHESuC/xlSjt5cMgSbWpE+bo/gToJGeNF8I3MPQl4uFcIlWIAWd9CW1Sq70P+ZG22+GVyFxgZTH6xkvaTkBw=="
         }
       }
     },
@@ -1236,11 +1245,16 @@
       "agent_id": "tLiK",
       "agent_seq": 18,
       "timestamp": "2026-07-11T19:00:38.191921995Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 19,
+      "timestamp": "2026-07-11T19:12:15.606867169Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:00:38.191921995Z",
+    "timestamp": "2026-07-11T19:12:15.606867169Z",
     "agent_id": "tLiK",
-    "agent_seq": 18
+    "agent_seq": 19
   }
 }
