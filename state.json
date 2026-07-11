@@ -1,6 +1,6 @@
 {
   "next_display_id": 52,
-  "next_comment_id": 47,
+  "next_comment_id": 48,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1149,11 +1149,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T20:11:58.728409190Z",
-      "updated_at": "2026-07-11T20:12:08.231408047Z",
+      "updated_at": "2026-07-11T21:17:45.915685333Z",
       "labels": [
         "bug",
         "component:core"
-      ]
+      ],
+      "comments": {
+        "678a9d58-7e67-4e81-8a51-385f55a01a47": {
+          "display_id": 47,
+          "author": "tLiK",
+          "content": "Empirical byte-level confirmation from ASRock_B650_PG_Lightning (gen 0xbc0d0300), ready-to-drop micro-fixture spec.\n\nL1 `$PSP` directory @ 0x81000, count=2, both entries tertiary:\n\n```\nentry0: type=0x48 location=0x83020\n  tertiary block @0x83020 (32B): 758e6a37 ffffffff 0f000000 00ffffff 00d05700 00030dbc ffffffff ffffffff\n    actual_offset = le_u32(block[16:20]) = 0x57d000\n    gen_id        = le_u32(block[20:24]) = 0xbc0d0300\n    -> L2 dir @0x57d000: magic $PL2, count=38\nentry1: type=0x4a location=0x84000\n  tertiary block @0x84000 (32B): 2a8e6b35 02000000 0f000000 00ffffff 00d00a00 00030dbc ffffffff ffffffff\n    actual_offset = le_u32(block[16:20]) = 0xad000\n    gen_id        = le_u32(block[20:24]) = 0xbc0d0300\n    -> L2 dir @0xad000: magic $PL2, count=38\n```\n\nThis matches directory.py:85-99 exactly. Reference reports 4 dirs for B650 = the 2 tertiary targets (0x57d000, 0xad000) + 2 secondary continuations (0x2ed000, 0x7bd000) reachable via 0x40/0x49/0x70 entries WITHIN those $PL2 dirs (which we already follow). So implementing ONLY the tertiary double-indirection should close the full gap.\n\nMicro-fixture recipe (no 32MB ROM needed): synthesize an L1 $PSP dir with one 0x48 entry whose location points at a 32-byte block with actual_offset at +16 and gen_id at +20, targeting a tiny 1-entry $PL2 dir. Assert the parser surfaces the $PL2 dir at actual_offset. Add under crates/psptool-fixtures/data/ + a directory.rs unit test. Also cover the unknown-gen case: X870E/B850 blocks carry gen_id 0xbc0e0b/0xbc0e10 which must map to an \"unknown\" classification without erroring (matches reference `Unknown zen_generation_id` warning path).",
+          "created_at": "2026-07-11T21:17:45.876985256Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAEqLDVT8ErnhpNXHKWGfaLkiiNz5Vf10W4w+fD7JPup6RjxLcJ3VNB3Hi1d/Dq/r/5VBjng/zO+L8Wdl/cWW7CQ=="
+        }
+      }
     },
     "d8810440-1fe8-4bce-bb2d-f065ec626f86": {
       "uuid": "d8810440-1fe8-4bce-bb2d-f065ec626f86",
@@ -1585,11 +1596,16 @@
       "agent_id": "tLiK",
       "agent_seq": 49,
       "timestamp": "2026-07-11T20:12:08.231408047Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 50,
+      "timestamp": "2026-07-11T21:17:45.915685333Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T20:12:08.231408047Z",
+    "timestamp": "2026-07-11T21:17:45.915685333Z",
     "agent_id": "tLiK",
-    "agent_seq": 49
+    "agent_seq": 50
   }
 }
