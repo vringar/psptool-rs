@@ -1,5 +1,5 @@
 {
-  "next_display_id": 56,
+  "next_display_id": 57,
   "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -30,6 +30,7 @@
     "6e427675-2426-49e2-8f35-d8362d7e331a": 34,
     "79977ea4-13a2-4642-be11-632dbd1123bd": 28,
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
+    "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
@@ -766,6 +767,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAx8A2cz9+lr0316ALMApTTFYbVr5+dvW5m4PlJDdYvAAWhRPNTUrBkLYJqmjKZKJ85KSGrfb5blytDstd7EK6CA=="
         }
       }
+    },
+    "7c5ec29a-d96d-4643-89c6-90b347dcfe44": {
+      "uuid": "7c5ec29a-d96d-4643-89c6-90b347dcfe44",
+      "display_id": 56,
+      "title": "upstream-parity: surface parse warnings + optional --strict mode (PSPTool #38)",
+      "description": "Upstream: https://github.com/PSPReverse/PSPTool/issues/38 (reinforced by closed PR#31 https://github.com/PSPReverse/PSPTool/pull/31). OPEN.\n\nUpstream prints 'Warning: ...' for every entry/directory it can't parse and continues; #38 additionally wants a strict mode (assert) for scientific work and a very-lenient mode for reconstructed/partial ROMs.\n\npsptool-rs already continues past unparseable records (directory.rs Err(_) => continue at ~608/634/660/691) but SILENTLY. That is a differential-parity gap (upstream emits those warnings to stderr; we don't) and hurts diagnosability of exactly the crash issues in this review (#57/#60/#63/#66 were all 'warned then crashed' upstream). A collected warning list also enables --strict to escalate skips to hard errors.\n\nImpl: thread a warning sink through the directory/entry walk (crates/psptool-core/src/directory.rs, entry.rs) returning (parsed, Vec<ParseWarning>); render to stderr in CLI; add --strict. Happy-path roundtrip unchanged. See docs/upstream-issue-review.md.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:56:14.217817789Z",
+      "updated_at": "2026-07-11T21:56:14.217817789Z"
     },
     "82112724-69c6-48bc-87d7-953720d70f0f": {
       "uuid": "82112724-69c6-48bc-87d7-953720d70f0f",
@@ -1725,11 +1738,16 @@
       "agent_id": "tLiK",
       "agent_seq": 60,
       "timestamp": "2026-07-11T21:55:52.945629403Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 61,
+      "timestamp": "2026-07-11T21:56:14.217817789Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:55:52.945629403Z",
+    "timestamp": "2026-07-11T21:56:14.217817789Z",
     "agent_id": "tLiK",
-    "agent_seq": 60
+    "agent_seq": 61
   }
 }
