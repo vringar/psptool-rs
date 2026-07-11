@@ -24,6 +24,16 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "HOOK=\"$(git rev-parse --show-toplevel 2>/dev/null)/tooling/translate-discipline.py\"; if [ -f \"$HOOK\" ]; then python3 \"$HOOK\"; else exit 0; fi",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Read"
       }
     ],
     "PreToolUse": [
@@ -46,6 +56,21 @@
           }
         ],
         "matcher": "Write|Edit|Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "HOOK=\"$(git rev-parse --show-toplevel 2>/dev/null)/tooling/translate-discipline.py\"; if [ -f \"$HOOK\" ]; then python3 \"$HOOK\"; else exit 0; fi",
+            "timeout": 10,
+            "type": "command"
+          },
+          {
+            "command": "HOOK=\"$(git rev-parse --show-toplevel 2>/dev/null)/tooling/anti-pattern-gate.py\"; if [ -f \"$HOOK\" ]; then python3 \"$HOOK\"; else exit 0; fi",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
       }
     ],
     "SessionStart": [

@@ -11,3 +11,6 @@ promotion-log.json
 # Machine-local overrides
 hook-config.local.json
 rules.local/
+
+# vibe-fork translate-discipline per-worktree read-tracking state
+.translate-reads.json

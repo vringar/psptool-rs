@@ -1,0 +1,88 @@
+# translate-routes.toml — read-gate route table
+#
+# Consumed by tooling/translate-discipline.py to gate Edit/Write on target
+# source files. Each [[route]] declares:
+#
+#   crate_pattern : repo-relative path or glob (supports * and **) matched
+#                   against the target file (includes the crates/ prefix).
+#   upstream      : list of upstream paths at least ONE of which must be
+#                   Read before the edit. Upstream = the reference Python
+#                   PSPTool, shallow-cloned to /tmp/psptool-ref
+#                   (git clone --depth 1 https://github.com/PSPReverse/PSPTool /tmp/psptool-ref).
+#   design        : path to the .design/<area>/<doc>.md governing this
+#                   translation. MUST exist on disk; if missing, the hook
+#                   blocks with acto-doc-author dispatch instructions.
+#   parity_ops    : which parity suites gate this file. Valid values:
+#                     "roundtrip"    -> cargo test -p psptool-core --test corpus_roundtrip
+#                     "differential" -> cargo test -p psptool-cli  --test differential
+#                   Empty list = crate test suite is the only gate (helper file).
+#
+# Additionally, every gated edit requires Read of goal.md in the same
+# session (the global discipline file).
+#
+# Files under crates/psptool-*/src/** without a matching route are BLOCKED
+# until a route is added (strict-mode default, goal.md R-XLATE-2). This is
+# the point: sourcing each translation unit is a deliberate decision.
+# psptool-fixtures is excluded from gating (test scaffolding, no upstream).
+#
+# The table grows one route per translation unit as the 8-step loop reaches
+# it, leaf crates first (psptool-core -> psptool-ops -> psptool-cli). The
+# seed routes below cover the leaf-most core units; their design docs do not
+# exist yet, so the first edit to each will (correctly) require an
+# acto-doc-author dispatch.
+# ─────────────────────────────────────────────────────────────────────────
+
+# --- psptool-core (leaf) -------------------------------------------------
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/fletcher.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/utils.py",
+]
+design = ".design/psptool-core/fletcher.md"
+parity_ops = ["roundtrip"]
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/entry.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/entry.py",
+  "/tmp/psptool-ref/psptool/file.py",
+]
+design = ".design/psptool-core/entry.md"
+parity_ops = ["roundtrip", "differential"]
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/directory.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/directory.py",
+]
+design = ".design/psptool-core/directory.md"
+parity_ops = ["roundtrip", "differential"]
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/fet.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/fet.py",
+  "/tmp/psptool-ref/psptool/blob.py",
+  "/tmp/psptool-ref/psptool/rom.py",
+]
+design = ".design/psptool-core/fet.md"
+parity_ops = ["roundtrip", "differential"]
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/address.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/entry.py",
+  "/tmp/psptool-ref/psptool/directory.py",
+]
+design = ".design/psptool-core/address.md"
+parity_ops = ["roundtrip"]
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/writer.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/utils.py",
+  "/tmp/psptool-ref/psptool/blob.py",
+]
+design = ".design/psptool-core/writer.md"
+parity_ops = ["roundtrip"]

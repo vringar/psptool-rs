@@ -40,3 +40,7 @@
 **/*.rs.bk
 
 # Per-developer Cargo.lock placement: tracked at the workspace root.
+
+# Python bytecode (tooling/ hooks)
+__pycache__/
+*.pyc
