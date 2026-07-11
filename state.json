@@ -1,6 +1,6 @@
 {
   "next_display_id": 46,
-  "next_comment_id": 37,
+  "next_comment_id": 38,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -290,10 +290,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:54:41.283713998Z",
-      "updated_at": "2026-07-11T18:54:45.910325963Z",
+      "updated_at": "2026-07-11T18:56:12.120497585Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "0caa9fc8-87f1-4e86-822c-b29d7dec1e26": {
+          "display_id": 37,
+          "author": "tLiK",
+          "content": "Failing pins at crates/psptool-core/tests/divergence_fletcher.rs: divergence_odd_length_three_bytes_upstream_raises + divergence_single_odd_byte_upstream_raises. Oracle (verbatim utils.py:286-307 transcription) RAISES struct.error on odd-length input (chunker utils.py:177 yields 1-byte final slice; struct.unpack('<H',..) utils.py:291 needs 2 bytes). Rust fletcher.rs:34-39 silently returns: [12,34,56]->0x687A3468, [00]->0xFFFFFFFF. Even-length parity confirmed intact (ramp1600=0x8CDB8265 matches). #[should_panic] pins fail 'did not panic' against current returning impl.",
+          "created_at": "2026-07-11T18:56:12.115787689Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAyr7/gJlZVJqWxH1HuiHsTac51z013BEfNNKZIS0dD91YarqH3ED3Ezwh4VnGZiE0t3ZmMsncre3kLb0lSQndBQ=="
+        }
+      }
     },
     "47de77e3-bbbf-42a9-930a-eb46387697f5": {
       "uuid": "47de77e3-bbbf-42a9-930a-eb46387697f5",
@@ -1193,11 +1204,16 @@
       "agent_id": "tLiK",
       "agent_seq": 14,
       "timestamp": "2026-07-11T18:54:53.201443828Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 15,
+      "timestamp": "2026-07-11T18:56:12.120497585Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:54:53.201443828Z",
+    "timestamp": "2026-07-11T18:56:12.120497585Z",
     "agent_id": "tLiK",
-    "agent_seq": 14
+    "agent_seq": 15
   }
 }
