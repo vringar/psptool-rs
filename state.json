@@ -957,11 +957,12 @@
       "uuid": "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334",
       "display_id": 44,
       "title": "acto-critic audit: psptool-core/fletcher.rs vs utils.fletcher32",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:51:14.204967773Z",
-      "updated_at": "2026-07-11T19:00:25.983626282Z",
+      "updated_at": "2026-07-11T19:00:30.764620111Z",
+      "closed_at": "2026-07-11T19:00:30.764615722Z",
       "labels": [
         "feature"
       ],
@@ -1225,11 +1226,16 @@
       "agent_id": "tLiK",
       "agent_seq": 16,
       "timestamp": "2026-07-11T19:00:25.983626282Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 17,
+      "timestamp": "2026-07-11T19:00:30.764620111Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:00:25.983626282Z",
+    "timestamp": "2026-07-11T19:00:30.764620111Z",
     "agent_id": "tLiK",
-    "agent_seq": 16
+    "agent_seq": 17
   }
 }
