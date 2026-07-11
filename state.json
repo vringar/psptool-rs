@@ -1,6 +1,6 @@
 {
   "next_display_id": 66,
-  "next_comment_id": 64,
+  "next_comment_id": 65,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -380,11 +380,22 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:38:04.408116228Z",
-      "updated_at": "2026-07-11T23:40:49.069981377Z",
+      "updated_at": "2026-07-11T23:41:18.159094754Z",
       "closed_at": "2026-07-11T23:40:49.069979704Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "157caec3-a745-4894-a5d3-01e4e4b9ee8a": {
+          "display_id": 64,
+          "author": "tLiK",
+          "content": "Authored .design/psptool-core/writer.md (255 lines, 5 REQs). 4 SHIPPED / 1 NOT-STARTED. REQ-1/2/3/5 SHIPPED with production consumers in psptool-ops replace.rs/sign.rs and psptool-cli cmds/replace.rs+sign.rs. REQ-4 (equal-length patch_source/set_body API) NOT-STARTED: no non-test production consumer, blocker #64 filed. Verification: core lib 146 passed, corpus_roundtrip 54 passed 0 failed 0 ignored (parity_ops roundtrip; route declares no differential), psptool-ops green. Diff-and-patch confirmed byte-exact and sidesteps upstream PR#77 0x10-realign (REQ-5, R-DEV-6). Commit 4f0a9f2e.",
+          "created_at": "2026-07-11T23:41:18.154482797Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAtrVNsIc3n01sQe+sDaYMV3wtv1viOZaMeV4pOS0D9fszzMtgw7YkUA0jvWxlESSjkx0NobcxHxggsQLo6zwCAQ=="
+        }
+      }
     },
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": {
       "uuid": "37adbfde-9107-49f0-8fa1-9ea76db4eaa3",
@@ -2285,11 +2296,16 @@
       "agent_id": "tLiK",
       "agent_seq": 107,
       "timestamp": "2026-07-11T23:40:49.069981377Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 108,
+      "timestamp": "2026-07-11T23:41:18.159094754Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:40:49.069981377Z",
+    "timestamp": "2026-07-11T23:41:18.159094754Z",
     "agent_id": "tLiK",
-    "agent_seq": 107
+    "agent_seq": 108
   }
 }
