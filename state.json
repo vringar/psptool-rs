@@ -1,6 +1,6 @@
 {
   "next_display_id": 44,
-  "next_comment_id": 36,
+  "next_comment_id": 37,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -163,10 +163,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:25:41.940911757Z",
-      "updated_at": "2026-07-11T18:25:46.643831637Z",
+      "updated_at": "2026-07-11T18:30:56.114048823Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "fea9b7bf-ead8-4111-9af7-5b38c4057875": {
+          "display_id": 36,
+          "author": "tLiK",
+          "content": "Authored .design/psptool-core/fletcher.md (135 lines, 6 REQs). 5 SHIPPED (REQ-1..5, algorithm exactness: 0xFFFF seed, 360-word carry fold, double final fold, 16-bit LE word iteration, (c1<<16)|c0 output) with quoted fletcher.rs evidence + upstream utils.py:286-307 cites; fletcher32 is the public library boundary (lib.rs:61), cross-validated vs the independent reference impl in build_fixtures.rs via fixture-checksum tests. 1 NOT-STARTED (REQ-6 production writer recompute) — no non-test consumer calls psptool_core::fletcher32 (writer is diff-and-patch, writer.rs:15); tracked by blocker #43. Verification: fletcher unit 8/8, psptool-core lib 146/146, corpus_roundtrip 54/54 (0 failed, 0 skipped). Commit 50cc1b56.",
+          "created_at": "2026-07-11T18:30:56.109317906Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAz2yBGMYxWFWiWN8tsMynhir+UZq0msSakh09ADZtVl1r6sQit9bVyphglHfWpDVFaEWITNELOfRDzMQ8MHPzDg=="
+        }
+      }
     },
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": {
       "uuid": "1e1b514a-d3f0-4083-9e46-f6b55e0f47de",
@@ -1105,11 +1116,16 @@
       "agent_id": "tLiK",
       "agent_seq": 6,
       "timestamp": "2026-07-11T18:29:10.299411508Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 7,
+      "timestamp": "2026-07-11T18:30:56.114048823Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:29:10.299411508Z",
+    "timestamp": "2026-07-11T18:30:56.114048823Z",
     "agent_id": "tLiK",
-    "agent_seq": 6
+    "agent_seq": 7
   }
 }
