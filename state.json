@@ -1,6 +1,6 @@
 {
   "next_display_id": 59,
-  "next_comment_id": 49,
+  "next_comment_id": 50,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1246,12 +1246,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T20:11:58.728409190Z",
-      "updated_at": "2026-07-11T21:54:17.549493258Z",
+      "updated_at": "2026-07-11T21:57:44.654852592Z",
       "labels": [
         "bug",
         "component:core"
       ],
       "comments": {
+        "5e2c838e-ab2c-4ef0-8760-3c99b8c62b96": {
+          "display_id": 49,
+          "author": "tLiK",
+          "content": "Plan: mirror directory.py:85-99 in walk_directories (directory.rs). For PSP/BIOS entries where entry_type.is_tertiary_directory_pointer() (0x48/0x4A): resolve the entry offset exactly like the secondary path (dir_mode.resolve_with_entry) to locate the 32-byte block (upstream entry.file_offset(), directory.py:163), read block[16:20] as the real L2 offset (directory.py:88), apply the ROM addr_mask via AddressMode::PhysicalX86.resolve (mirrors from_offset 'rom_offset &= addr_mask', directory.py:105), then reuse the SAME parse_at/visit/dedup machinery to enqueue the $PL2. Unknown generation id does NOT gate recursion (upstream only warns, directory.py:91-92). New private helper tertiary_actual_offset does the bounded 32-byte read via local_offset (no unwrap/panic, R-CODE-2). Then flip the two divergence_tertiary tests from #[ignore] to #[test] and update the stale directory.rs:559 'not followed' doc note + REQ-9 row.",
+          "created_at": "2026-07-11T21:57:44.650107926Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABArWfgTkBQYrjpPkyVJ0FMTD96ApAFZScPzgNSDc8O273psljfauRP5GOsZ+kWfJdXKUqoEGjJ5chMYFGUN/CuDA=="
+        },
         "678a9d58-7e67-4e81-8a51-385f55a01a47": {
           "display_id": 47,
           "author": "tLiK",
@@ -1803,11 +1812,16 @@
       "agent_id": "tLiK",
       "agent_seq": 66,
       "timestamp": "2026-07-11T21:56:42.025149184Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 67,
+      "timestamp": "2026-07-11T21:57:44.654852592Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:56:42.025149184Z",
+    "timestamp": "2026-07-11T21:57:44.654852592Z",
     "agent_id": "tLiK",
-    "agent_seq": 66
+    "agent_seq": 67
   }
 }
