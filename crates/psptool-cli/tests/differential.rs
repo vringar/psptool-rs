@@ -42,7 +42,7 @@
 //!   referenced — masking the real type and size of any *later* directory
 //!   record at the same offset. Our tool reads each directory record
 //!   faithfully (the records genuinely differ — verified against on-disk
-//!   bytes; see crosslink issue L1). Two accommodations follow: (a) when
+//!   bytes; see crosslink issue #40). Two accommodations follow: (a) when
 //!   upstream repeats an entry at consecutive positions within a directory
 //!   (`address[N] == address[N-1]`), position N is a dedup echo carrying no
 //!   independent information and is not compared; (b) a `size` mismatch is
@@ -122,12 +122,12 @@ const SKIP_LIST: &[(&str, &str)] = &[
     (
         "ASRock-A520M-HSV-1.31.ROM",
         "compressed entry overruns ROM; our parser errors where upstream \
-         recovers the size from the zlib stream (crosslink issue L1)",
+         recovers the size from the zlib stream (crosslink issue #40)",
     ),
     (
         "AORUS_X570_X57AOXT2.FCd",
         "compressed entry overruns ROM; our parser errors where upstream \
-         recovers the size from the zlib stream (crosslink issue L1)",
+         recovers the size from the zlib stream (crosslink issue #40)",
     ),
     // Multi-ROM blobs: the ROM-1 BIOS directory diverges — our tool applies
     // the ROM-1 base to BIOS-region entry addresses where upstream does not,
@@ -135,15 +135,15 @@ const SKIP_LIST: &[(&str, &str)] = &[
     // address-base handling needs its own investigation.
     (
         "ASUS_PRIME-X470-PRO-ASUS-4804.CAP",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue L2)",
+        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
     ),
     (
         "ASUS_ROG-STRIX-X470-F-GAMING-ASUS-4804.CAP",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue L2)",
+        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
     ),
     (
         "H12SSW9.719",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue L2)",
+        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
     ),
 ];
 

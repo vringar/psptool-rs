@@ -5,6 +5,8 @@ repo-id
 .knowledge-cache/
 keys/
 integrations/
+.promoted-uuids
+promotion-log.json
 
 # Machine-local overrides
 hook-config.local.json
