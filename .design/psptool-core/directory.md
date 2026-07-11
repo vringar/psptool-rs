@@ -99,8 +99,9 @@ header, the table slicing, and the traversal.
   `create_directories_if_not_exist` (`directory.py:57-101`) driven by
   `directory.py:159-163` (`entry.type in SECONDARY_DIRECTORY_ENTRY_TYPES` →
   `secondary_directory_offsets`) and the empty/unknown-magic skip
-  (`directory.py:108-117`). Tertiary pointers (`0x48`/`0x4A`) are *not* followed
-  — that requires reading the entry body and is deferred to issue #7.
+  (`directory.py:108-117`). Tertiary pointers (`0x48`/`0x4A`, the Zen 4+ double
+  indirection) are followed by reading the 32-byte block they point at and
+  walking the real L2 offset from `block[16:20]` (`directory.py:85-99`).
 
 ## Acceptance criteria
 
@@ -150,7 +151,7 @@ header, the table slicing, and the traversal.
 | REQ-6 (checksum verify / recompute) | NOT-STARTED | open prereq blocker #43. No production code recomputes or verifies the directory checksum: the writer is diff-and-patch only (`writer.rs:15` — "does not recompute fletcher/sha") and no non-test caller invokes `psptool_core::fletcher32` (grep of `crates/*/src` outside `#[cfg(test)]` finds only the `fletcher.rs` definition). Upstream's `verify_checksum` (`directory.py:195-201`) warns on mismatch and `update_checksum` (`directory.py:203-205`) recomputes; neither is mirrored by a production path. |
 | REQ-7 (combo reserved + secondaryAddresses) | SHIPPED | impl `directory.rs:464` (`ComboDirectory::parse_with_header`) parses header + 16-byte reserved (`directory.rs:495`, preserved verbatim per `directory.rs:288-290`) + 16-byte combo entries (`ComboEntry::parse`, `directory.rs:248`: `entry_flags`/`psp_generation`/`pointer`/`reserved`), and `walk_directories` follows each combo `pointer` at `directory.rs:623-651`. Mirrors upstream secondary discovery `directory.py:80-83` + combo generation read `directory.py:85-99`. Non-test consumer: `psptool-ops/src/list.rs:533`/`592-600` (`Directory::Combo(c)` iterates `c.entries` and resolves `entry.pointer`), `psptool-cli/src/cmds/extract.rs:255`. Verification: `parse_combo_psp_fixture` + `walk_directories_via_combo_to_psp` (in the 146-test pass). |
 | REQ-8 (Zen-generation id map) | SHIPPED | impl `id.rs:191` (`PspGenerationId::zen_generation`) maps `high24()` (`id.rs:185`, `raw >> 8`) to `Zen1..Zen4Or5` — byte-exact transcription of `ZEN_GENERATION_IDS` (`directory.py:34-39`): `b'\x05\x0B\xBC'` → `0xBC_0B_05` → Zen2, etc. (`get_possible_zen_generation`, `directory.py:41-48`). Non-test consumer: `psptool-ops/src/list.rs:536`/`559` (`e.psp_generation.zen_generation()` in `directory_generation`). Verification: `parse_combo_psp_fixture` (asserts `Zen2`) + the `id.rs` `zen_generation_*` tests (in the 146-test pass). |
-| REQ-9 (FET → directory walk) | SHIPPED | impl `directory.rs:567` (`walk_directories`): resolves FET slots (`directory.rs:595-619`), follows combo entries (`directory.rs:623-651`) and L2 secondary pointers `is_secondary_directory_pointer` = `0x40`/`0x49`/`0x70` (`id.rs`, `directory.rs:657`/`690`), dedups by absolute offset (`directory.rs:581-585`), skips non-directory pointers (`directory.rs:610` `if let Ok(dir)`) — mirrors `directory.py:57-101`/`159-163`/`108-117`. Tertiary (`0x48`/`0x4A`) deferred to #7 (`directory.rs:559-561`). Non-test consumer: `psptool-cli/src/load.rs:57`, `psptool-ops/src/search_keys.rs:80`, `psptool-ops/src/verify.rs:111`, `psptool-cli/src/cmds/list.rs:94`. Verification: `cargo test -p psptool-cli --test differential` (49 passed, 0 failed, 5 ignored — #40/#41, no directory REQ) + the five `walk_directories_*` unit tests. |
+| REQ-9 (FET → directory walk) | SHIPPED | impl `directory.rs:567` (`walk_directories`): resolves FET slots (`directory.rs:595-619`), follows combo entries (`directory.rs:623-651`) and L2 secondary pointers `is_secondary_directory_pointer` = `0x40`/`0x49`/`0x70` (`id.rs`, `directory.rs:657`/`690`), dedups by absolute offset (`directory.rs:581-585`), skips non-directory pointers (`directory.rs:610` `if let Ok(dir)`) — mirrors `directory.py:57-101`/`159-163`/`108-117`. Tertiary (`0x48`/`0x4A`) double-indirection is followed via `tertiary_actual_offset` (`directory.rs:750`), reading `block[16:20]` and applying the ROM addr_mask (`directory.py:85-99`/`105`), pinned by `crates/psptool-core/tests/divergence_tertiary.rs` (#51). Non-test consumer: `psptool-cli/src/load.rs:57`, `psptool-ops/src/search_keys.rs:80`, `psptool-ops/src/verify.rs:111`, `psptool-cli/src/cmds/list.rs:94`. Verification: `cargo test -p psptool-cli --test differential` (49 passed, 0 failed, 5 ignored — #40/#41, no directory REQ) + the five `walk_directories_*` unit tests. |
 
 ## Architecture
 
@@ -262,9 +263,11 @@ recognisable directory magic is skipped silently (`if let Ok(dir)`,
 `ResolveContext.rom_origin`) handles capsule-wrapped images (§1.1) that carry an
 envelope before the ROM; it is `0` for bare flash dumps, so parity on non-wrapped
 images is unaffected. Regression `walk_directories_traverses_capsule_wrapped_image`
-pins the `0x800`-envelope case. Tertiary pointers (`0x48`/`0x4A`) are *not*
-followed (`directory.rs:559-561`) — that indirection needs the entry body and is
-deferred to issue #7.
+pins the `0x800`-envelope case. Tertiary pointers (`0x48`/`0x4A`, Zen 4+) are
+followed via `tertiary_actual_offset` (`directory.rs:750`): the entry points at a
+32-byte block, the real L2 offset is `block[16:20]` masked by the ROM `addr_mask`
+(`directory.py:85-99`/`105`), and an unknown generation id only warns upstream so
+it does not gate the recursion. Pinned by `divergence_tertiary.rs` (#51).
 
 ## Verification
 

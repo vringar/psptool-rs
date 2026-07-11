@@ -31,10 +31,12 @@
 //! upstream then recurses into that address and parses the `$PL2` there —
 //! even when the generation id is unknown (it only prints a warning).
 //!
-//! `psptool-core`'s `walk_directories` (`directory.rs:657-661`) STOPS at
-//! tertiary entries ("Tertiary (0x48/0x4a) requires reading the entry body
-//! and is deferred to issue #7"), so on modern AM5 (Zen 4/5) firmware it
-//! surfaces only the L1 `$PSP` stub and none of the real L2 directories.
+//! `psptool-core`'s `walk_directories` originally STOPPED at tertiary entries
+//! ("Tertiary (0x48/0x4a) requires reading the entry body and is deferred to
+//! issue #7"), so on modern AM5 (Zen 4/5) firmware it surfaced only the L1
+//! `$PSP` stub and none of the real L2 directories. It now follows the
+//! double-indirection (see `tertiary_actual_offset`); these tests are the
+//! regression pin.
 //!
 //! Both tests below build a minimal L1 `$PSP` → tertiary block → L2 `$PL2`
 //! chain and assert the L2 directory is surfaced. They FAIL against current
@@ -166,7 +168,6 @@ fn assert_l2_surfaced(dirs: &[DirectoryRef]) {
 ///
 /// Tracking: #51
 #[test]
-#[ignore = "divergence: walk_directories drops tertiary 0x48/0x4A L2 pointers; tracking #51"]
 fn divergence_tertiary_0x48_known_gen_surfaces_l2() {
     let buf = build_chain(0x48, 0xBC0D_0300);
     let blob = SourceBytes::from_blob(buf);
@@ -184,7 +185,6 @@ fn divergence_tertiary_0x48_known_gen_surfaces_l2() {
 ///
 /// Tracking: #51
 #[test]
-#[ignore = "divergence: walk_directories drops tertiary 0x48/0x4A L2 pointers; tracking #51"]
 fn divergence_tertiary_0x4a_unknown_gen_still_surfaces_l2() {
     let buf = build_chain(0x4A, 0xBC0E_0B00);
     let blob = SourceBytes::from_blob(buf);

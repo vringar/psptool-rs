@@ -556,9 +556,11 @@ pub struct DirectoryRef {
 /// directory magic are skipped silently per §1.2 ("only dwords whose
 /// dereferenced location starts with a known directory magic are followed").
 ///
-/// Tertiary pointers (entry types 0x48 / 0x4A — §3.3) are *not* followed:
-/// they require reading the entry body, which lives in the entry-parser
-/// issue (#7).
+/// Tertiary pointers (entry types 0x48 / 0x4A — §3.3, the Zen 4+ double
+/// indirection) are followed too: the entry points at a 32-byte block whose
+/// `[16:20]` holds the real L2 directory offset, which is then walked like any
+/// other sub-directory (mirrors `directory.py:85-99`, see
+/// [`tertiary_actual_offset`]).
 ///
 /// `rom_origin` is the file offset of the ROM's first byte within `blob`.
 /// For a bare flash dump pass [`FlashOffset::ZERO`]; for a capsule-wrapped
@@ -654,18 +656,32 @@ pub fn walk_directories(
                 let dir_mode = psp.header.address_mode();
                 let dir_base = psp.source.offset();
                 for (idx, entry) in psp.entries.iter().enumerate() {
-                    if !entry.entry_type.is_secondary_directory_pointer() {
-                        // Tertiary (0x48/0x4a) requires reading the entry body
-                        // and is deferred to issue #7.
-                        continue;
-                    }
                     let ctx = ResolveContext {
                         rom_size,
                         directory_base: dir_base,
                         rom_origin,
                     };
-                    let target =
-                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx);
+                    let target = if entry.entry_type.is_secondary_directory_pointer() {
+                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx)
+                    } else if entry.entry_type.is_tertiary_directory_pointer() {
+                        // Tertiary (0x48/0x4A) double-indirection (Zen 4+,
+                        // directory.py:85-99): the entry points at a 32-byte
+                        // block whose [16:20] holds the REAL L2 directory
+                        // offset. Resolve the block location like a secondary
+                        // pointer (upstream entry.file_offset()), then follow
+                        // block[16:20] under the ROM addr_mask.
+                        let block_at = dir_mode.resolve_with_entry(
+                            entry.entry_address_mode(),
+                            entry.offset,
+                            ctx,
+                        );
+                        match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
+                            Some(o) => o,
+                            None => continue,
+                        }
+                    } else {
+                        continue;
+                    };
                     if let Ok(child) = Directory::parse_at(blob, target) {
                         let provenance = DirectoryProvenance::L2Pointer {
                             parent_offset,
@@ -687,16 +703,28 @@ pub fn walk_directories(
                 let dir_mode = bios.header.address_mode();
                 let dir_base = bios.source.offset();
                 for (idx, entry) in bios.entries.iter().enumerate() {
-                    if !entry.entry_type.is_secondary_directory_pointer() {
-                        continue;
-                    }
                     let ctx = ResolveContext {
                         rom_size,
                         directory_base: dir_base,
                         rom_origin,
                     };
-                    let target =
-                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx);
+                    let target = if entry.entry_type.is_secondary_directory_pointer() {
+                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx)
+                    } else if entry.entry_type.is_tertiary_directory_pointer() {
+                        // Tertiary (0x48/0x4A) double-indirection, uniform with
+                        // the PSP branch above (directory.py:85-99).
+                        let block_at = dir_mode.resolve_with_entry(
+                            entry.entry_address_mode(),
+                            entry.offset,
+                            ctx,
+                        );
+                        match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
+                            Some(o) => o,
+                            None => continue,
+                        }
+                    } else {
+                        continue;
+                    };
                     if let Ok(child) = Directory::parse_at(blob, target) {
                         let provenance = DirectoryProvenance::L2Pointer {
                             parent_offset,
@@ -717,6 +745,45 @@ pub fn walk_directories(
     }
 
     out
+}
+
+/// Follow a tertiary (0x48/0x4A) double-indirection block (Zen 4+, §3.3).
+///
+/// `block_at` is the resolved location of the 32-byte block the tertiary
+/// entry points at. Mirrors upstream `directory.py:86-99`: read 32 bytes,
+/// take the real L2 directory offset from `block[16:20]`
+/// (`actual_tertiary_offset = int.from_bytes(directory_body[16:20], 'little')`,
+/// `directory.py:88`), then apply the ROM `addr_mask` exactly as upstream
+/// `from_offset` does (`rom_offset &= fet.rom.addr_mask`, `directory.py:105`)
+/// via [`AddressMode::PhysicalX86`] resolution. The generation id at
+/// `block[20:24]` is not needed to resolve the target — upstream only prints a
+/// warning when it is unknown and still recurses (`directory.py:91-92`), so an
+/// unknown generation does not gate this walk. Returns `None` when the block
+/// is out of bounds (the pointer is skipped, matching the surrounding
+/// bad-offset handling).
+fn tertiary_actual_offset(
+    blob: &SourceBytes,
+    block_at: FlashOffset,
+    rom_size: RomSize,
+    rom_origin: FlashOffset,
+) -> Option<FlashOffset> {
+    const TERTIARY_BLOCK_SIZE: usize = 32;
+    let local = local_offset(blob, block_at, "tertiary block", TERTIARY_BLOCK_SIZE).ok()?;
+    let block = blob.as_bytes();
+    // `local_offset` guarantees `local + TERTIARY_BLOCK_SIZE <= blob.len()`,
+    // so bytes `[local + 16 ..= local + 19]` are in bounds.
+    let actual = Address(u32::from_le_bytes([
+        block[local + 16],
+        block[local + 17],
+        block[local + 18],
+        block[local + 19],
+    ]));
+    let ctx = ResolveContext {
+        rom_size,
+        directory_base: FlashOffset(0),
+        rom_origin,
+    };
+    AddressMode::PhysicalX86.resolve(actual, ctx).ok()
 }
 
 fn local_offset(
