@@ -1,6 +1,6 @@
 {
   "next_display_id": 49,
-  "next_comment_id": 43,
+  "next_comment_id": 44,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1236,10 +1236,21 @@
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:37:43.883741054Z",
-      "updated_at": "2026-07-11T19:37:48.608247963Z",
+      "updated_at": "2026-07-11T19:38:02.242344611Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "2928502e-f5d2-4f78-a4a2-eebfe1cb4a4b": {
+          "display_id": 43,
+          "author": "tLiK",
+          "content": "Unpinnable now: verifying the upstream drop requires header_file.py/pubkey_file.py, which are outside entry.rs's route. Not triggered on the green differential corpus (49/0/5). Re-audit when those upstreams get routed. Flagged by acto-critic in #47; NOT a false pin (R-CHAR-3).",
+          "created_at": "2026-07-11T19:38:02.237670349Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAuVvJJdPhgy2PDMa8cCZTEWbwT49UyrShHmSa86qR3IyYGbSAlBy/ZNK4vJV/yzfiErJ5H0R+cHrUQwRCs35JAg=="
+        }
+      }
     }
   },
   "next_milestone_id": 1,
@@ -1413,11 +1424,16 @@
       "agent_id": "tLiK",
       "agent_seq": 34,
       "timestamp": "2026-07-11T19:37:56.208972324Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 35,
+      "timestamp": "2026-07-11T19:38:02.242344611Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:37:56.208972324Z",
+    "timestamp": "2026-07-11T19:38:02.242344611Z",
     "agent_id": "tLiK",
-    "agent_seq": 34
+    "agent_seq": 35
   }
 }
