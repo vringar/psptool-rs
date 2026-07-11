@@ -1,6 +1,6 @@
 {
   "next_display_id": 46,
-  "next_comment_id": 38,
+  "next_comment_id": 39,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -961,10 +961,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:51:14.204967773Z",
-      "updated_at": "2026-07-11T18:51:18.946687530Z",
+      "updated_at": "2026-07-11T19:00:25.983626282Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "bc2f4b00-3081-4da6-ab78-d5b2a90dc81e": {
+          "display_id": 38,
+          "author": "tLiK",
+          "content": "Audit complete: 1 divergence (odd-length input) pinned in #45; even-length parity fully confirmed via live oracle. Closing audit issue.",
+          "created_at": "2026-07-11T19:00:25.979109945Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA0LFcClPItkURxWJCJO2v+G8gJyfsHnUQM1GMMlO2nM0G2Y4HN1qe0ZPaLyHFVryWVCbRSrxql2AFusAeC1rLBQ=="
+        }
+      }
     },
     "d5cbd6e4-4fb2-4759-9534-84b5ce12f96e": {
       "uuid": "d5cbd6e4-4fb2-4759-9534-84b5ce12f96e",
@@ -1209,11 +1220,16 @@
       "agent_id": "tLiK",
       "agent_seq": 15,
       "timestamp": "2026-07-11T18:56:12.120497585Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 16,
+      "timestamp": "2026-07-11T19:00:25.983626282Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:56:12.120497585Z",
+    "timestamp": "2026-07-11T19:00:25.983626282Z",
     "agent_id": "tLiK",
-    "agent_seq": 15
+    "agent_seq": 16
   }
 }
