@@ -307,11 +307,20 @@ pub fn scan_fet_candidates(blob: &SourceBytes) -> Vec<FlashOffset> {
     }
     let blob_start = blob.offset().get();
     let mut out = Vec::new();
-    for i in 0..=bytes.len() - SIG_LEN {
-        let win = &bytes[i..i + SIG_LEN];
-        if win == ZERO_PAD || win == FF_PAD {
-            // Magic begins at i+4 (the byte after the 4-byte pad).
-            out.push(FlashOffset(blob_start + (i + 4) as u64));
+    // Two sequential passes mirroring upstream `_find_fets` (blob.py:124-131):
+    // ALL `0xFFFFFFFF`-padded FETs first (blob.py:126-128,
+    // `re.finditer(b'\xff\xff\xff\xff' + magic, ...)`), THEN all
+    // `0x00000000`-padded FETs (blob.py:129-131). Each pass scans ascending
+    // file offset, so within a pad kind the emission order is file order, and
+    // every FF-padded FET precedes every zero-padded one regardless of file
+    // position — the ordering `load.rs`'s `.nth(rom_index)` relies on.
+    for pad in [FF_PAD, ZERO_PAD] {
+        for i in 0..=bytes.len() - SIG_LEN {
+            if bytes[i..i + SIG_LEN] == pad {
+                // Magic begins at i+4 (the byte after the 4-byte pad), i.e.
+                // upstream's `m.start() + 4`.
+                out.push(FlashOffset(blob_start + (i + 4) as u64));
+            }
         }
     }
     out

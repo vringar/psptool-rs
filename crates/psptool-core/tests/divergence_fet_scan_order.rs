@@ -88,7 +88,6 @@ fn control_both_fets_found_at_magic_offsets() {
 ///
 /// Tracking: #63
 #[test]
-#[ignore = "divergence: scan_fet_candidates emits file-order not FF-then-zero-pass order (blob.py:124-131); tracking #63"]
 fn divergence_scan_order_ff_pass_before_zero_pass() {
     let blob = mixed_pad_blob();
     let cands = scan_fet_candidates(&blob);

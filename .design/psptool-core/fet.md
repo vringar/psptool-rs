@@ -171,16 +171,15 @@ e.g. the ASUS `.CAP` `0x800` envelope) still pass — pinned by
 `detect_rom_layout_capsule_wrapped_16mib`. `KNOWN_FET_OFFSETS` (`fet.rs:29`) is in
 `blob.py:42-51` order so the common Zen sites match on the first try.
 
-**Scan ordering divergence (critic watch-item, blocker #63).** Upstream
+**Scan ordering divergence (resolved, blocker #63).** Upstream
 `_find_fets` (`blob.py:124-131`) runs two separate `re.finditer` passes and
 yields **all** `0xFFFFFFFF`-padded FETs first, then **all** `0x00000000`-padded
-ones. The Rust `scan_fet_candidates` (`fet.rs:310-316`) is a single pass in
-file-position order, interleaving the two pad kinds. For a blob that mixes both
-pad kinds across multiple ROMs this changes the order `load.rs:41`'s
-`.nth(rom_index)` selects. It is not exercised by the current corpus
-(`differential` is green), so REQ-1 is SHIPPED on observed behaviour; the
-ordering alignment is tracked by blocker #63 with a fixture to be pinned before
-any ROM-index-sensitive feature relies on it.
+ones. `scan_fet_candidates` (`fet.rs:310-321`) now mirrors this with two
+sequential ascending passes (`for pad in [FF_PAD, ZERO_PAD]`), so every
+FF-padded FET precedes every zero-padded one regardless of file position — the
+order `load.rs:41`'s `.nth(rom_index)` selects. Pinned by
+`crates/psptool-core/tests/divergence_fet_scan_order.rs::divergence_scan_order_ff_pass_before_zero_pass`
+(oracle order `[0x204, 0x104]`).
 
 **Address masking is `address.rs`, not `fet.rs` (field-width watch-item).**
 `fet.py:68-71`'s `rom_addr &= self.rom.addr_mask` with the `>0xFF000000 &&
@@ -244,7 +243,7 @@ one of these returning green, run inside `nix-shell` so `PSPTOOL_REFERENCE` +
   naming, `AORUS_X570`), three for #41 (multi-ROM BIOS address base). No ignored
   trial pins a REQ marked SHIPPED above; REQ-5/REQ-6 (FET-slot traversal + combo
   expansion) pass on every non-ignored ROM.
-- Open prerequisite blockers: #62 (REQ-7 AGESA/dual_rom), #63 (REQ-1 scan
-  ordering divergence, latent), #41 (multi-ROM base application, downstream of
-  REQ-4), #60 (type-`0x5c` naming, downstream), #61 (differential oracle version
-  skew).
+- Open prerequisite blockers: #62 (REQ-7 AGESA/dual_rom), #41 (multi-ROM base
+  application, downstream of REQ-4), #60 (type-`0x5c` naming, downstream), #61
+  (differential oracle version skew). #63 (REQ-1 scan ordering) is resolved —
+  two-pass FF-then-zero order pinned by `divergence_fet_scan_order`.
