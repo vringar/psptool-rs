@@ -1,6 +1,6 @@
 {
   "next_display_id": 60,
-  "next_comment_id": 54,
+  "next_comment_id": 55,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1490,7 +1490,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T22:49:54.759453537Z",
-      "updated_at": "2026-07-11T22:53:22.035727331Z",
+      "updated_at": "2026-07-11T22:58:37.267078805Z",
       "labels": [
         "blocker"
       ],
@@ -1503,6 +1503,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAwASYaTc7Na6RG1JE4/miaGyVwaPPzqSKliZdXZOA6zS6J3UZ9irqTx9ZK75bF7INy5TR1gl1ng1OW5nR3fDJDg=="
+        },
+        "96921e0a-01e5-4a15-bf17-9c1c1d1ccd05": {
+          "display_id": 54,
+          "author": "tLiK",
+          "content": "Plan: resolve_body in crates/psptool-core/src/entry.rs currently returns ParseError::Truncated whenever body_end > blob_end, dropping compressed BIOS entries whose directory-record (uncompressed) size overruns the ROM. Fix mirrors upstream file.py:302-311 + utils.zlib_find_header (utils.py:218-234): thread the BIOS compressed flag (BiosEntry.is_compressed(), flags bit3) into resolve_body; when the record-size body overruns AND the entry is compressed, find the zlib header in blob[offset..] (checking 0x100 first) and size the on-flash body to zlib_hdr + le_u32(blob[offset+0x14..+0x18]) instead of erroring. Non-compressed oversize still returns Truncated (control test depends on it). Edits: add compressed param + zlib_find_header helper in entry.rs; parse_bios passes record.is_compressed(), parse_psp passes false. Then un-#[ignore] the pin test and flip design-doc REQ-6 to SHIPPED.",
+          "created_at": "2026-07-11T22:58:37.262565334Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAbknOliXjmky+5pG1XtrlcijJO06G50X/EX4W8hycpk/EPBxST5GhA+IHFV2CbCgYhuj3QE6LtGA5bhTT5FilDA=="
         }
       }
     },
@@ -1916,11 +1925,16 @@
       "agent_id": "tLiK",
       "agent_seq": 75,
       "timestamp": "2026-07-11T22:53:26.859829216Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 76,
+      "timestamp": "2026-07-11T22:58:37.267078805Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T22:53:26.859829216Z",
+    "timestamp": "2026-07-11T22:58:37.267078805Z",
     "agent_id": "tLiK",
-    "agent_seq": 75
+    "agent_seq": 76
   }
 }
