@@ -1,6 +1,6 @@
 {
   "next_display_id": 51,
-  "next_comment_id": 46,
+  "next_comment_id": 47,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -585,10 +585,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:51:20.573308001Z",
-      "updated_at": "2026-07-11T19:51:25.795228819Z",
+      "updated_at": "2026-07-11T19:59:49.914640869Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "d4ae49c4-a67f-4214-85a6-3645f3e694a9": {
+          "display_id": 46,
+          "author": "tLiK",
+          "content": "NO DIVERGENCE FOUND. Transcription-oracle probes of 4 seams (magic->entry-width dispatch, header field offsets, address_mode version-bit extraction, Zen-gen id table) all matched; combo projection NOT pinned (upstream never parses 2PSP/2BHD as Directory; differential drops combos as equivalent). Bonus: ComboEntry layout DOES match fet.py:104-117 (doc-author's concern resolved). Tertiary 0x48/0x4A gap == existing #7 (not duped). directory.rs unit clean.",
+          "created_at": "2026-07-11T19:59:49.904748542Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAlmeCp1AN4hqV4dIlifMSkTmtlHci6RR9Z64IDvZRYkSmSisWr8m660n+GtXgZduN98J6+pUR761Gzj2m6nV5BQ=="
+        }
+      }
     },
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": {
       "uuid": "68f7ee46-7bae-4a64-8d9a-81f8c443a46d",
@@ -1531,11 +1542,16 @@
       "agent_id": "tLiK",
       "agent_seq": 44,
       "timestamp": "2026-07-11T19:51:33.362068862Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 45,
+      "timestamp": "2026-07-11T19:59:49.914640869Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:51:33.362068862Z",
+    "timestamp": "2026-07-11T19:59:49.914640869Z",
     "agent_id": "tLiK",
-    "agent_seq": 44
+    "agent_seq": 45
   }
 }
