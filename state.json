@@ -1,5 +1,5 @@
 {
-  "next_display_id": 66,
+  "next_display_id": 67,
   "next_comment_id": 65,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -31,6 +31,7 @@
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": 2,
     "6c23d90d-6db6-43dc-90db-2154af41be59": 12,
     "6e427675-2426-49e2-8f35-d8362d7e331a": 34,
+    "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": 66,
     "79977ea4-13a2-4642-be11-632dbd1123bd": 28,
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
@@ -855,6 +856,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWgV3wO5VaBLbInLwYpM1FFvrqZKgNEjzJhbXFz6n2lVaOfk4M/D3gGM6STEa2TTGiqvKSGpi+ujwEyX6dFgFAQ=="
         }
       }
+    },
+    "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": {
+      "uuid": "71fbd789-f59a-4c42-aaf0-37ff9463e9c0",
+      "display_id": 66,
+      "title": "Divergence: psptool-ops replace leaves directory fletcher32 stale; upstream recomputes (directory.py:241)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T23:48:13.799827435Z",
+      "updated_at": "2026-07-11T23:48:13.799827435Z"
     },
     "79977ea4-13a2-4642-be11-632dbd1123bd": {
       "uuid": "79977ea4-13a2-4642-be11-632dbd1123bd",
@@ -2301,11 +2312,16 @@
       "agent_id": "tLiK",
       "agent_seq": 108,
       "timestamp": "2026-07-11T23:41:18.159094754Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 109,
+      "timestamp": "2026-07-11T23:48:13.799827435Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:41:18.159094754Z",
+    "timestamp": "2026-07-11T23:48:13.799827435Z",
     "agent_id": "tLiK",
-    "agent_seq": 108
+    "agent_seq": 109
   }
 }
