@@ -1,11 +1,12 @@
 {
-  "next_display_id": 55,
+  "next_display_id": 56,
   "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": 30,
     "10c34dc9-1be7-4d9a-8f6a-e6fc9b290523": 13,
+    "15eeff8e-9c99-40c2-bed4-ce9bcd171d18": 55,
     "17ab4b2b-fe87-48e6-9fc9-92db11fbb91a": 42,
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": 35,
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
@@ -193,6 +194,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAYhW36786S/7JydfHkTqazKh9Da2r5jrtG8vzpS3YdoAb3bUgTwe3HMN6BiZ4Sn5z/TobE+lxvnisXy9uyeaUDQ=="
         }
       }
+    },
+    "15eeff8e-9c99-40c2-bed4-ce9bcd171d18": {
+      "uuid": "15eeff8e-9c99-40c2-bed4-ce9bcd171d18",
+      "display_id": 55,
+      "title": "upstream-parity: back-fill zen_generation for single-gen EPYC BIOSes (PSPTool #85)",
+      "description": "Upstream PR: https://github.com/PSPReverse/PSPTool/pull/85 -- OPEN.\n\nEPYC server BIOSes (Naples-Turin) use single-FET -> single $PSP + $BHD. Neither combo_dir nor tertiary self-tag detection fires, so every directory/entry returns zen_generation=None SILENTLY; downstream tooling that bins by generation drops these rows.\n\nFix (from PR#85): when a ROM's directories are uniformly unclassified, read PSP_FW_BOOT_LOADER (entry type 0x01) version major and map via BOOTLOADER_VERSION_TO_ZEN (Naples->Turin), applying to all dirs incl $BHD. Conservative: only fires when every dir is None; warn on unknown bootloader version.\n\nDistinct from crosslink #52 (that is entry ADDRESS-MODE on upper-half dirs, not generation labeling).\n\nImpl: crates/psptool-core/src/directory.rs generation detection. Version major at version[1] for a Rome bootloader -- verify byte order vs body.rs. See docs/upstream-issue-review.md.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:55:48.199825198Z",
+      "updated_at": "2026-07-11T21:55:48.199825198Z"
     },
     "17ab4b2b-fe87-48e6-9fc9-92db11fbb91a": {
       "uuid": "17ab4b2b-fe87-48e6-9fc9-92db11fbb91a",
@@ -1699,11 +1712,16 @@
       "agent_id": "tLiK",
       "agent_seq": 58,
       "timestamp": "2026-07-11T21:55:41.070918279Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 59,
+      "timestamp": "2026-07-11T21:55:48.199825198Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:55:41.070918279Z",
+    "timestamp": "2026-07-11T21:55:48.199825198Z",
     "agent_id": "tLiK",
-    "agent_seq": 58
+    "agent_seq": 59
   }
 }
