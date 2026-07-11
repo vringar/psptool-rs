@@ -470,11 +470,12 @@
       "uuid": "5ec8cbe7-0ce3-428c-8b59-a45a90107616",
       "display_id": 47,
       "title": "acto-critic audit: psptool-core/entry.rs vs entry.py+file.py",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:29:38.763800314Z",
-      "updated_at": "2026-07-11T19:37:34.130491995Z",
+      "updated_at": "2026-07-11T19:37:38.991053729Z",
+      "closed_at": "2026-07-11T19:37:38.991049391Z",
       "labels": [
         "feature"
       ],
@@ -1374,11 +1375,16 @@
       "agent_id": "tLiK",
       "agent_seq": 30,
       "timestamp": "2026-07-11T19:37:34.130491995Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 31,
+      "timestamp": "2026-07-11T19:37:38.991053729Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:37:34.130491995Z",
+    "timestamp": "2026-07-11T19:37:38.991053729Z",
     "agent_id": "tLiK",
-    "agent_seq": 30
+    "agent_seq": 31
   }
 }
