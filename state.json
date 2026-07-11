@@ -581,11 +581,12 @@
       "uuid": "67df1b18-4065-4185-b87e-1eb8683f1d46",
       "display_id": 50,
       "title": "acto-critic audit: psptool-core/directory.rs vs directory.py",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:51:20.573308001Z",
-      "updated_at": "2026-07-11T19:59:49.914640869Z",
+      "updated_at": "2026-07-11T19:59:56.262046552Z",
+      "closed_at": "2026-07-11T19:59:56.262042294Z",
       "labels": [
         "feature"
       ],
@@ -1547,11 +1548,16 @@
       "agent_id": "tLiK",
       "agent_seq": 45,
       "timestamp": "2026-07-11T19:59:49.914640869Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 46,
+      "timestamp": "2026-07-11T19:59:56.262046552Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T19:59:49.914640869Z",
+    "timestamp": "2026-07-11T19:59:56.262046552Z",
     "agent_id": "tLiK",
-    "agent_seq": 45
+    "agent_seq": 46
   }
 }
