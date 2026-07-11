@@ -45,7 +45,12 @@
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
     "fba50544-5971-4237-8157-aca0c67508f5": 32
   },
-  "locks": {},
+  "locks": {
+    "42": {
+      "agent_id": "tLiK",
+      "claimed_at": "2026-07-11T18:25:54.172841060Z"
+    }
+  },
   "issues": {
     "0601f918-9265-4943-bbc0-30f769e4616f": {
       "uuid": "0601f918-9265-4943-bbc0-30f769e4616f",
@@ -1062,11 +1067,16 @@
       "agent_id": "tLiK",
       "agent_seq": 2,
       "timestamp": "2026-07-11T18:25:46.643831637Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 3,
+      "timestamp": "2026-07-11T18:25:54.172841060Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:25:46.643831637Z",
+    "timestamp": "2026-07-11T18:25:54.172841060Z",
     "agent_id": "tLiK",
-    "agent_seq": 2
+    "agent_seq": 3
   }
 }
