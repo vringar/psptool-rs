@@ -1,6 +1,6 @@
 {
   "next_display_id": 53,
-  "next_comment_id": 48,
+  "next_comment_id": 49,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1150,7 +1150,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T20:11:58.728409190Z",
-      "updated_at": "2026-07-11T21:17:45.915685333Z",
+      "updated_at": "2026-07-11T21:54:17.549493258Z",
       "labels": [
         "bug",
         "component:core"
@@ -1164,6 +1164,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAEqLDVT8ErnhpNXHKWGfaLkiiNz5Vf10W4w+fD7JPup6RjxLcJ3VNB3Hi1d/Dq/r/5VBjng/zO+L8Wdl/cWW7CQ=="
+        },
+        "f9d17d44-1a58-4625-baec-40c09fcad1f4": {
+          "display_id": 48,
+          "author": "tLiK",
+          "content": "Failing test pin committed: crates/psptool-core/tests/divergence_tertiary.rs::{divergence_tertiary_0x48_known_gen_surfaces_l2, divergence_tertiary_0x4a_unknown_gen_still_surfaces_l2}. Both build a minimal L1 $PSP -> 32B tertiary block -> L2 $PL2 chain and assert walk_directories surfaces the $PL2 at block[16:20]. Both FAIL today (only the L1 $PSP is surfaced; surfaced dirs = [(\"$PSP\", 0x30000)]) for the right reason: the walk continues past 0x48/0x4A entries per directory.rs:657-661. Control assertion confirms the L1 stub IS reached, so the failure is specifically the tertiary miss, not a broken fixture. Marked #[ignore] with tracking note per R-DEFER-3; run with 'cargo test -p psptool-core --test divergence_tertiary -- --include-ignored'. Mirrors upstream directory.py:85-99.",
+          "created_at": "2026-07-11T21:54:17.544536891Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWsa9lI9Fun5PPHnKSnlvJeQrcJ6nAiRyznTT+uyaQp0TiQBK4ZA+zF+b3zsZjq2ddNKYhBqJUbRX78DJIBXFAA=="
         }
       }
     },
@@ -1633,11 +1642,16 @@
       "agent_id": "tLiK",
       "agent_seq": 53,
       "timestamp": "2026-07-11T21:45:49.077794394Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 54,
+      "timestamp": "2026-07-11T21:54:17.549493258Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:45:49.077794394Z",
+    "timestamp": "2026-07-11T21:54:17.549493258Z",
     "agent_id": "tLiK",
-    "agent_seq": 53
+    "agent_seq": 54
   }
 }
