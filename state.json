@@ -1,5 +1,5 @@
 {
-  "next_display_id": 52,
+  "next_display_id": 53,
   "next_comment_id": 48,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -46,6 +46,7 @@
     "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695": 51,
     "d8810440-1fe8-4bce-bb2d-f065ec626f86": 25,
     "da50c96c-a24f-41d2-ad91-4fd0c92d0a7f": 20,
+    "e5722ead-8cd4-4006-8598-6cb24d15adbd": 52,
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
@@ -1200,6 +1201,18 @@
         "68f7ee46-7bae-4a64-8d9a-81f8c443a46d"
       ]
     },
+    "e5722ead-8cd4-4006-8598-6cb24d15adbd": {
+      "uuid": "e5722ead-8cd4-4006-8598-6cb24d15adbd",
+      "display_id": 52,
+      "title": "psptool-core: entry address-mode divergence on upper-half (>16MB) directories — SP5 EPYC",
+      "description": "Steps to reproduce:\n1. \n\nExpected: \nActual: \n\nFound by differential testing against SP5 EPYC firmware (ASRockRack GENOAD8HM3 Zen4 Genoa + TURIND12M3-2QE810 Zen5 Turin). BOTH fail identically — server firmware parses past the #51 tertiary-pointer wall (secondary dirs work) but diverges on entry address computation.\n\n## Symptom\n`directory @0x1332000, entry 11`:\n  ours:      address 0x13c8000, size 0x3800, type TEE_BOOT_DRIVER~0x1b\n  reference: address 0x3c8000,  size 0x30,   type WRAPPED_IKEK~0x21\n\n## Byte-level root cause (GENOAD8HM3)\ndir @0x1332000 = magic $PL2, count=48, PSP directory (16B entries), in the UPPER 16MB half of the 32MB ROM.\nRaw entry 11 record (PSP 16B stride): type=0x1b, size=0x3800, loc=0x3c8000.\n- OUR parse: type/size match the raw record, but address = 0x13c8000 = (raw loc 0x3c8000 | 0x1000000). We spuriously OR bit 24 (the directory region base) into an entry whose loc points to the LOWER half.\n- REFERENCE parse: address = 0x3c8000 (raw loc, unbiased).\n\nThis is an address-mode / addr_mask application bug: for a directory located in the upper 16MB, we bias entry addresses into the upper half instead of honoring the entry loc field/address-mode bits. PSP entry address fields carry mode bits (top bits) selecting relative-to-ROM vs relative-to-directory; reference honors them (see entry.py / directory.py address handling), we do not for this case.\n\nSecondary symptom: reference reports entry 11 type=0x21/size=0x30 (differs from raw slot 11) — reference flattens secondary-directory continuation entries into one list, shifting its index vs our per-directory index. Track the address-mode bug as primary here; the index-alignment nuance is for the differential harness comparison layer.\n\n## Belongs to\naddress.rs translation unit (route already seeded in tooling/translate-routes.toml; upstream entry.py + directory.py). Distinct from #51 (directory.rs tertiary pointers).\n\n## Repro\nPSPTOOL_TEST_CORPUS=/tmp/psp-extra/epyc-corpus cargo test -p psptool-cli --test differential\n(images preserved in gitignored .local-corpus/test_files/: ASRockRack_GENOAD8HM3_11.01.bin, ASRockRack_TURIND12M3-2QE810_10.05.bin)\n\nroundtrip PASSES (unmodified bytes emitted verbatim); only differential catches it.",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T21:45:38.365363333Z",
+      "updated_at": "2026-07-11T21:45:38.365363333Z"
+    },
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": {
       "uuid": "e6030e67-e9e4-4aa2-9dc7-3d66de67151d",
       "display_id": 19,
@@ -1601,11 +1614,16 @@
       "agent_id": "tLiK",
       "agent_seq": 50,
       "timestamp": "2026-07-11T21:17:45.915685333Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 51,
+      "timestamp": "2026-07-11T21:45:38.365363333Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T21:17:45.915685333Z",
+    "timestamp": "2026-07-11T21:45:38.365363333Z",
     "agent_id": "tLiK",
-    "agent_seq": 50
+    "agent_seq": 51
   }
 }
