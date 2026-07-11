@@ -604,11 +604,12 @@
       "display_id": 40,
       "title": "psptool-core: compressed entry whose directory size overruns the ROM is rejected",
       "description": "Found by the issue #18 differential test vs reference Python PSPTool.\n\nFor ASRock-A520M-HSV-1.31.ROM and AORUS_X570_X57AOXT2.FCd our parser rejects an entry with: 'truncated entry body at 0x00e02000: expected 4194336 bytes, only 2088960 available'. The directory record declares a size that runs past the 16 MiB ROM end. The reference handles this for COMPRESSED entries: when entry.size overruns the parent buffer it locates the zlib header and reads the real compressed length from offset +0x14 of the stream (psptool file.py File.__init__, final else-branch), using zlib_hdr+zlib_size as the buffer length. We trust the directory size and error.\n\nBoth ROMs are on the differential test SKIP_LIST. Decide: match the reference (derive compressed length from the zlib stream on overrun) or keep strict behaviour as an intentional documented divergence.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:02.639494381Z",
-      "updated_at": "2026-07-11T23:05:43.664592995Z",
+      "updated_at": "2026-07-11T23:05:56.025584871Z",
+      "closed_at": "2026-07-11T23:05:56.025582897Z",
       "labels": [
         "component:core"
       ],
@@ -2015,11 +2016,16 @@
       "agent_id": "tLiK",
       "agent_seq": 83,
       "timestamp": "2026-07-11T23:05:51.044028394Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 84,
+      "timestamp": "2026-07-11T23:05:56.025584871Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:05:51.044028394Z",
+    "timestamp": "2026-07-11T23:05:56.025584871Z",
     "agent_id": "tLiK",
-    "agent_seq": 83
+    "agent_seq": 84
   }
 }
