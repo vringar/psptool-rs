@@ -1,6 +1,6 @@
 {
   "next_display_id": 61,
-  "next_comment_id": 57,
+  "next_comment_id": 58,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -608,10 +608,21 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:02.639494381Z",
-      "updated_at": "2026-05-21T22:17:02.807793570Z",
+      "updated_at": "2026-07-11T23:05:43.664592995Z",
       "labels": [
         "component:core"
-      ]
+      ],
+      "comments": {
+        "7caca173-115e-4018-aa4a-f2ce93632b89": {
+          "display_id": 57,
+          "author": "tLiK",
+          "content": "Result: fixed by 914fc685b9c9590c099e00824c62645b344e3974 (same divergence as #59, the BIOS-specific pin). Compressed-entry zlib-header sizing landed in resolve_body. ASRock-A520M-HSV-1.31.ROM now passes the real differential (un-ignored in SKIP_LIST). AORUS_X570 no longer errors on the overrun but has a distinct type-0x5c naming divergence, filed as #60. REQ-6 -> SHIPPED.",
+          "created_at": "2026-07-11T23:05:43.660092307Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAuh10n2TaQBWDHN62dLkcDOhMMS3XPtr6uXyqGUsCxQrz1Fk7mfojQG4j4AmiN8KEwsXLtbATLagbRAUt7AP3Dw=="
+        }
+      }
     },
     "665b13a6-5e9a-4363-9fd1-5b8e6722368e": {
       "uuid": "665b13a6-5e9a-4363-9fd1-5b8e6722368e",
@@ -1993,11 +2004,16 @@
       "agent_id": "tLiK",
       "agent_seq": 81,
       "timestamp": "2026-07-11T23:05:38.823335062Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 82,
+      "timestamp": "2026-07-11T23:05:43.664592995Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:05:38.823335062Z",
+    "timestamp": "2026-07-11T23:05:43.664592995Z",
     "agent_id": "tLiK",
-    "agent_seq": 81
+    "agent_seq": 82
   }
 }
