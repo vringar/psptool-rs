@@ -1,5 +1,5 @@
 {
-  "next_display_id": 45,
+  "next_display_id": 46,
   "next_comment_id": 37,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -11,6 +11,7 @@
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
+    "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
@@ -276,6 +277,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGyXpD3PiYSRWY7lNoKqMfel64qRllMgDRMlgDSwnqsl6VTDGnqT70wMMG7YL5fF7dX9cF8ywb6TBSK/cllCSDw=="
         }
       }
+    },
+    "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": {
+      "uuid": "37adbfde-9107-49f0-8fa1-9ea76db4eaa3",
+      "display_id": 45,
+      "title": "Divergence: psptool_core::fletcher32 silently accepts odd-length input; upstream utils.py:291 raises struct.error",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-11T18:54:41.283713998Z",
+      "updated_at": "2026-07-11T18:54:41.283713998Z"
     },
     "47de77e3-bbbf-42a9-930a-eb46387697f5": {
       "uuid": "47de77e3-bbbf-42a9-930a-eb46387697f5",
@@ -1160,11 +1171,16 @@
       "agent_id": "tLiK",
       "agent_seq": 11,
       "timestamp": "2026-07-11T18:51:26.400585342Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 12,
+      "timestamp": "2026-07-11T18:54:41.283713998Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T18:51:26.400585342Z",
+    "timestamp": "2026-07-11T18:54:41.283713998Z",
     "agent_id": "tLiK",
-    "agent_seq": 11
+    "agent_seq": 12
   }
 }
