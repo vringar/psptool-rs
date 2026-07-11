@@ -976,7 +976,10 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:37:38.147981667Z",
-      "updated_at": "2026-07-11T23:37:38.147981667Z"
+      "updated_at": "2026-07-11T23:37:42.965249316Z",
+      "labels": [
+        "blocker"
+      ]
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -2229,11 +2232,16 @@
       "agent_id": "tLiK",
       "agent_seq": 101,
       "timestamp": "2026-07-11T23:37:38.147981667Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 102,
+      "timestamp": "2026-07-11T23:37:42.965249316Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:37:38.147981667Z",
+    "timestamp": "2026-07-11T23:37:42.965249316Z",
     "agent_id": "tLiK",
-    "agent_seq": 101
+    "agent_seq": 102
   }
 }
