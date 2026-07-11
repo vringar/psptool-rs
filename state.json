@@ -1,6 +1,6 @@
 {
   "next_display_id": 61,
-  "next_comment_id": 55,
+  "next_comment_id": 56,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -537,10 +537,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:02:30.193941929Z",
-      "updated_at": "2026-07-11T23:02:34.929914963Z",
+      "updated_at": "2026-07-11T23:02:59.272851089Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "dffd89b1-3e69-4318-8af3-b32854e5819c": {
+          "display_id": 55,
+          "author": "tLiK",
+          "content": "Surfaced while fixing #40/#59 (compressed-entry zlib-header sizing). After that fix, AORUS_X570_X57AOXT2.FCd no longer errors on the compressed overrun but the real differential now reveals a distinct, previously-masked divergence at directory @0x670000 entry 26 (address 0x79f000, size 0x0b20): ours sectionType 'SPI_ROM_CONFIG~0x5c' (is_header_file=false), reference 'WMOS~0x5c' (is_header_file=true). This is a type-0x5c classification/naming divergence, NOT the compressed-size bug. ASRock-A520M-HSV (the other #40 ROM) fully passes after the fix. Needs its own critic pin + fixer cycle.",
+          "created_at": "2026-07-11T23:02:59.268310345Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkYSwbo1HZaGpXnRNqA3FDBFRcR5ZErGpJXVcE1Uyq8Exn0NgBK3z9VBL6nPUfhbXitxgFMI0Xk7UjlyqjoW9AA=="
+        }
+      }
     },
     "5ec8cbe7-0ce3-428c-8b59-a45a90107616": {
       "uuid": "5ec8cbe7-0ce3-428c-8b59-a45a90107616",
@@ -1963,11 +1974,16 @@
       "agent_id": "tLiK",
       "agent_seq": 79,
       "timestamp": "2026-07-11T23:02:42.640309986Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 80,
+      "timestamp": "2026-07-11T23:02:59.272851089Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:02:42.640309986Z",
+    "timestamp": "2026-07-11T23:02:59.272851089Z",
     "agent_id": "tLiK",
-    "agent_seq": 79
+    "agent_seq": 80
   }
 }
