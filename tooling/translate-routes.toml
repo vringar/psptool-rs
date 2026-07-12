@@ -128,3 +128,19 @@ design = ".design/psptool-ops/sign.md"
 # differential (read-only); the psptool-ops crate suite (sign→verify roundtrip
 # + sign locality/reject pins) is its oracle.
 parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-core/src/body.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/header_file.py",
+  "/tmp/psptool-ref/psptool/file.py",
+  "/tmp/psptool-ref/psptool/crypto.py",
+  "/tmp/psptool-ref/psptool/utils.py",
+  "/tmp/psptool-ref/psptool/cert_tree.py",
+]
+design = ".design/psptool-core/body.md"
+# Entry-body ops (get_bytes/decompress/decrypt/verify/signed-region) aren't
+# exercised by roundtrip or the ls differential; the oracle is the crate-side
+# verify-against-real-corpus test (divergence_signature_byte_order.rs) — the
+# oracle that was missing and exposed #78/#79.
+parity_ops = []
