@@ -1,6 +1,6 @@
 {
   "next_display_id": 78,
-  "next_comment_id": 87,
+  "next_comment_id": 88,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -703,11 +703,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:33.824682364Z",
-      "updated_at": "2026-07-12T04:24:43.518183045Z",
+      "updated_at": "2026-07-12T05:50:10.705223613Z",
       "labels": [
         "blocker",
         "bug"
-      ]
+      ],
+      "comments": {
+        "e2e9bbe1-a52f-4fe5-a81e-7f86c173bbff": {
+          "display_id": 87,
+          "author": "tLiK",
+          "content": "Plan: replace.rs rewrite_size_field (~234, ~239). (1) u32::try_from(new_size).expect(...) -> .map_err(|_| ReplaceError::SizeTooLarge { size: new_size })?. (2) record.offset().checked_add(4).expect(...) -> .ok_or(ReplaceError::RecordOffsetOverflow)?. Add two typed enum variants. Reasoning: entry.py:108-110 size setter packs a 4-byte u32 (struct.pack('<I', value)); a new_size > u32::MAX cannot be represented in the on-disk 4-byte size field, so it is a malformed/untrusted-input path that must return a typed Err per goal.md R-CODE-2, not panic. Trigger is a >=4GiB zlib-recovered entry slot (entry.rs zlib-recovery) that lifts original_len (and thus the growth-bounded new_size) past u32::MAX. Add a #[cfg(test)] value-level test passing new_size=0x1_0000_0000 directly (no allocation).",
+          "created_at": "2026-07-12T05:50:10.700423610Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA/Z2StxUiPpGsKHHTyum6wcGJot02brUJoNsAayrsp9IpXcUChcc56uqj5r2PV5zab8hIWN7Ik6g6M6uWswABBQ=="
+        }
+      }
     },
     "5346afaa-652e-4838-a5c1-851082a0f96f": {
       "uuid": "5346afaa-652e-4838-a5c1-851082a0f96f",
@@ -3030,11 +3041,16 @@
       "agent_id": "tLiK",
       "agent_seq": 169,
       "timestamp": "2026-07-12T05:45:38.575916097Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 170,
+      "timestamp": "2026-07-12T05:50:10.705223613Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:45:38.575916097Z",
+    "timestamp": "2026-07-12T05:50:10.705223613Z",
     "agent_id": "tLiK",
-    "agent_seq": 169
+    "agent_seq": 170
   }
 }
