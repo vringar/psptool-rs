@@ -1,5 +1,5 @@
 {
-  "next_display_id": 83,
+  "next_display_id": 84,
   "next_comment_id": 104,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -58,6 +58,7 @@
     "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": 78,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
+    "baf95e0a-6573-4d87-9496-8706ff0a6371": 83,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
     "bddcb556-0ffa-485a-95fa-a61221162ed9": 79,
     "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
@@ -1729,6 +1730,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA0SNbC0XWAzu+qoRNlnzLnZjtE03XTyOkMo2ZtO+v6GXup0I1c/vpCMMhbGHaBmXgyGCMncI97esbn/kLyjqYBw=="
         }
       }
+    },
+    "baf95e0a-6573-4d87-9496-8706ff0a6371": {
+      "uuid": "baf95e0a-6573-4d87-9496-8706ff0a6371",
+      "display_id": 83,
+      "title": "Divergence: HeaderEntry::signature_bytes (body.rs:222) ignores is_signed — returns last signature_len bytes for an unsigned HeaderFile",
+      "description": "Spillover of #81 into the sibling method. header_file.py:77-84 sets signature_len=0 for an unsigned file (never materializes self.signature); the observable signature is empty (to_decrypted_file_bytes header_file.py:181: b'' when not is_signed). body.rs:227 calls signature_len() UNCONDITIONALLY (no is_signed gate), so for an unsigned file (signed_raw==0, signature_type==0) it returns body[end-0x100..end] instead of empty. This also contradicts the #81 data_region fix (body.rs:200) which now gates sig_len on is_signed, so for the same unsigned entry data_region and signature_bytes OVERLAP on the last 0x100 bytes. Not currently production-reachable (sign.rs:123 and verify.rs:256 both gate on is_signed before the call; extract.rs calls only data_region), but signature_bytes is a pub library API. Failing pin: crates/psptool-core/tests/divergence_body_bounds.rs::signature_bytes_of_unsigned_headerfile_is_empty.",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T08:45:46.244990490Z",
+      "updated_at": "2026-07-12T08:45:46.244990490Z"
     },
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": {
       "uuid": "bc034fa5-f3ae-4faf-99a1-18d096bf29fd",
@@ -3475,11 +3487,16 @@
       "agent_id": "tLiK",
       "agent_seq": 206,
       "timestamp": "2026-07-12T08:36:25.318466072Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 207,
+      "timestamp": "2026-07-12T08:45:46.244990490Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:36:25.318466072Z",
+    "timestamp": "2026-07-12T08:45:46.244990490Z",
     "agent_id": "tLiK",
-    "agent_seq": 206
+    "agent_seq": 207
   }
 }
