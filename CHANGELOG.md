@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: HeaderEntry::signature_bytes (body.rs:222) ignores is_signed — returns last signature_len bytes for an unsigned HeaderFile (#83)
 - Divergence: body.rs get_decompressed_body treats zlib_size as length-from-magic, not absolute end offset (over-reads with pre-magic prefix) vs utils.py:245-252 / header_file.py:171 (#82)
 - Divergence: body.rs data_region ignores is_signed (drops signature_len bytes for unsigned HeaderFiles) vs header_file.py:83-84,100 (#81)
 - Blocker for REQ-8 of sign: needs real-corpus/upstream cross-validation of re-signed HeaderFile output. sign_entry reverses the on-disk signature bytes (sign.rs:174-175, per firmware-layout §7.1 PubkeyFile convention) and target verify (body.rs:393) reverses to match — internally self-consistent (synthetic sign->verify roundtrip verify.rs:360). But upstream HeaderFile verifies via a PLAIN non-reversed Signature (cert_tree.py:63 wraps hf.signature as Signature, not ReversedSignature), so a re-signed HeaderFile may not verify under upstream PSPTool. No psptool-ops test re-signs a real corpus entry and checks it verifies under the reference tool. (#78)
