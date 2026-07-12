@@ -1,6 +1,6 @@
 {
   "next_display_id": 80,
-  "next_comment_id": 92,
+  "next_comment_id": 93,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1557,11 +1557,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:20:26.367367418Z",
-      "updated_at": "2026-07-12T06:37:38.314339531Z",
+      "updated_at": "2026-07-12T07:03:19.114426540Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "5d0ac308-75e2-4717-af82-963ea2bcb243": {
+          "display_id": 92,
+          "author": "tLiK",
+          "content": "Plan (builder): (1) body.rs get_signed_bytes -> header(0x100) || ddb truncated to 0x100+size_signed (size_signed is header-EXCLUSIVE per entry.rs:177), fixing #79. (2) Remove HeaderFile sig reversal at body.rs:393 (verify) and sign.rs:175 (sign); use plain big-endian I2OSP per cert_tree.py:63 + crypto.py:247-258; leave PubkeyFile LE modulus/exp extraction (body.rs:454-455) and ReversedSignature path untouched. (3) Correct synthetic fixtures (tests_support.rs, cli synthetic.rs, body.rs test fixtures) to header-exclusive size_signed + plain sig; rewrite get_signed_bytes_returns_header_plus_plaintext in-memory. (4) Regenerate verify_synthetic snapshot. (5) Un-ignore real_corpus_headerfile_verifies_under_verify_chain_of_trust pin. (6) Flip body.md REQ-5/REQ-6 + sign.md REQ-8 to SHIPPED. Verify N-of-2843 corpus HeaderFile sigs verify; PubkeyFile chain intact.",
+          "created_at": "2026-07-12T07:03:19.109846998Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAE10SUg6iVQ94sJDb7UuocdGha2DV8WFqo0PT+/9tQna5rLumcedG8g+TwfBxP1hJCzwDA98JymU/w+P2vLrVCg=="
+        },
         "a6143c15-c82a-4937-b455-001318bb1afb": {
           "display_id": 89,
           "author": "tLiK",
@@ -3178,11 +3187,16 @@
       "agent_id": "tLiK",
       "agent_seq": 181,
       "timestamp": "2026-07-12T06:38:19.062691540Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 182,
+      "timestamp": "2026-07-12T07:03:19.114426540Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T06:38:19.062691540Z",
+    "timestamp": "2026-07-12T07:03:19.114426540Z",
     "agent_id": "tLiK",
-    "agent_seq": 181
+    "agent_seq": 182
   }
 }
