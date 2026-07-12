@@ -192,9 +192,17 @@ impl HeaderEntry {
             return Err(BodyError::Truncated(body.len()));
         }
         let end = self.effective_end(body)?;
-        let sig_len = self
-            .signature_len()
-            .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?;
+        // Upstream reserves signature bytes only for signed files: an unsigned
+        // HeaderFile has `signature_len = 0` (`header_file.py:83-84`), so its
+        // data region spans the whole post-header region. Mirror the
+        // `if self.is_signed` gate before `body = len - header - signature_len`
+        // (`header_file.py:77-84,100`).
+        let sig_len = if self.is_signed() {
+            self.signature_len()
+                .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?
+        } else {
+            0
+        };
         let needed = HEADER_FILE_LEN
             .checked_add(sig_len)
             .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?;

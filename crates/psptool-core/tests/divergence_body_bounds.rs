@@ -38,9 +38,8 @@ const HEADER_FILE_LEN: usize = 0x100;
 /// (`header.data_region(entry.body.as_bytes())`) is called for every
 /// extracted HeaderFile, signed or not.
 ///
-/// Tracking: #81
+/// Tracking: #81 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: data_region drops signature_len bytes for unsigned HeaderFiles; tracking #81"]
 fn data_region_of_unsigned_headerfile_keeps_full_body() {
     // Unsigned HeaderFile: signed_raw (0x30) == 0, signature_type (0x34) == 0,
     // rom_size (0x6c) == 0x300 (header 0x100 + 0x200 data, NO signature).
@@ -57,7 +56,10 @@ fn data_region_of_unsigned_headerfile_keeps_full_body() {
 
     let src = SourceBytes::from_blob(blob);
     let entry = HeaderEntry::parse(&src).expect("header parses");
-    assert!(!entry.is_signed(), "fixture must be unsigned to exercise the bug");
+    assert!(
+        !entry.is_signed(),
+        "fixture must be unsigned to exercise the bug"
+    );
 
     // Upstream (header_file.py:83-84,100): signature_len == 0 for unsigned files,
     // so the data region is the ENTIRE post-header region: rom_size - 0x100 = 0x200.
