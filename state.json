@@ -1,6 +1,6 @@
 {
   "next_display_id": 88,
-  "next_comment_id": 113,
+  "next_comment_id": 114,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2297,10 +2297,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:22:36.830643660Z",
-      "updated_at": "2026-07-12T09:22:41.602368938Z",
+      "updated_at": "2026-07-12T09:23:14.153728838Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "9ac4dc75-66ac-453c-a574-95711053eeaa": {
+          "display_id": 113,
+          "author": "tLiK",
+          "content": "Failing test at crates/psptool-ops/tests/divergence_list_columns.rs::divergence_verbose_md5_column_truncated_and_uppercased. list.rs:271/:514 body_md5_hex emits full 32-char lowercase; upstream psptool.py:180 file.md5()[:4].upper() -> 4-char uppercase. Note the JSON md5 key is differential-tolerated, but the TEXT MD5 column is self-oracle only.",
+          "created_at": "2026-07-12T09:23:14.149043238Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABADTZhSqWJUD8zHUsQKagVx70+f/gOmtsY3u/2kR/N9g+RtyLDGZupuKVIjZAAkN7aJdeQ1/3HVwr+IOjV2a4ZDw=="
+        }
+      }
     },
     "da50c96c-a24f-41d2-ad91-4fd0c92d0a7f": {
       "uuid": "da50c96c-a24f-41d2-ad91-4fd0c92d0a7f",
@@ -3788,11 +3799,16 @@
       "agent_id": "tLiK",
       "agent_seq": 232,
       "timestamp": "2026-07-12T09:23:08.892062153Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 233,
+      "timestamp": "2026-07-12T09:23:14.153728838Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:23:08.892062153Z",
+    "timestamp": "2026-07-12T09:23:14.153728838Z",
     "agent_id": "tLiK",
-    "agent_seq": 232
+    "agent_seq": 233
   }
 }
