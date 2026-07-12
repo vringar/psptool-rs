@@ -1,6 +1,6 @@
 {
   "next_display_id": 75,
-  "next_comment_id": 78,
+  "next_comment_id": 79,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": 72,
@@ -1224,12 +1224,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:19.328416860Z",
-      "updated_at": "2026-07-12T04:30:24.378387758Z",
+      "updated_at": "2026-07-12T04:32:22.435660276Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "6f89298e-7a3f-421a-8f0a-481191417f0c": {
+          "display_id": 78,
+          "author": "tLiK",
+          "content": "FIX PREREQUISITE: the fix spans two files, one unrouted. (1) directory.rs (routed): tertiary_actual_offset surfaces block[20:24] as a PspGenerationId; walk_directories tertiary branches carry it into a new DirectoryProvenance::Tertiary{generation}. (2) list.rs (psptool-ops, NOT routed): directory_generation (list.rs:531-567) must render it for the Tertiary provenance — but editing list.rs is gated (R-XLATE-2) until list.rs is routed (doc-author .design/psptool-ops/list.md + add route), same wall the #66 fixer hit for replace.rs. So #70 is blocked on routing the psptool-ops ls/display unit (list.rs). Pin committed 115eb4a8 (2 #[ignore] tests + passing control). Natural next step: route list.rs (the ls/JSON rendering unit), then fix #70 across directory.rs + list.rs.",
+          "created_at": "2026-07-12T04:32:22.430998399Z",
+          "kind": "blocker",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAxFi2NrWh3gw9mAg/hXT3xDTb5SLhufnCqV4Gk18fCGtvv2eKjFmOuClhaQ15xrlEoNPFljpjX591HE6RFLw0CA=="
+        },
         "a5e9fd4b-fe4e-42d2-bf55-2d549c2076b1": {
           "display_id": 77,
           "author": "tLiK",
@@ -2796,11 +2805,16 @@
       "agent_id": "tLiK",
       "agent_seq": 150,
       "timestamp": "2026-07-12T04:30:24.378387758Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 151,
+      "timestamp": "2026-07-12T04:32:22.435660276Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:30:24.378387758Z",
+    "timestamp": "2026-07-12T04:32:22.435660276Z",
     "agent_id": "tLiK",
-    "agent_seq": 150
+    "agent_seq": 151
   }
 }
