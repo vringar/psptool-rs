@@ -1,6 +1,6 @@
 {
   "next_display_id": 85,
-  "next_comment_id": 109,
+  "next_comment_id": 110,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1703,7 +1703,7 @@
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:46:05.036101159Z",
-      "updated_at": "2026-07-12T08:48:31.897409241Z",
+      "updated_at": "2026-07-12T08:57:35.209494057Z",
       "labels": [
         "blocker"
       ],
@@ -1716,6 +1716,15 @@
           "kind": "note",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAHk7DqgJy9GL+O4+LJNQkWHocJ0oOB2DGVnyyBKgcyARuufqJcGYECut1II7GyOAD9g6cIAz0LRZUE4Etc0ZZBA=="
+        },
+        "dd8bf107-6371-427a-b2dd-e3d9e8d94bfb": {
+          "display_id": 109,
+          "author": "tLiK",
+          "content": "Plan: body.rs get_decompressed_body currently calls find_zlib_start(plaintext) over the WHOLE data region (bounded only by the 0x500 window) then clamps to zlib_size AFTER locating a magic (body.rs:296-313). Upstream searches ONLY output[:zlib_size] (header_file.py:171 -> zlib_decompress(output[:self.zlib_size]); utils.py:245 zlib_find_header(s) with s==output[:zlib_size], further clamped to s[:0x500]). Minimal fix: bound the search input to plaintext[..min(zlib_size, plaintext.len())] before calling find_zlib_start, so a magic living past zlib_size is never inspected. When no magic exists within [0,zlib_size) the result is ZlibMagicMissing (matching upstream find -> -1), not ZlibSizeOutOfRange. Single edit in get_decompressed_body; find_zlib_start signature unchanged (already takes a slice). Consistent with #82 (zlib_size = absolute end offset).",
+          "created_at": "2026-07-12T08:57:35.204847115Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAHwfLOX6JKombC6FhFkrVoMN1ViYf+GQsOWy9cH2rFe32j2zPwj+GxHjW+zy77kZW/jMgjnqmHwCwjOsDXulCBQ=="
         }
       }
     },
@@ -3623,11 +3632,16 @@
       "agent_id": "tLiK",
       "agent_seq": 218,
       "timestamp": "2026-07-12T08:56:18.140916637Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 219,
+      "timestamp": "2026-07-12T08:57:35.209494057Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:56:18.140916637Z",
+    "timestamp": "2026-07-12T08:57:35.209494057Z",
     "agent_id": "tLiK",
-    "agent_seq": 218
+    "agent_seq": 219
   }
 }
