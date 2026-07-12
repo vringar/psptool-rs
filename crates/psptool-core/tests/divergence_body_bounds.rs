@@ -111,9 +111,8 @@ fn data_region_of_unsigned_headerfile_keeps_full_body() {
 ///   zlib_start == 16, zlib_size == 41) yields
 ///   `b"UUUUUUUUUUUUUUUUhello, psptool-rs"`.
 ///
-/// Tracking: #82
+/// Tracking: #82 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: get_decompressed_body over-reads zlib_size past a pre-magic prefix; tracking #82"]
 fn get_decompressed_body_zlib_size_is_absolute_offset_not_length() {
     // A valid zlib stream for b"hello, psptool-rs" (Python zlib.compress(.,9)),
     // embedded so the test needs no compression dependency. flate2's ZlibDecoder
