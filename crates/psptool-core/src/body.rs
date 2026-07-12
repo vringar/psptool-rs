@@ -285,16 +285,23 @@ impl HeaderEntry {
             return Err(BodyError::NotCompressed);
         }
         let stream_start = find_zlib_start(plaintext)?;
+        // `zlib_size` is an ABSOLUTE end offset into the data region, not a
+        // length measured from the zlib magic. Upstream feeds
+        // `zlib_decompress(output[:self.zlib_size])` (`header_file.py:171`),
+        // and `zlib_decompress` (`utils.py:245-252`) slices the compressed
+        // stream as `s[zlib_start:]` where `s == output[:zlib_size]` — i.e.
+        // `output[zlib_start .. zlib_size]`. So the stream ends at the absolute
+        // offset `zlib_size`, and any pre-magic prefix (`output[..zlib_start]`)
+        // is prepended to the decompressed output.
         let zlib_size = self.zlib_size as usize;
-        let available = plaintext.len() - stream_start;
-        if zlib_size > available {
+        if zlib_size > plaintext.len() || zlib_size < stream_start {
             return Err(BodyError::ZlibSizeOutOfRange {
                 size: self.zlib_size as u64,
                 start: stream_start,
-                available,
+                available: plaintext.len(),
             });
         }
-        let stream = &plaintext[stream_start..stream_start + zlib_size];
+        let stream = &plaintext[stream_start..zlib_size];
         // Don't pre-size from header.size_uncompressed — it is attacker-
         // controlled (up to ~4 GiB) and would let a malformed entry trigger
         // an OOM via Vec::with_capacity. Let `read_to_end` grow on demand.
@@ -616,27 +623,38 @@ mod tests {
     }
 
     #[test]
-    fn get_decompressed_body_preserves_pre_zlib_prefix() {
+    fn get_decompressed_body_preserves_pre_zlib_prefix() -> Result<(), Box<dyn std::error::Error>> {
         // Reference (`psptool/utils.py::zlib_decompress`) returns
-        // `s[:zlib_start] + zlib.decompress(...)` — the pre-magic bytes are
-        // part of the output. Synthesize a plaintext with a non-zero stream
-        // start by reusing the committed zlib stream from `header_compressed`
-        // and prepending a non-magic prefix.
+        // `s[:zlib_start] + zlib.decompress(...)` where `s == output[:zlib_size]`
+        // — the pre-magic bytes are part of the output and `zlib_size` is an
+        // ABSOLUTE end offset into the data region (`header_file.py:171`).
+        // Reuse the committed zlib stream from `header_compressed`, prepend a
+        // non-magic prefix, and carry a `zlib_size` that reaches the stream end
+        // (`prefix.len() + stream.len()`).
         let bytes = psptool_fixtures::micro::header_compressed().to_vec();
-        let body = SourceBytes::from_blob(bytes.clone());
-        let h = HeaderEntry::parse(&body).unwrap();
-        let zlib_size = h.zlib_size as usize;
+        let fixture = SourceBytes::from_blob(bytes.clone());
+        let stream_len = HeaderEntry::parse(&fixture)?.zlib_size as usize;
         // The fixture lays the zlib stream right after the 0x100 header.
-        let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + zlib_size];
+        let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + stream_len];
         // 32 bytes of non-magic prefix (no 0x78 byte to confuse find_zlib_start).
         let prefix: [u8; 32] = [0x55; 32];
         let mut plaintext = Vec::with_capacity(prefix.len() + stream.len());
         plaintext.extend_from_slice(&prefix);
         plaintext.extend_from_slice(stream);
 
-        let out = h.get_decompressed_body(&plaintext).unwrap();
+        // Header carrying `zlib_size` = the absolute end offset of the stream
+        // within `plaintext` (prefix included), mirroring `output[:zlib_size]`.
+        let mut h = [0u8; HEADER_FILE_LEN];
+        h[0x10..0x14].copy_from_slice(b"$PS1");
+        h[0x48..0x4C].copy_from_slice(&1u32.to_le_bytes()); // is_compressed
+        h[0x54..0x58].copy_from_slice(&(plaintext.len() as u32).to_le_bytes());
+        let hdr_src = SourceBytes::from_blob(h.to_vec());
+        let hdr = HeaderEntry::parse(&hdr_src)?;
+
+        let out = hdr.get_decompressed_body(&plaintext)?;
         assert_eq!(&out[..prefix.len()], &prefix);
         assert_eq!(&out[prefix.len()..], b"hello, psptool-rs");
+        Ok(())
     }
 
     // -- rom_size truncation -------------------------------------------------
