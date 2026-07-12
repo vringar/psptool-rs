@@ -1,5 +1,5 @@
 {
-  "next_display_id": 67,
+  "next_display_id": 68,
   "next_comment_id": 68,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -10,6 +10,7 @@
     "17ab4b2b-fe87-48e6-9fc9-92db11fbb91a": 42,
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": 35,
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
+    "2d160374-3435-423c-8649-a766236f51ac": 67,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
@@ -313,6 +314,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABADExgUqipA1Q0Q3ZICoGsDe3Uz4XaRLiA7+wrapY6TnsqCMkAWL+U4KW7plBBGiHOkiAas++6lgCuNotHfcGZDw=="
         }
       }
+    },
+    "2d160374-3435-423c-8649-a766236f51ac": {
+      "uuid": "2d160374-3435-423c-8649-a766236f51ac",
+      "display_id": 67,
+      "title": "Design doc: .design/psptool-core/address.md (address-mode / ROM-masking)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T00:02:23.576969198Z",
+      "updated_at": "2026-07-12T00:02:23.576969198Z"
     },
     "307dce04-e751-4448-9772-84e7a8cb63b2": {
       "uuid": "307dce04-e751-4448-9772-84e7a8cb63b2",
@@ -2378,11 +2389,16 @@
       "agent_id": "tLiK",
       "agent_seq": 114,
       "timestamp": "2026-07-11T23:55:48.808230358Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 115,
+      "timestamp": "2026-07-12T00:02:23.576969198Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-11T23:55:48.808230358Z",
+    "timestamp": "2026-07-12T00:02:23.576969198Z",
     "agent_id": "tLiK",
-    "agent_seq": 114
+    "agent_seq": 115
   }
 }
