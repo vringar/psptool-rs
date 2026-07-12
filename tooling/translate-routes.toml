@@ -102,3 +102,15 @@ design = ".design/psptool-ops/replace.md"
 # divergence_fletcher) — neither the core roundtrip nor the list-only
 # differential exercises the mutation path — so the crate test suite gates it.
 parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-ops/src/list.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/psptool.py",
+  "/tmp/psptool-ref/psptool/directory.py",
+  "/tmp/psptool-ref/psptool/entry.py",
+]
+design = ".design/psptool-ops/list.md"
+# list.rs renders the ls/ls_json output the differential test parses, so the
+# differential suite is its oracle.
+parity_ops = ["differential"]
