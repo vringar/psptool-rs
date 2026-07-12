@@ -114,3 +114,17 @@ design = ".design/psptool-ops/list.md"
 # list.rs renders the ls/ls_json output the differential test parses, so the
 # differential suite is its oracle.
 parity_ops = ["differential"]
+
+[[route]]
+crate_pattern = "crates/psptool-ops/src/sign.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/crypto.py",
+  "/tmp/psptool-ref/psptool/file.py",
+  "/tmp/psptool-ref/psptool/header_file.py",
+  "/tmp/psptool-ref/psptool/cert_tree.py",
+]
+design = ".design/psptool-ops/sign.md"
+# RSA re-signing is not exercised by roundtrip (no mutation) or the ls
+# differential (read-only); the psptool-ops crate suite (sign→verify roundtrip
+# + sign locality/reject pins) is its oracle.
+parity_ops = []
