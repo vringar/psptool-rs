@@ -1,6 +1,6 @@
 {
   "next_display_id": 83,
-  "next_comment_id": 98,
+  "next_comment_id": 99,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1237,11 +1237,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:03:47.016850544Z",
-      "updated_at": "2026-07-12T08:04:31.162479641Z",
+      "updated_at": "2026-07-12T08:08:02.283568011Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "0c135fa5-d3ce-4c4c-a743-c1d37809d324": {
+          "display_id": 98,
+          "author": "tLiK",
+          "content": "PLAN — data_region unsigned signature_len fix\n\nEdit: crates/psptool-core/src/body.rs, data_region (~195-197). Replace the unconditional `let sig_len = self.signature_len().ok_or(...)?` with upstream's is_signed-gated value:\n\n  let sig_len = if self.is_signed() {\n      self.signature_len().ok_or(UnsupportedSignatureType(signature_type))?\n  } else { 0 };\n\nWHY: upstream header_file.py:77-84 sets signature_len=0x100/0x200 only inside `if self.is_signed:`; the else branch (line 84) sets signature_len=0. header_file.py:100 then computes body = len - header - signature_len. An unsigned HeaderFile reserves ZERO signature bytes, so its data region is the whole post-header region.\n\nCHAIN: header_file.py:77 (if is_signed) -> :84 (else signature_len=0) -> :100 (body length uses signature_len) => data_region must reserve sig bytes only when signed. is_signed() = signed_raw!=0 (entry.rs:218). Scope: data_region only; signature_bytes untouched (not pinned).",
+          "created_at": "2026-07-12T08:08:02.278924894Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA5vtYW7T5fY49ZrILkI+zyvV+UnYsY5y75lBNQyVWZDd8wCt9K9HuarvC4wA4sFIHeZTtO4x4B/+qiQILFi2KAQ=="
+        },
         "920add66-3854-4769-8176-40a34895ac6f": {
           "display_id": 96,
           "author": "tLiK",
@@ -3379,11 +3388,16 @@
       "agent_id": "tLiK",
       "agent_seq": 198,
       "timestamp": "2026-07-12T08:04:36.015217958Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 199,
+      "timestamp": "2026-07-12T08:08:02.283568011Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:04:36.015217958Z",
+    "timestamp": "2026-07-12T08:08:02.283568011Z",
     "agent_id": "tLiK",
-    "agent_seq": 198
+    "agent_seq": 199
   }
 }
