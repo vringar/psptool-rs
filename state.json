@@ -1,6 +1,6 @@
 {
   "next_display_id": 77,
-  "next_comment_id": 85,
+  "next_comment_id": 86,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -426,7 +426,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:39.312940808Z",
-      "updated_at": "2026-07-12T05:25:18.234347045Z",
+      "updated_at": "2026-07-12T05:28:22.193561224Z",
       "labels": [
         "component:core"
       ],
@@ -448,6 +448,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAi6v+HzRGAqBU7JMQabff2Cgsx7Edyl6pitKrcO/ZL1iMJsWVgpFQIPxfGhV3zQ6osBSlTEA2J8Me2jhDkdRDBA=="
+        },
+        "9b9040b4-85f6-494e-9889-2d9b60ee79ed": {
+          "display_id": 85,
+          "author": "tLiK",
+          "content": "Plan (acto-fixer, #41 T1 tolerance): edit crates/psptool-cli/tests/differential.rs (test harness, no translate-gate). (1) Extend the module-doc 'Entries sharing a flash offset' note (~40-51) with accommodation (c): cross-ROM files_by_offset cache echo, citing file.py:47-54 (create_file_if_not_exists reuses files_by_offset[file_offset()]), entry.py:38-63 (file_offset is rom-relative), blob.py:32 (16 MiB window). (2) Add a guard in compare_structure before the entry_diff call (~469), alongside the consecutive-echo guard (~466): skip entry N's address/size/sectionType comparison iff ALL of (a) oe.address != re.address, (b) re.address == oe.address & 0x00FF_FFFF AND re.address < oe.address, (c) safety discriminator: theirs contains in SOME OTHER directory an entry with address==re.address && size==re.size && sectionType==re.section_type (cache seed). Reasoning: upstream file_offset() is rom-relative (addr_mode==1 returns raw offset); the global files_by_offset dict echoes a lower-ROM file when an upper-ROM rom-relative offset collides. Our upper-ROM absolute is correct (T1 verdict). Condition (c) leaves genuine mis-parses (#41 idx3 type 0x64 vs 0x70, no seed) failing.",
+          "created_at": "2026-07-12T05:28:22.189030393Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA8WDtgdTgjeCJ9Ef0pOcg5AnKjNRE9yq7zEwJjykr+1mJWPRpfVo4bfkPfJi7fqMjApVCMVO36IZkOwMty0DFBQ=="
         },
         "cf02b5a7-d544-4f7d-9c6d-2d231c356b85": {
           "display_id": 82,
@@ -2970,11 +2979,16 @@
       "agent_id": "tLiK",
       "agent_seq": 164,
       "timestamp": "2026-07-12T05:25:36.630059649Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 165,
+      "timestamp": "2026-07-12T05:28:22.193561224Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:25:36.630059649Z",
+    "timestamp": "2026-07-12T05:28:22.193561224Z",
     "agent_id": "tLiK",
-    "agent_seq": 164
+    "agent_seq": 165
   }
 }
