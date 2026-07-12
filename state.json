@@ -1,5 +1,5 @@
 {
-  "next_display_id": 79,
+  "next_display_id": 80,
   "next_comment_id": 90,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -58,6 +58,7 @@
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
+    "bddcb556-0ffa-485a-95fa-a61221162ed9": 79,
     "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "ca74b297-d703-4ae4-b2b2-0769a8ebc969": 77,
@@ -1658,6 +1659,16 @@
         "58ab16e7-59ab-4168-b6e1-d1708dc511e5"
       ]
     },
+    "bddcb556-0ffa-485a-95fa-a61221162ed9": {
+      "uuid": "bddcb556-0ffa-485a-95fa-a61221162ed9",
+      "display_id": 79,
+      "title": "Divergence: psptool-core HeaderEntry::get_signed_bytes signs 0x100 too few bytes vs upstream (body.rs:333-349 vs header_file.py:162-164)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T06:37:46.713946517Z",
+      "updated_at": "2026-07-12T06:37:46.713946517Z"
+    },
     "c3c8670f-9fe0-4508-8196-90362d7f2528": {
       "uuid": "c3c8670f-9fe0-4508-8196-90362d7f2528",
       "display_id": 73,
@@ -3115,11 +3126,16 @@
       "agent_id": "tLiK",
       "agent_seq": 176,
       "timestamp": "2026-07-12T06:37:38.314339531Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 177,
+      "timestamp": "2026-07-12T06:37:46.713946517Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T06:37:38.314339531Z",
+    "timestamp": "2026-07-12T06:37:46.713946517Z",
     "agent_id": "tLiK",
-    "agent_seq": 176
+    "agent_seq": 177
   }
 }
