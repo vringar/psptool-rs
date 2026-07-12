@@ -2,12 +2,14 @@
 //! Fletcher-32 checksum STALE, where upstream PSPTool recomputes it.
 //!
 //! Upstream `--replace-file` flow (all cites in `/tmp/psptool-ref/psptool`):
-//!   * `__main__.py:247` `file.move_buffer(file.get_address(), len(sub_binary))`
-//!   * `file.py:393` `directory.update_entry_fields(self, self.type, self.buffer_size, self.buffer_offset)`
-//!   * `directory.py:241` `self.update_checksum()`  (called UNCONDITIONALLY on every replace)
-//!   * `directory.py:203-205`:
-//!         `data = self[0x8:]`
-//!         `self.checksum.set_bytes(0, 4, fletcher32(data))`
+//!
+//! * `__main__.py:247` `file.move_buffer(file.get_address(), len(sub_binary))`
+//! * `file.py:393` `directory.update_entry_fields(self, self.type, self.buffer_size, self.buffer_offset)`
+//! * `directory.py:241` `self.update_checksum()`  (called UNCONDITIONALLY on every replace)
+//! * `directory.py:203-205`:
+//!   `data = self[0x8:]`;
+//!   `self.checksum.set_bytes(0, 4, fletcher32(data))`
+//!
 //! So a length-changing replace mutates the entry record's `size` field
 //! (`entry.py:109-110` `entry.size` setter → `set_bytes(4,4,...)`), which lands
 //! inside the checksummed region `self[0x8:]` (directory header[8:] ++ entry
@@ -79,11 +81,10 @@ fn parse_psp(blob_bytes: Vec<u8>) -> (SourceBytes, psptool_core::directory::PspD
     (blob, dir)
 }
 
-/// PIN (currently FAILS): a length-changing replace produces a directory whose
-/// stored checksum no longer matches its bytes, unlike upstream which
+/// PIN (regression, #66 fixed): a length-changing replace must produce a
+/// directory whose stored checksum matches its bytes, mirroring upstream which
 /// recomputes it via `update_checksum` (`directory.py:241` / `:203-205`).
 #[test]
-#[ignore = "divergence: replace path leaves directory fletcher32 stale; upstream recomputes (directory.py:241); tracking #66"]
 fn length_changing_replace_recomputes_directory_checksum() {
     // Original body 0x40; shrink to a deliberately non-0x10-aligned 0x33 so the
     // size field genuinely changes (0x40 -> 0x33) inside the checksummed region.

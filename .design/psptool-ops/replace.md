@@ -19,10 +19,10 @@ drives the byte-exact [`BlobEditor`] (`.design/psptool-core/writer.md`) to
 overwrite one entry's body slot and, on a length change, rewrite that entry's
 directory-record `size` field. It ships the *correct* size-rewrite where
 upstream's `File.move_buffer` rounds up to `0x10` (`file.py:389`), a known bug
-class (PSPReverse/PSPTool#77, goal.md R-DEV-6). It deliberately does **not** yet
-recompute the parent directory's Fletcher-32 checksum that upstream rewrites
-unconditionally on every replace (`directory.py:241`) — that gap is pinned as a
-failing `#[ignore]`'d divergence with open blocker #66.
+class (PSPReverse/PSPTool#77, goal.md R-DEV-6). On a length change it also
+recomputes the parent directory's Fletcher-32 checksum that upstream rewrites
+unconditionally on every replace (`directory.py:241`), so a strict
+Fletcher-verifying reader accepts the output (closed blocker #66).
 
 ## Requirements
 
@@ -99,12 +99,11 @@ failing `#[ignore]`'d divergence with open blocker #66.
   (`replace.rs:531`).
 - AC-7 (REQ-7): after a length-changing replace, the stored directory checksum
   at `[0x04..0x08]` equals `fletcher32` over the post-replace region
-  `[0x08 .. header+entry-table]`. Pinned by the divergence test
+  `[0x08 .. header+entry-table]`. Pinned GREEN by the divergence test
   `length_changing_replace_recomputes_directory_checksum`
-  (`tests/divergence_fletcher.rs:87`), currently `#[ignore]`'d and RED — see
-  blocker #66. The control `equal_length_replace_keeps_directory_checksum_valid`
-  (`divergence_fletcher.rs:125`) passes, isolating the changed `size` field as
-  the cause.
+  (`tests/divergence_fletcher.rs`, now a plain `#[test]` — blocker #66 closed).
+  The control `equal_length_replace_keeps_directory_checksum_valid` passes too,
+  isolating the changed `size` field as the recompute trigger.
 
 ## REQ status table
 
@@ -116,7 +115,7 @@ failing `#[ignore]`'d divergence with open blocker #66.
 | REQ-4 (growth rejected) | SHIPPED | Impl `replace.rs:148-153` returns `ReplaceError::BodyTooLarge { available, requested }` when `new_body.len() > original_len`; validation runs before any patch so `editor.is_clean()` holds. Deliberate scope limit vs upstream `File.move_buffer` relocation (`file.py:385-389`). Non-test consumer: `psptool-cli/src/cmds/replace.rs:35`/`:43` propagate via `?`. Verification: `rejects_growth_with_typed_error` (`replace.rs:411`). |
 | REQ-5 (soft-fuse-chain rejected) | SHIPPED | Impl `replace.rs:143-145` returns `ReplaceError::SoftFuseChainEntry` for `EntryClass::SoftFuseChain`. Mirrors upstream `File.NO_SIZE_ENTRY_TYPES` guard (`directory.py:219` `if entry.type not in File.NO_SIZE_ENTRY_TYPES`). Non-test consumer: `psptool-cli/src/cmds/replace.rs:28`/`:36` propagate via `?`. Verification: `rejects_soft_fuse_chain_entry` (`replace.rs:438`). |
 | REQ-6 (PSP/BIOS family entry points) | SHIPPED | Impl `replace_psp_entry_body` `replace.rs:96` and `replace_bios_entry_body` `replace.rs:111` re-parse the entry from `editor.original()` and call the shared `apply` (`replace.rs:142`); both families put `size` at `+0x04` (`replace.rs:48-50`). Mirrors the family-agnostic upstream resolution `psp.blob.roms[...].directories[...].files[...]` (`__main__.py:240`). Non-test consumer: `psptool-cli/src/cmds/replace.rs:28`/`:36` (matched on `Directory::Psp`/`Directory::Bios`). Verification: `bios_replace_works_and_size_field_at_same_offset` (`replace.rs:531`), `replace_via_entry_handle_preserves_everything_else` (`replace.rs:571`). |
-| REQ-7 (directory Fletcher-32 recompute) | NOT-STARTED | Open prerequisite blocker #66. `apply` (`replace.rs:142`) rewrites the record `size` field (inside the directory's checksummed region `self[0x8:]`, `directory.py:204`) but never recomputes the header checksum, so the output directory's stored Fletcher-32 goes stale — upstream recomputes it unconditionally (`directory.py:241` `self.update_checksum()` → `directory.py:203-205`). The stale defer note at `replace.rs:34-39` points at #13, which is CLOSED (R-DEFER-3 dangling). Pinned RED by `length_changing_replace_recomputes_directory_checksum` (`tests/divergence_fletcher.rs:87`, `#[ignore]`, stored `0x15190283` vs recomputed `0x14cb0276` on a `0x40`→`0x33` shrink). Landing #66 also gives `psptool_core::fletcher32` its first production consumer (linkage to #43). |
+| REQ-7 (directory Fletcher-32 recompute) | SHIPPED | Impl `recompute_directory_checksum` in `replace.rs` reconstructs the post-replace checksummed region (`dir_source[0x08 ..]` with the new 4-byte `size` spliced in — the sole in-region change) and patches `fletcher32(region)` at directory `+0x04`, gated on a length change and only when the parent-directory handle is present (`apply`'s `dir_source: Option<&SourceBytes>`; `Some(&parent.source)` from the two family entry points, `None` from the entry-only `replace_entry_body`). Mirrors upstream `Directory.update_checksum` (`directory.py:203-205` `data = self[0x8:]; self.checksum.set_bytes(0, 4, fletcher32(data))`), called unconditionally on every replace (`directory.py:241`); the in-region `size` mutation is `entry.py:109-110`. This is `psptool_core::fletcher32`'s first production consumer (closes linkage to #43). Non-test consumer: `psptool-cli/src/cmds/replace.rs` (`replace_psp_entry_body`/`replace_bios_entry_body`, signatures unchanged). Verification: `length_changing_replace_recomputes_directory_checksum` GREEN + control `equal_length_replace_keeps_directory_checksum_valid` GREEN (`divergence_fletcher` 2 passed, 0 ignored); `corpus_replace` 54 passed. Blocker #66 closed. |
 
 ## Architecture
 
@@ -159,20 +158,22 @@ production path (R-CODE-2); the two `expect`s in `rewrite_size_field`
 original entry.size`, a wire `u32`) and the record-length invariant, and are
 documented as such.
 
-**The REQ-7 gap in detail.** The `size` field the replace rewrites lands inside
-the checksummed region — for a 1-entry `$PSP` directory that region is
-`[0x08 .. header + entry-table]` (`divergence_fletcher.rs:42`
+**The REQ-7 checksum recompute.** The `size` field the replace rewrites lands
+inside the checksummed region — for a 1-entry `$PSP` directory that region is
+`[0x08 .. header + entry-table]` (`divergence_fletcher.rs`
 `CKSUM_REGION = 0x08..(DIRECTORY_HEADER_SIZE + PSP_ENTRY_SIZE)`), and upstream
 writes a fresh Fletcher-32 into the header checksum field at `[0x04..0x08]`
-(`self.checksum`, `directory.py:135`). The fix specified on #66 is to thread the
-parent directory's source into `apply` and, after the size/body patches on a
-length change, patch `fletcher32(post-replace region)` at `dir_base + 0x04` using
-the fallible `psptool_core::fletcher32` (`crates/psptool-core/src/fletcher.rs`,
-the same primitive the pin's oracle uses at `divergence_fletcher.rs:109`). The
-entry-only `replace_entry_body` structurally lacks the parent directory, so that
-path will pass `None` and remain checksum-agnostic. Until #66 lands, REQ-7 is
-NOT-STARTED and the pin stays `#[ignore]`'d (R-DEFER-3: it may only un-ignore
-when the fix ships).
+(`self.checksum`, `directory.py:135`). `apply` threads the parent directory's
+source in as `dir_source: Option<&SourceBytes>` and, after the size/body patches
+on a length change, `recompute_directory_checksum` patches
+`fletcher32(post-replace region)` at `dir_base + 0x04` using the fallible
+`psptool_core::fletcher32` (`crates/psptool-core/src/fletcher.rs`, the same
+primitive the pin's oracle uses). The region is rebuilt from the source directory
+bytes with only the 4-byte `size` field spliced to its new value, so the sole
+observable delta versus source is the `size` field and the recomputed checksum.
+The entry-only `replace_entry_body` structurally lacks the parent directory and
+passes `None`, remaining checksum-agnostic (a shrink through that path leaves the
+checksum stale by design — the caller opted out of directory context).
 
 ## Version-skew note (blocker #61)
 
@@ -186,11 +187,12 @@ byte-out inside a known range) that is independent of the reference-tool version
 No SHIPPED row above depends on a HEAD-vs-3.4 value: the exact-size rewrite
 (REQ-2) is a strictly-more-correct deviation from *both* versions' `ceil`
 rounding, and the growth/soft-fuse rejections (REQ-4/REQ-5) are typed scope
-limits, not observable-output claims. The one behavior that *is* version-sensitive
-is REQ-7's checksum recompute — `update_checksum` is long-standing and stable
-across 3.4/HEAD, so #66's fix does not risk a skew mismatch, but a full
-`differential` replace-vs-Python comparison is deliberately not asserted here
-because it would fail today for exactly the #66 reason (stale checksum).
+limits, not observable-output claims. REQ-7's checksum recompute is likewise
+version-safe — `update_checksum` is long-standing and stable across 3.4/HEAD, so
+#66's fix does not risk a skew mismatch. A full `differential` replace-vs-Python
+comparison is still deliberately not asserted here: it would now agree on the
+directory checksum but diverge on the intentional PR#77 exact-size deviation
+(REQ-2), where upstream rounds the `size` up to `0x10` and we do not.
 
 ## Verification
 
@@ -210,12 +212,12 @@ gate, not a pass).
   0 ignored (the mutation-locality companion to `corpus_roundtrip`; every corpus
   ROM's first non-soft-fuse entry is replaced same-length and the output differs
   only inside that body range). This is the SHIPPED-REQ corpus-wide gauntlet.
-- `cargo test -p psptool-ops --test divergence_fletcher` — 1 passed, 0 failed,
-  **1 ignored**. The ignored test is the REQ-7 pin
-  (`length_changing_replace_recomputes_directory_checksum`); the passing control
-  (`equal_length_replace_keeps_directory_checksum_valid`) proves the pin fails
-  for the right reason. The ignore is legitimate only while blocker #66 is open;
-  it must move to `#[test]` when #66's fix lands (R-DEFER-3).
+- `cargo test -p psptool-ops --test divergence_fletcher` — 2 passed, 0 failed,
+  0 ignored. The former REQ-7 pin
+  (`length_changing_replace_recomputes_directory_checksum`) is now a plain
+  `#[test]` and GREEN (blocker #66 closed); the control
+  (`equal_length_replace_keeps_directory_checksum_valid`) stays GREEN, proving
+  the recompute triggers only on a length change.
 - `cargo test -p psptool-core --test corpus_roundtrip` — 54 passed, 0 failed,
   0 ignored: establishes that the underlying [`BlobEditor`] the replace path
   drives is byte-exact on the supported corpus.
@@ -223,7 +225,6 @@ gate, not a pass).
   4 ignored: exercises the CLI `list`/`ls_json` surface, not replace mutation
   (a differential replace-vs-Python comparison is not asserted — see the
   version-skew note; it would fail today for the #66 reason).
-- Open prerequisite blocker: **#66** (REQ-7 — length-changing replace leaves the
-  parent directory Fletcher-32 checksum stale; upstream recomputes it at
-  `directory.py:241`). Landing it also wires `psptool_core::fletcher32`'s first
-  production consumer (#43).
+- Blocker **#66** closed (REQ-7 — length-changing replace now recomputes the
+  parent directory Fletcher-32 checksum, mirroring `directory.py:241`). This
+  wires `psptool_core::fletcher32`'s first production consumer (#43 closed).

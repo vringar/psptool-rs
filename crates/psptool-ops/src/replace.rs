@@ -13,7 +13,16 @@
 //!
 //! * **Sibling entries** — byte-identical to source. The writer only patches
 //!   the entry body slot and (when the length changed) the 4-byte `size` field
-//!   of the entry's directory record.
+//!   of the entry's directory record plus the parent directory's 4-byte
+//!   Fletcher-32 checksum field.
+//! * **Directory checksum** — a length-changing replace rewrites the `size`
+//!   field inside the directory's checksummed region (`self[0x8:]`,
+//!   `directory.py:204`), so the parent directory's Fletcher-32 header field is
+//!   recomputed over the post-replace region and patched at directory `+0x04`,
+//!   mirroring upstream `Directory.update_checksum` (`directory.py:203-205`,
+//!   called unconditionally on every replace via `directory.py:241`). The
+//!   entry-only [`replace_entry_body`] path has no parent-directory handle and
+//!   therefore leaves the checksum untouched.
 //! * **Padding bytes** — byte-identical to source. When the new body is
 //!   *shorter* than the original slot, the trailing bytes of the slot stay
 //!   verbatim (we do not zero them and we do not round up).
@@ -31,18 +40,14 @@
 //!
 //! * Re-signing / chain-of-trust (#13).
 //! * CLI surface (#15).
-//! * Fletcher checksum recompute. The directory header's checksum field stays
-//!   verbatim from the source — strict readers will mismatch when the entry
-//!   record changes, but `psptool-core`'s parser itself does not verify
-//!   fletcher (`directory.rs`), so the result remains parseable. A higher-
-//!   level "valid output" wrapper that recomputes fletcher belongs alongside
-//!   the re-sign work in #13.
 
 use psptool_core::directory::{BiosDirectory, PspDirectory};
 use psptool_core::entry::{Entry, EntryClass};
 use psptool_core::error::ParseError;
+use psptool_core::fletcher::FletcherError;
+use psptool_core::source::SourceBytes;
 use psptool_core::writer::{BlobEditor, PatchError};
-use psptool_core::{FlashOffset, RomSize};
+use psptool_core::{FlashOffset, RomSize, fletcher32};
 use thiserror::Error;
 
 /// Byte offset of the `size` field within a 16/24-byte directory entry
@@ -50,6 +55,13 @@ use thiserror::Error;
 const ENTRY_RECORD_SIZE_OFFSET: usize = 0x04;
 /// Length of the `size` field (a little-endian u32).
 const ENTRY_RECORD_SIZE_LEN: usize = 4;
+/// Byte offset of the directory header's 4-byte Fletcher-32 checksum field
+/// (`directory.py:135`; upstream writes it via `set_bytes(0, 4, ...)`).
+const DIRECTORY_CHECKSUM_OFFSET: usize = 0x04;
+/// First byte of the directory region the Fletcher-32 is computed over —
+/// `self[0x8:]` (`directory.py:204`): count + additional_info + entry table,
+/// excluding the magic and the checksum field itself.
+const DIRECTORY_CHECKSUM_REGION_START: usize = 0x08;
 
 /// Errors returned by [`replace_entry_body`].
 #[derive(Debug, Error)]
@@ -82,6 +94,14 @@ pub enum ReplaceError {
     /// bounds or overlap an already-recorded patch on the same editor.
     #[error(transparent)]
     Patch(#[from] PatchError),
+
+    /// Recomputing the parent directory's Fletcher-32 checksum failed because
+    /// its checksummed region (`self[0x8:]`) is not a whole number of 16-bit
+    /// words. Upstream aborts identically (`utils.py:291` `struct.error`); a
+    /// well-formed directory (16-byte header + fixed-width records) always
+    /// yields an even-length region, so this surfaces only a malformed input.
+    #[error(transparent)]
+    Checksum(#[from] FletcherError),
 }
 
 /// Replace a PSP-family entry's body via the diff-and-patch [`BlobEditor`].
@@ -102,7 +122,7 @@ pub fn replace_psp_entry_body(
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
     let entry = Entry::parse_psp(editor.original(), parent, entry_index, rom_size, rom_origin)?;
-    apply(editor, &entry, new_body)
+    apply(editor, &entry, Some(&parent.source), new_body)
 }
 
 /// Replace a BIOS-family entry's body via the diff-and-patch [`BlobEditor`].
@@ -117,7 +137,7 @@ pub fn replace_bios_entry_body(
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
     let entry = Entry::parse_bios(editor.original(), parent, entry_index, rom_size, rom_origin)?;
-    apply(editor, &entry, new_body)
+    apply(editor, &entry, Some(&parent.source), new_body)
 }
 
 /// Replace the body of a pre-parsed [`Entry`].
@@ -136,10 +156,19 @@ pub fn replace_entry_body(
     entry: &Entry,
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
-    apply(editor, entry, new_body)
+    apply(editor, entry, None, new_body)
 }
 
-fn apply(editor: &mut BlobEditor, entry: &Entry, new_body: &[u8]) -> Result<(), ReplaceError> {
+/// Shared core for the three entry points. `dir_source`, when present, is the
+/// parent directory's header+entry-table window; a length-changing replace
+/// recomputes its Fletcher-32 checksum. The entry-only [`replace_entry_body`]
+/// path has no parent handle and passes `None`, leaving the checksum untouched.
+fn apply(
+    editor: &mut BlobEditor,
+    entry: &Entry,
+    dir_source: Option<&SourceBytes>,
+    new_body: &[u8],
+) -> Result<(), ReplaceError> {
     if matches!(entry.class, EntryClass::SoftFuseChain) {
         return Err(ReplaceError::SoftFuseChainEntry);
     }
@@ -158,7 +187,15 @@ fn apply(editor: &mut BlobEditor, entry: &Entry, new_body: &[u8]) -> Result<(), 
     // practice both calls validate up-front against `BlobEditor::original`,
     // so either both succeed or neither commits.
     if new_body.len() != original_len {
-        rewrite_size_field(editor, entry, new_body.len())?;
+        let new_size_bytes = rewrite_size_field(editor, entry, new_body.len())?;
+        // The `size` field lands inside the directory's checksummed region
+        // (`self[0x8:]`), so upstream recomputes the header Fletcher-32 on
+        // every replace (`directory.py:241` → `:203-205`). Mirror that when we
+        // hold the parent directory; the entry-only path (`dir_source == None`)
+        // has no directory to re-checksum.
+        if let Some(dir_source) = dir_source {
+            recompute_directory_checksum(editor, dir_source, entry, new_size_bytes)?;
+        }
     }
 
     // Patch only the bytes the caller supplied. Trailing bytes of the
@@ -181,7 +218,7 @@ fn rewrite_size_field(
     editor: &mut BlobEditor,
     entry: &Entry,
     new_size: usize,
-) -> Result<(), ReplaceError> {
+) -> Result<[u8; ENTRY_RECORD_SIZE_LEN], ReplaceError> {
     let new_size_u32 = u32::try_from(new_size).expect("new_size <= original entry.size (a u32)");
     let record = entry.record.source();
     let size_offset = record
@@ -189,7 +226,49 @@ fn rewrite_size_field(
         .checked_add(ENTRY_RECORD_SIZE_OFFSET as u64)
         .expect("record offset + 4 fits in u64");
     debug_assert!(record.len() >= ENTRY_RECORD_SIZE_OFFSET + ENTRY_RECORD_SIZE_LEN);
-    editor.patch(size_offset, new_size_u32.to_le_bytes().to_vec())?;
+    let size_bytes = new_size_u32.to_le_bytes();
+    editor.patch(size_offset, size_bytes.to_vec())?;
+    Ok(size_bytes)
+}
+
+/// Recompute the parent directory's Fletcher-32 checksum after a length-changing
+/// replace and patch it at directory `+0x04`.
+///
+/// Mirrors upstream `Directory.update_checksum` (`directory.py:203-205`):
+/// `data = self[0x8:]; self.checksum.set_bytes(0, 4, fletcher32(data))`. The
+/// only mutation inside the checksummed region `self[0x8:]` is the entry's
+/// `size` field (`entry.py:109-110`), so we reconstruct the post-replace region
+/// from the source directory bytes with `new_size_bytes` spliced in, then write
+/// the fresh checksum. `dir_source` covers exactly header + entry table, so the
+/// region is `dir_source[0x08 ..]`; for any well-formed directory it is an even
+/// byte count and `fletcher32` accepts it.
+fn recompute_directory_checksum(
+    editor: &mut BlobEditor,
+    dir_source: &SourceBytes,
+    entry: &Entry,
+    new_size_bytes: [u8; ENTRY_RECORD_SIZE_LEN],
+) -> Result<(), ReplaceError> {
+    let dir_base = dir_source.offset().get();
+    let record_base = entry.record.source().offset().get();
+
+    // Position of the 4-byte `size` field within the checksummed region. The
+    // record starts at `dir_base + header (>= 0x10)` and the size field sits at
+    // `record + 0x04`, so it lies strictly inside `self[0x8:]` for any
+    // directory/entry pair the family entry points produce (asserted below).
+    debug_assert!(record_base >= dir_base + DIRECTORY_CHECKSUM_REGION_START as u64);
+    let size_in_region = (record_base - dir_base) as usize + ENTRY_RECORD_SIZE_OFFSET
+        - DIRECTORY_CHECKSUM_REGION_START;
+
+    // Post-replace checksummed region: `dir[0x08 ..]` with the size field
+    // spliced to its new value (the sole in-region change). `dir_source` is a
+    // parsed directory, hence at least a 16-byte header, so `[0x08..]` holds.
+    let mut region = dir_source.as_bytes()[DIRECTORY_CHECKSUM_REGION_START..].to_vec();
+    region[size_in_region..size_in_region + ENTRY_RECORD_SIZE_LEN].copy_from_slice(&new_size_bytes);
+
+    let checksum = fletcher32(&region)?;
+
+    let checksum_offset = FlashOffset(dir_base + DIRECTORY_CHECKSUM_OFFSET as u64);
+    editor.patch(checksum_offset, checksum.to_le_bytes().to_vec())?;
     Ok(())
 }
 
