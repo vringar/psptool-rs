@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: directory.rs::tertiary_actual_offset masks L2 target with PhysicalX86 window override instead of plain addr_mask (directory.py:105) (#68)
 - Latent divergence in fet.rs scan_fet_candidates ordering: upstream blob.py:126-131 yields ALL 0xFFFFFFFF-padded FETs first then ALL 0x00000000-padded (two separate re.finditer passes); Rust scan_fet_candidates (fet.rs:310-316) yields both patterns interleaved in file-position order. For a blob mixing both pad kinds this changes ROM .nth(rom_index) selection order (load.rs:41). Not exercised by current corpus (differential green); pin a fixture + align ordering. (#63)
 - psptool-core: compressed entry whose directory size overruns the ROM is rejected (#40)
 - Divergence: psptool-core entry.rs resolve_body drops compressed BIOS entries whose directory size overruns the ROM (upstream sizes them via the zlib header) (#59)
