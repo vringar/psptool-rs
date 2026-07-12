@@ -1,8 +1,9 @@
 {
-  "next_display_id": 72,
+  "next_display_id": 73,
   "next_comment_id": 77,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
+    "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": 72,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": 30,
     "10c34dc9-1be7-4d9a-8f6a-e6fc9b290523": 13,
@@ -177,6 +178,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAD0TTpFaxenp96z8tUa6UBNuAXt5HMERDV1zurjpU/AfuVjh9ZIZE9QzW0n0VoShkYE9peqciRd9F8cN+hYhtCw=="
         }
       }
+    },
+    "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": {
+      "uuid": "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf",
+      "display_id": 72,
+      "title": "psptool-core: #59 zlib-recovery overrun check uses whole-file blob_end, upstream uses the ROM window (multi-ROM divergence)",
+      "description": "Steps to reproduce:\n1. \n\nExpected: \nActual: \n\nSee HATER.md (committed) for the full adversarial analysis + failure scenario. Found by the-hater (Fable) review of the session's production changes. entry.rs:~537 triggers zlib body-sizing on overrun past blob_end (whole file); upstream file.py:297 uses the ROM window (parent_buffer.buffer_size). On dual-ROM/capsule images these differ -> divergence. rom_size/rom_origin are in scope but unused, suggesting the window was intended. #41-multi-ROM family.",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T04:24:48.357942464Z",
+      "updated_at": "2026-07-12T04:24:48.357942464Z"
     },
     "0e3dee61-386f-471e-9b70-03d7531271c2": {
       "uuid": "0e3dee61-386f-471e-9b70-03d7531271c2",
@@ -2690,11 +2703,16 @@
       "agent_id": "tLiK",
       "agent_seq": 141,
       "timestamp": "2026-07-12T04:24:43.518183045Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 142,
+      "timestamp": "2026-07-12T04:24:48.357942464Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:24:43.518183045Z",
+    "timestamp": "2026-07-12T04:24:48.357942464Z",
     "agent_id": "tLiK",
-    "agent_seq": 141
+    "agent_seq": 142
   }
 }
