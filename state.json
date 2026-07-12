@@ -1,6 +1,6 @@
 {
   "next_display_id": 85,
-  "next_comment_id": 106,
+  "next_comment_id": 107,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1774,7 +1774,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:45:46.244990490Z",
-      "updated_at": "2026-07-12T08:48:27.027363431Z",
+      "updated_at": "2026-07-12T08:49:57.694148671Z",
       "labels": [
         "blocker"
       ],
@@ -1787,6 +1787,15 @@
           "kind": "note",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIWJrAuotIdR1D8cxTWBlVHAwNGbqQhiHLwRciu1aDco3gIsxyNV8f1rtTxOw/3XE3hP62UyGnERBwGZafXu1Bg=="
+        },
+        "d6cfd841-b4f3-4f27-bba1-c364af6e67ce": {
+          "display_id": 106,
+          "author": "tLiK",
+          "content": "PLAN: signature_bytes (body.rs:227-229) calls signature_len() unconditionally, ignoring is_signed(). Upstream header_file.py:84 gives an unsigned file signature_len=0 and :181 yields b'' when !is_signed. Mirror the #81 data_region gate exactly: replace the unconditional signature_len() with 'if self.is_signed() { signature_len()? } else { 0 }'. For an unsigned file sig_len becomes 0 so the returned slice is body[end..end] = empty. Signed path unchanged. Reasoning chain: header_file.py:77-84 (is_signed gate sets signature_len) -> :181 (signature = ... if is_signed else b'') -> gate sig_len in signature_bytes.",
+          "created_at": "2026-07-12T08:49:57.689536624Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA9aCnQygupThPUnvNta3hDnZd1ZDfixNABIYTXK4xvRFVbF2a7W5vig1Ao/jdZ5U8AKTSXmf2RnwxP+vnvDZsCA=="
         }
       }
     },
@@ -3575,11 +3584,16 @@
       "agent_id": "tLiK",
       "agent_seq": 214,
       "timestamp": "2026-07-12T08:48:31.897409241Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 215,
+      "timestamp": "2026-07-12T08:49:57.694148671Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:48:31.897409241Z",
+    "timestamp": "2026-07-12T08:49:57.694148671Z",
     "agent_id": "tLiK",
-    "agent_seq": 214
+    "agent_seq": 215
   }
 }
