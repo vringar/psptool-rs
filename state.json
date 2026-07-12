@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 71,
+  "next_comment_id": 72,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1687,11 +1687,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T00:13:05.384779722Z",
-      "updated_at": "2026-07-12T00:16:43.797972540Z",
+      "updated_at": "2026-07-12T00:18:54.374525998Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "5bb3624d-b0fe-4b26-9db8-30bfb82e1494": {
+          "display_id": 71,
+          "author": "tLiK",
+          "content": "Result: FIXED at 79e1d68c03592f1046da8cc257b39103d69ac017. tertiary_actual_offset now masks block[16:20] with the plain rom_size.addr_mask() (directory.py:105) + rom_origin, dropping the entry.py mode-0 >16 MiB-window override. Pin divergence_tertiary_physical_style_block_val_32mib_plain_addr_mask PASSES (0xFF05_0000 & 0x01FF_FFFF = 0x0105_0000); both controls green; #51 tertiary tests still pass; roundtrip 54/54, differential 50 passed, clippy+fmt clean.",
+          "created_at": "2026-07-12T00:18:54.369934883Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAPsSPHpWGJTqmKQLd8KDzm0PCc0oLy6vdGRvYU6omUZjjI/ce6H9oEn7/OIsFe0RBVlGBKRfH2Q6FXN7ma7DFBQ=="
+        },
         "a7147228-7155-4c7a-9197-98a103b2afe8": {
           "display_id": 69,
           "author": "tLiK",
@@ -2496,11 +2505,16 @@
       "agent_id": "tLiK",
       "agent_seq": 124,
       "timestamp": "2026-07-12T00:16:43.797972540Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 125,
+      "timestamp": "2026-07-12T00:18:54.374525998Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:16:43.797972540Z",
+    "timestamp": "2026-07-12T00:18:54.374525998Z",
     "agent_id": "tLiK",
-    "agent_seq": 124
+    "agent_seq": 125
   }
 }
