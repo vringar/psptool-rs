@@ -86,3 +86,19 @@ upstream = [
 ]
 design = ".design/psptool-core/writer.md"
 parity_ops = ["roundtrip"]
+
+# --- psptool-ops (depends on psptool-core; leaf-first order satisfied) ----
+
+[[route]]
+crate_pattern = "crates/psptool-ops/src/replace.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/directory.py",
+  "/tmp/psptool-ref/psptool/entry.py",
+  "/tmp/psptool-ref/psptool/file.py",
+  "/tmp/psptool-ref/psptool/__main__.py",
+]
+design = ".design/psptool-ops/replace.md"
+# replace.rs's own oracle is the psptool-ops crate suite (corpus_replace +
+# divergence_fletcher) — neither the core roundtrip nor the list-only
+# differential exercises the mutation path — so the crate test suite gates it.
+parity_ops = []
