@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 75,
+  "next_comment_id": 76,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -913,7 +913,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-12T03:50:22.246771048Z",
+      "updated_at": "2026-07-12T03:58:11.049595963Z",
       "labels": [
         "blocker"
       ],
@@ -935,6 +935,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA6k4PgmCpw0UMzwslcMxLgH68P+3cxgbu7hguuFGXUllfeTQFHsV5tbBZ+a00Ux7f/o6e5S/yghLCwcuazcXlBw=="
+        },
+        "5bb42b3c-2690-4d25-8b7c-eed91e5be034": {
+          "display_id": 75,
+          "author": "tLiK",
+          "content": "Result: FIXED in 96e635f. Length-changing replace now recomputes the parent directory Fletcher-32 (recompute_directory_checksum in replace.rs) over the post-replace region [0x08..end-of-entry-table] and patches dir+0x04, mirroring directory.py:203-205/:241. Pin length_changing_replace_recomputes_directory_checksum un-ignored and GREEN; control stays GREEN. Gauntlet: psptool-ops 50+54+2+9 passed 0 failed 0 ignored; corpus_roundtrip 54; differential 50; clippy PASS; fmt PASS. fletcher32 gains its first production consumer (linkage #43).",
+          "created_at": "2026-07-12T03:58:11.045100513Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkYQe+IAqZRXP9VmYTWqzT7/l4R8s3+pK8E5eGS4coGsQEvKdHnaPlndQ+iTN1a7SmOgldl3i+py31O9iRG1EDQ=="
         },
         "6614f5c7-16e3-44eb-a921-19de2af6a658": {
           "display_id": 65,
@@ -2558,11 +2567,16 @@
       "agent_id": "tLiK",
       "agent_seq": 129,
       "timestamp": "2026-07-12T03:50:22.246771048Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 130,
+      "timestamp": "2026-07-12T03:58:11.049595963Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T03:50:22.246771048Z",
+    "timestamp": "2026-07-12T03:58:11.049595963Z",
     "agent_id": "tLiK",
-    "agent_seq": 129
+    "agent_seq": 130
   }
 }
