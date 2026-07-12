@@ -1,8 +1,9 @@
 {
-  "next_display_id": 76,
+  "next_display_id": 77,
   "next_comment_id": 79,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
+    "085676e5-2e21-4681-9268-d4d848235525": 76,
     "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": 72,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": 30,
@@ -185,6 +186,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAD0TTpFaxenp96z8tUa6UBNuAXt5HMERDV1zurjpU/AfuVjh9ZIZE9QzW0n0VoShkYE9peqciRd9F8cN+hYhtCw=="
         }
       }
+    },
+    "085676e5-2e21-4681-9268-d4d848235525": {
+      "uuid": "085676e5-2e21-4681-9268-d4d848235525",
+      "display_id": 76,
+      "title": "Blocker for REQ-7 verify-status of .design/psptool-ops/list.md: ls File Info emits SIG_UNKNOWN/SHA_UNKNOWN placeholders (list.rs:62-63,460,467,471) where upstream psptool.py:117-140 renders verified/veri-failed(...) and sha256_ok/sha256_inconsistent. psptool-ops verify.rs has the signature machinery but it is not wired into list_* rendering. Needs verify wiring into info_list. info key is a documented differential-tolerated divergence, so not gated by the differential.",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T04:39:59.538529418Z",
+      "updated_at": "2026-07-12T04:39:59.538529418Z"
     },
     "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": {
       "uuid": "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf",
@@ -2843,11 +2854,16 @@
       "agent_id": "tLiK",
       "agent_seq": 154,
       "timestamp": "2026-07-12T04:39:53.430221338Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 155,
+      "timestamp": "2026-07-12T04:39:59.538529418Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:39:53.430221338Z",
+    "timestamp": "2026-07-12T04:39:59.538529418Z",
     "agent_id": "tLiK",
-    "agent_seq": 154
+    "agent_seq": 155
   }
 }
