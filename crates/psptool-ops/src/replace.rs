@@ -114,6 +114,23 @@ pub enum ReplaceError {
     /// yields an even-length region, so this surfaces only a malformed input.
     #[error(transparent)]
     Checksum(#[from] FletcherError),
+
+    /// The new body length does not fit in the 4-byte little-endian `size`
+    /// field of a directory record. The on-disk `size` field is a wire `u32`
+    /// (`entry.py:106` `struct.unpack('<I', self[4:8])`; setter `entry.py:110`
+    /// `struct.pack('<I', value)`), so a `new_size > u32::MAX` cannot be
+    /// represented. Reachable only via a malformed ≥4 GiB untrusted blob whose
+    /// recovered entry slot exceeds `u32::MAX` (the growth guard bounds
+    /// `new_size` by the original slot). Returned instead of panicking
+    /// (goal.md R-CODE-2).
+    #[error("new entry size {size} exceeds the 4-byte size-field maximum (u32::MAX)")]
+    SizeTooLarge { size: usize },
+
+    /// The directory record's absolute flash offset + 4 overflows a `u64`.
+    /// Only reachable for a record parsed at the very top of the 64-bit flash
+    /// address space; returned instead of panicking (goal.md R-CODE-2).
+    #[error("directory-record flash offset + 4 overflows the 64-bit address space")]
+    RecordOffsetOverflow,
 }
 
 /// Replace a PSP-family entry's body via the diff-and-patch [`BlobEditor`].
@@ -224,19 +241,23 @@ fn apply(
 }
 
 /// Patch the 4-byte little-endian `size` field at `record + 0x04`. `new_size`
-/// is guaranteed to fit in `u32` by the caller (it is bounded by the original
-/// entry's `size`, which is parsed from a wire `u32`).
+/// is normally bounded by the original entry's `size` (a wire `u32`), but on a
+/// malformed ≥4 GiB blob the recovered slot — and hence `new_size` — can exceed
+/// `u32::MAX`; that untrusted-input edge returns [`ReplaceError::SizeTooLarge`]
+/// rather than panicking (goal.md R-CODE-2), since the on-disk `size` field is a
+/// 4-byte `u32` (`entry.py:108-110`).
 fn rewrite_size_field(
     editor: &mut BlobEditor,
     entry: &Entry,
     new_size: usize,
 ) -> Result<[u8; ENTRY_RECORD_SIZE_LEN], ReplaceError> {
-    let new_size_u32 = u32::try_from(new_size).expect("new_size <= original entry.size (a u32)");
+    let new_size_u32 =
+        u32::try_from(new_size).map_err(|_| ReplaceError::SizeTooLarge { size: new_size })?;
     let record = entry.record.source();
     let size_offset = record
         .offset()
         .checked_add(ENTRY_RECORD_SIZE_OFFSET as u64)
-        .expect("record offset + 4 fits in u64");
+        .ok_or(ReplaceError::RecordOffsetOverflow)?;
     debug_assert!(record.len() >= ENTRY_RECORD_SIZE_OFFSET + ENTRY_RECORD_SIZE_LEN);
     let size_bytes = new_size_u32.to_le_bytes();
     editor.patch(size_offset, size_bytes.to_vec())?;
@@ -591,6 +612,32 @@ mod tests {
             &out[body_off..body_off + 0x10],
             &original[body_off..body_off + 0x10]
         );
+    }
+
+    #[test]
+    fn rewrite_size_field_rejects_size_exceeding_u32_max() {
+        // R-CODE-2 hardening (#71): a `new_size` larger than the on-disk 4-byte
+        // `size` field can hold (`entry.py:108-110`, `struct.pack('<I', value)`)
+        // must return a typed `Err`, never panic. Organically this needs a
+        // >=4 GiB zlib-recovered slot; here we drive `rewrite_size_field`
+        // directly with `0x1_0000_0000` (> u32::MAX) — no allocation.
+        let body = vec![0xAAu8; 0x10];
+        let bytes = psp_dir_with_entry(0x21, &body);
+        let (blob, dir) = parse_psp(bytes);
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).ok();
+
+        let mut editor = BlobEditor::from_blob(blob);
+        let result = entry
+            .as_ref()
+            .map(|e| rewrite_size_field(&mut editor, e, 0x1_0000_0000usize));
+        assert!(matches!(
+            result,
+            Some(Err(ReplaceError::SizeTooLarge {
+                size: 0x1_0000_0000
+            }))
+        ));
+        // The rejection happens before any patch is recorded.
+        assert!(editor.is_clean());
     }
 
     // ------------------------------------------------------------------
