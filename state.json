@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 122,
+  "next_comment_id": 123,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -270,12 +270,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:48.357942464Z",
-      "updated_at": "2026-07-12T05:25:31.647814013Z",
+      "updated_at": "2026-07-12T10:31:07.734546321Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "abe75a8d-012c-4a55-99f3-c9cb4ac5356b": {
+          "display_id": 122,
+          "author": "tLiK",
+          "content": "Failing pin at crates/psptool-core/tests/divergence_zlib_rom_window.rs:divergence_rom_window_smaller_than_blob demonstrates the divergence. Two-ROM fixture (16 MiB blob, 8 MiB rom_size): a compressed $BL2 entry at ROM-relative 0x7FF000 with uncompressed size 0x500020 overruns the 8 MiB ROM window but NOT the 16 MiB whole file. Upstream (file.py:297) bounds the overrun by parent_buffer.buffer_size (ROM window) -> zlib recovery -> body len 0x140 (zlib_hdr 0x100 + zlib_size 0x40, file.py:303-311). Our resolve_body bounds by whole-file blob_end (entry.rs:537, blob_end=blob_start+blob.len() at entry.rs:517) -> normal path -> returns raw uncompressed 0x500020 bytes spilling into ROM#1. rom_size/rom_origin (params entry.rs:500-501) carry the correct bound rom_origin+rom_size but are unused at the :537 check. Test FAILS under --ignored: left=5242912 (0x500020), right=320 (0x140). Fix = bound overrun by rom_origin+rom_size clamped to blob_end. #[ignore]d tracking #72.",
+          "created_at": "2026-07-12T10:31:07.729797553Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAZRDDjeWzTC/sUnBzrDvl6nA34HizqfKJ96KraVko3NcgCI6g06AcYpq4UlT7mRmpXzCWSarogc7dJXhleB/MAA=="
+        },
         "c9807a87-a6c9-4729-883a-ff13c2dc7c87": {
           "display_id": 83,
           "author": "tLiK",
@@ -3957,11 +3966,16 @@
       "agent_id": "tLiK",
       "agent_seq": 245,
       "timestamp": "2026-07-12T10:05:31.037757885Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 246,
+      "timestamp": "2026-07-12T10:31:07.734546321Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T10:05:31.037757885Z",
+    "timestamp": "2026-07-12T10:31:07.734546321Z",
     "agent_id": "tLiK",
-    "agent_seq": 245
+    "agent_seq": 246
   }
 }
