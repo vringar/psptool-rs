@@ -2,9 +2,10 @@
 //!
 //! [`sign_entry`] takes a parsed signed entry, computes the canonical signed
 //! region (`HeaderEntry::get_signed_bytes`), produces a fresh RSA-PSS
-//! signature with a caller-supplied [`RsaPrivateKey`], reverses the
-//! signature for on-disk byte-order (`docs/firmware-layout.md` §7.1), and
-//! patches the trailing signature region through the diff-and-patch writer.
+//! signature with a caller-supplied [`RsaPrivateKey`], and patches the
+//! trailing signature region — stored **plain** (big-endian I2OSP), matching
+//! upstream's plain HeaderFile `Signature` (`cert_tree.py:63`) — through the
+//! diff-and-patch writer.
 //!
 //! The hash function is selected by `signature_type`:
 //!
@@ -86,8 +87,9 @@ pub enum SignError {
 ///      (sig type 2) and produce a fresh PSS signature with `rng`. Salt
 ///      length defaults to the digest length, matching PSPTool's
 ///      `cryptography.hazmat`-based path.
-///   4. The signature is reversed for on-disk wire order (§7.1) and patched
-///      into the entry body's trailing `signature_len()` bytes via
+///   4. The signature is patched **plain** (big-endian I2OSP, matching
+///      upstream's plain HeaderFile `Signature`, `cert_tree.py:63`) into the
+///      entry body's trailing `signature_len()` bytes via
 ///      [`BlobEditor::patch`]. Bytes outside the signature region are
 ///      untouched — a `serialize()` call after this function changes only
 ///      the signature region.
@@ -171,11 +173,10 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
             got: sig_be.len(),
         });
     }
-    let mut sig_disk = sig_be;
-    sig_disk.reverse();
-
+    // On-disk HeaderFile signature is PLAIN big-endian (I2OSP), not reversed —
+    // matches upstream's plain `Signature` (cert_tree.py:63).
     let sig_start = entry.body.offset().get() + offset_in_body as u64;
-    editor.patch(psptool_core::FlashOffset(sig_start), sig_disk)?;
+    editor.patch(psptool_core::FlashOffset(sig_start), sig_be)?;
     Ok(())
 }
 

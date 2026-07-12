@@ -1,38 +1,38 @@
-//! Divergence pin: real-firmware HeaderFile signature verification.
+//! Regression pin: real-firmware HeaderFile signature verification.
 //!
-//! Two independent divergences, both proven against `vendor/test-corpus` with
-//! the reference PSPTool (`/tmp/psptool-ref`) as the live oracle, each of which
-//! alone makes a re-signed HeaderFile fail to verify on real AMD hardware:
+//! Guards two divergences (both fixed by #78/#79), each of which alone made a
+//! re-signed HeaderFile fail to verify on real AMD hardware. Anchored against
+//! `vendor/test-corpus` with RSA-PSS applied to the on-disk bytes as the
+//! oracle:
 //!
-//! ## Divergence A — signed-region length (`body.rs:325-351`, `HeaderEntry::get_signed_bytes`)
+//! ## Divergence A — signed-region length (`HeaderEntry::get_signed_bytes`, #79)
 //! Upstream signs `header || get_decrypted_decompressed_body()`, truncated to
 //! `len(header) + size_signed` = `0x100 + size_signed` bytes
 //! (`header_file.py:162-164`: `file_bytes[:len(self.header) + self.size_signed]`).
-//! Our port truncates the TOTAL to `size_signed` (`body.rs:333-349`: header
-//! `0x100` bytes + `plaintext[..size_signed - 0x100]`), i.e. it signs `0x100`
-//! FEWER bytes than upstream. (The Rust `size_signed` doc at `entry.rs:126`
-//! and synthetic build at `entry.rs:657` treat the field as header-inclusive;
-//! real firmware treats it as the body-signed length added on top of the
-//! header.)
+//! A prior port truncated the TOTAL to `size_signed` (`0x100` bytes short);
+//! `size_signed` is the body-signed length added on top of the full `0x100`
+//! header. `get_signed_bytes` now emits `header(0x100) || plaintext[..size_signed]`
+//! (total `0x100 + size_signed`), matching upstream. The control's
+//! `short_len_plain_ok` guard proves the old short region does NOT verify.
 //!
-//! ## Divergence B — signature byte-order (`body.rs:390-393` + `sign.rs:174-175`)
+//! ## Divergence B — signature byte-order (verify + `sign_entry`, #78)
 //! Upstream wraps a HeaderFile signature in a **plain** `Signature`, NOT
 //! `ReversedSignature` (`cert_tree.py:63`
 //! `Signature.from_nested_buffer(hf.signature)`), and passes the on-disk bytes
-//! straight to RSA verify (`cert_tree.py:98` + `crypto.py:247-258`). Our
-//! `verify_signature` reverses the on-disk bytes (`body.rs:392-393`
-//! `sig_be.reverse()`) and `sign_entry` writes them reversed
-//! (`sign.rs:174-175` `sig_disk.reverse()`). A real firmware HeaderFile stores
-//! its RSA-PSS signature in standard big-endian (I2OSP) order, non-reversed.
+//! straight to RSA verify (`cert_tree.py:98` + `crypto.py:247-258`). A prior
+//! port reversed the on-disk bytes in both `verify_signature` and `sign_entry`;
+//! both now use the signature PLAIN (standard big-endian I2OSP). The control's
+//! `correct_reversed_ok` guard proves the reversed bytes do NOT verify.
 //!
-//! ## Oracle result (live-run, e.g. AORUS_X399AOXT.F5g PSP_FW_BOOT_LOADER,
-//! sig_type=0, size_signed=0xa380): with the CORRECT signed length
-//! (`0x100+size_signed`) and PLAIN (non-reversed) on-disk signature,
-//! `pubkey.verify_blob(...)` = True. Every other combination
-//! (reversed, or length==size_signed) = False.
+//! ## Oracle result (e.g. AORUS_X399AOXT.F5g PSP_FW_BOOT_LOADER, sig_type=0,
+//! size_signed=0xa380): with the CORRECT signed length (`0x100+size_signed`)
+//! and PLAIN (non-reversed) on-disk signature, RSA-PSS verify = True. Every
+//! other combination (reversed, or length==size_signed) = False.
 //!
-//! Tracking: #78 (REQ-8 of `.design/psptool-ops/sign.md`); Divergence A also
-//! falsifies REQ-1's "SHIPPED" claim for `get_signed_bytes`.
+//! Tracking: #78/#79 (REQ-5/REQ-6 of `.design/psptool-core/body.md`, REQ-8 of
+//! `.design/psptool-ops/sign.md`). The pin
+//! `real_corpus_headerfile_verifies_under_verify_chain_of_trust` (now a plain
+//! `#[test]`) is the SHIPPED gate for those REQs.
 
 use psptool_core::{
     Directory, DirectoryRef, Entry, EntryClass, Fet, FlashOffset, HeaderEntry, PubkeyEntry,
@@ -85,13 +85,17 @@ struct Located {
     size_signed: u32,
     /// CORRECT (upstream) signed length `0x100+size_signed`, PLAIN signature.
     correct_plain_ok: bool,
-    /// CORRECT length, REVERSED signature.
+    /// CORRECT length, REVERSED signature (must fail — proves the signature is
+    /// used PLAIN, not the reversed PubkeyFile convention).
     correct_reversed_ok: bool,
-    /// Production `get_signed_bytes` length (`size_signed` total), PLAIN sig.
-    prod_len_plain_ok: bool,
-    /// Production computation end-to-end: production length AND reversed sig
-    /// — this is exactly what `HeaderEntry::verify_signature` does internally.
-    prod_len_reversed_ok: bool,
+    /// OLD-BUG signed region (total == `size_signed`, i.e. `0x100` bytes
+    /// short), PLAIN sig (must fail — proves the full `0x100+size_signed`
+    /// length is required; independent regression guard for Divergence A).
+    short_len_plain_ok: bool,
+    /// Production `get_signed_bytes` (post-fix) length, PLAIN on-disk sig —
+    /// exactly what `HeaderEntry::verify_signature` now does internally
+    /// (must VERIFY once #78/#79 land).
+    prod_plain_ok: bool,
 }
 
 /// Compute the upstream signed bytes from PUBLIC core APIs, independent of the
@@ -103,6 +107,24 @@ fn upstream_signed(header: &HeaderEntry, body: &[u8]) -> Option<Vec<u8>> {
     full.extend_from_slice(&body[..HEADER_LEN]);
     full.extend_from_slice(&ddb);
     let want = HEADER_LEN.checked_add(header.size_signed as usize)?;
+    if want > full.len() {
+        return None;
+    }
+    full.truncate(want);
+    Some(full)
+}
+
+/// The OLD (buggy, pre-#79) signed region: `header[0x100] || ddb` truncated to
+/// `size_signed` TOTAL — `0x100` fewer bytes than upstream. Computed here from
+/// public core APIs (independent of the now-fixed production `get_signed_bytes`)
+/// so the control can keep proving this convention does NOT verify real
+/// signatures (Divergence A regression guard).
+fn short_len_signed(header: &HeaderEntry, body: &[u8]) -> Option<Vec<u8>> {
+    let ddb = header.get_decrypted_decompressed_body(body, None).ok()?;
+    let mut full = Vec::with_capacity(HEADER_LEN + ddb.len());
+    full.extend_from_slice(&body[..HEADER_LEN]);
+    full.extend_from_slice(&ddb);
+    let want = header.size_signed as usize; // TOTAL == size_signed (the old bug)
     if want > full.len() {
         return None;
     }
@@ -144,6 +166,9 @@ fn locate_real_headerfile() -> Option<Located> {
                 let Some(correct) = upstream_signed(header, body) else {
                     continue;
                 };
+                let Some(short) = short_len_signed(header, body) else {
+                    continue;
+                };
                 let Ok(prod) = header.get_signed_bytes(body, None) else {
                     continue;
                 };
@@ -167,8 +192,8 @@ fn locate_real_headerfile() -> Option<Located> {
                     size_signed: header.size_signed,
                     correct_plain_ok,
                     correct_reversed_ok: pss_ok(st, &rsa_key, &correct, &reversed),
-                    prod_len_plain_ok: pss_ok(st, &rsa_key, &prod, sig_on_disk),
-                    prod_len_reversed_ok: pss_ok(st, &rsa_key, &prod, &reversed),
+                    short_len_plain_ok: pss_ok(st, &rsa_key, &short, sig_on_disk),
+                    prod_plain_ok: pss_ok(st, &rsa_key, &prod, sig_on_disk),
                 });
             }
         }
@@ -179,8 +204,9 @@ fn locate_real_headerfile() -> Option<Located> {
 /// CONTROL (must PASS): establishes the real-firmware convention from the
 /// on-disk bytes alone. A genuine signed HeaderFile verifies iff the signed
 /// region is `0x100 + size_signed` bytes AND the signature is used PLAIN
-/// (non-reversed). Both production choices — the shorter `size_signed`-total
-/// region and the byte reversal — fail. Self-skips when the corpus is absent.
+/// (non-reversed). The two wrong conventions — the `0x100`-short region and
+/// the byte reversal — fail, and the now-fixed production `get_signed_bytes`
+/// produces bytes that verify. Self-skips when the corpus is absent.
 #[test]
 fn real_corpus_headerfile_convention_is_nonreversed_and_full_length() {
     let Some(loc) = locate_real_headerfile() else {
@@ -200,25 +226,28 @@ fn real_corpus_headerfile_convention_is_nonreversed_and_full_length() {
          (upstream cert_tree.py:63 plain Signature, header_file.py:162-164 length)",
         loc.rom_name, loc.size_signed
     );
-    // Axis B: reversing (production body.rs:392-393) breaks it.
+    // Axis B: reversing the signature breaks it — proves the HeaderFile
+    // signature is used PLAIN (the fixed body.rs verify path drops the reversal).
     assert!(
         !loc.correct_reversed_ok,
-        "[{}] reversed signature must NOT verify (Divergence B is real)",
+        "[{}] reversed signature must NOT verify (plain-signature convention)",
         loc.rom_name
     );
-    // Axis A: the production `size_signed`-total length (body.rs:333-349) breaks it,
-    // even without reversal.
+    // Axis A: the OLD `size_signed`-total length (0x100 short) breaks it, even
+    // without reversal — proves the full 0x100+size_signed region is required.
     assert!(
-        !loc.prod_len_plain_ok,
-        "[{}] production get_signed_bytes length (total==size_signed) must NOT verify \
-         even non-reversed (Divergence A is real)",
+        !loc.short_len_plain_ok,
+        "[{}] short signed region (total==size_signed) must NOT verify even \
+         non-reversed (full 0x100+size_signed length is required)",
         loc.rom_name
     );
-    // The exact production computation (wrong length AND reversed) fails — which
-    // is why verify_chain_of_trust reports 0 Verified over the whole corpus.
+    // The fix: the production get_signed_bytes length + PLAIN on-disk signature
+    // (exactly what HeaderEntry::verify_signature now does) VERIFIES the real
+    // on-disk signature — this is why verify_chain_of_trust now reports Verified.
     assert!(
-        !loc.prod_len_reversed_ok,
-        "[{}] production computation (wrong length + reversed) must fail",
+        loc.prod_plain_ok,
+        "[{}] production get_signed_bytes + plain on-disk signature must verify \
+         after #78/#79 (body.rs get_signed_bytes = 0x100+size_signed, plain sig)",
         loc.rom_name
     );
 }
@@ -233,7 +262,6 @@ fn real_corpus_headerfile_convention_is_nonreversed_and_full_length() {
 /// on-disk signatures ARE valid under the upstream convention, so this failure
 /// is those two divergences, nothing else.
 #[test]
-#[ignore = "divergence: HeaderFile signed-region length (body.rs:333-349) + signature reversal (body.rs:390-393 / sign.rs:174-175) break real-firmware verify; tracking #78"]
 fn real_corpus_headerfile_verifies_under_verify_chain_of_trust() {
     let Some(loc) = locate_real_headerfile() else {
         if std::env::var_os("PSPTOOL_TEST_CORPUS").is_some() {
@@ -264,11 +292,15 @@ fn real_corpus_headerfile_verifies_under_verify_chain_of_trust() {
             }
         }
     }
+    eprintln!(
+        "verify_chain_of_trust across corpus: {verified_total} Verified, \
+         {bad_total} BadSignature"
+    );
     assert!(
         verified_total >= 1,
         "verify_chain_of_trust verified {verified_total} real HeaderFile signatures \
          (bad-signature={bad_total}); upstream verifies these. Fix the signed-region \
-         length (body.rs:333-349 → 0x100+size_signed) AND drop the HeaderFile signature \
-         reversal (body.rs:390-393, sign.rs:174-175)."
+         length (get_signed_bytes → 0x100+size_signed) AND drop the HeaderFile signature \
+         reversal (verify_signature, sign_entry)."
     );
 }

@@ -147,7 +147,9 @@ pub fn build_synthetic_rom_with_signed_entry(
     // Build a 0x100-byte header in-place, then sign over (header || payload).
     let h_off = header_body_off;
     rom[h_off + 0x10..h_off + 0x14].copy_from_slice(b"$PS1");
-    let size_signed = (HEADER_FILE_LEN + payload_padded.len()) as u32;
+    // size_signed is the body-signed length (header-EXCLUSIVE per
+    // header_file.py:162-164 / entry.rs:177), matching real firmware.
+    let size_signed = payload_padded.len() as u32;
     rom[h_off + 0x14..h_off + 0x18].copy_from_slice(&size_signed.to_le_bytes());
     // is_encrypted = 0
     rom[h_off + 0x30..h_off + 0x34].copy_from_slice(&1u32.to_le_bytes()); // is_signed = 1
@@ -170,9 +172,9 @@ pub fn build_synthetic_rom_with_signed_entry(
     let mut rng = StdRng::seed_from_u64(0xC0FF_EE00_BABE_FACE);
     let signing_key = SigningKey::<Sha256>::new(priv_key.clone());
     let sig = signing_key.sign_with_rng(&mut rng, &signed);
-    let sig_be = sig.to_bytes(); // wire-order, big-endian
-    let mut sig_disk = sig_be.to_vec();
-    sig_disk.reverse();
+    // On-disk HeaderFile signature is PLAIN big-endian (I2OSP), not reversed —
+    // matches upstream's plain `Signature` (cert_tree.py:63) and real firmware.
+    let sig_disk = sig.to_bytes().to_vec();
     assert_eq!(sig_disk.len(), 0x100);
 
     let sig_region_off = h_off + HEADER_FILE_LEN + payload_padded.len();

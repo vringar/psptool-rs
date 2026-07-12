@@ -29,12 +29,14 @@ The byte-exact roundtrip rule is preserved because every method here returns a
 freshly allocated `Vec<u8>` or borrows the entry's source slice unchanged — none
 mutate the carried source bytes.
 
-**Two shipped-in-a-prior-pass defects make real-firmware signature verification
-NOT-STARTED** (REQ-5, REQ-6): the signed region is `0x100` bytes too short
-(#79) and HeaderFile signatures are wrongly byte-reversed (#78). Together they
-make `verify_chain_of_trust` verify **0** real corpus HeaderFile signatures
-where upstream verifies all of them; the pin is
-`crates/psptool-ops/tests/divergence_signature_byte_order.rs`.
+**Two prior-pass defects that made real-firmware signature verification fail
+are now fixed** (REQ-5, REQ-6): the signed region was `0x100` bytes too short
+(#79, fixed to `0x100 + size_signed`) and HeaderFile signatures were wrongly
+byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
+**2993** real corpus HeaderFile signatures (was 0); the regression pin is
+`crates/psptool-ops/tests/divergence_signature_byte_order.rs`
+(`real_corpus_headerfile_verifies_under_verify_chain_of_trust`, now a plain
+`#[test]`).
 
 ## Requirements
 
@@ -121,15 +123,16 @@ where upstream verifies all of them; the pin is
   Exercised transitively by `get_signed_bytes_returns_header_plus_plaintext`
   and by the corpus control in
   `divergence_signature_byte_order.rs::upstream_signed`.
-- AC-5 (REQ-5): `get_signed_bytes` returns `header || ddb[..0x100 +
-  size_signed]`. **NOT met today** — the impl truncates the total to
-  `size_signed` (`0x100` bytes short); see the REQ status table (#79).
+- AC-5 (REQ-5): `get_signed_bytes` returns `header(0x100) ||
+  ddb[..size_signed]` (total `0x100 + size_signed`). **Met** — pinned by
+  `get_signed_bytes_returns_header_plus_plaintext` (in-memory `size_signed =
+  0x10` → `0x110` region) and the corpus control's `short_len_plain_ok ==
+  false` / `prod_plain_ok == true` (#79).
 - AC-6 (REQ-6): `verify_chain_of_trust` verifies ≥1 real corpus HeaderFile
-  signature. **NOT met today** — the impl reverses the signature and uses the
-  short region; the control
-  `real_corpus_headerfile_convention_is_nonreversed_and_full_length` passes
-  while the pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust`
-  is `#[ignore]`d (#78/#79).
+  signature. **Met** — 2993 real signatures verify; the control
+  `real_corpus_headerfile_convention_is_nonreversed_and_full_length` and the
+  pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust` both pass
+  (0 ignored) (#78/#79).
 - AC-7 (REQ-7): `rsa_public_key` builds a key that verifies real corpus
   signatures under the correct convention (the control test's `correct_plain_ok`
   is asserted `true`), and `pubexp_bytes`/`modulus_bytes` extract the documented
@@ -145,8 +148,8 @@ where upstream verifies all of them; the pin is
 | REQ-2 (AES-128 decryption) | SHIPPED | Impl `body.rs:236` (`pub fn get_decrypted_body`): ECB-unwrap the key under the IKEK (`body.rs:248-250`) then CBC-decrypt (`body.rs:255-258`); IKEK bytes at `body.rs:67`. Mirrors `utils.py:281` (`unwrapped_entry_key = decrypt_ecb(entry_key, unwrapped_ikek)`) + `utils.py:283` (`decrypt_cbd(data, iv, unwrapped_entry_key)`), `header_file.py:184-190`; constants `file.py:60`/`file.py:63` with the Zen+-default limitation faithfully mirrored from `header_file.py:203` (`return self.UNWRAPPED_IKEK_ZEN_PLUS`). Non-test consumer: `psptool-ops/src/extract.rs:79` (`header.get_decrypted_body(entry.body.as_bytes(), ikek)`) → CLI `psptool extract -d`. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `get_decrypted_body_round_trips_synthetic_fixture`, `..._rejects_non_block_aligned_ciphertext`. |
 | REQ-3 (zlib decompression) | SHIPPED | Impl `body.rs:273` (`pub fn get_decompressed_body`) + `body.rs:469` (`find_zlib_start`, 0x500 window + 0x100 short-circuit) prepending the pre-magic prefix (`body.rs:292` `out.extend_from_slice(&plaintext[..stream_start])`). Mirrors `utils.py:218-234` (`zlib_find_header`) and `utils.py:248-252` (`uncompressed + decompressed`), invoked at `header_file.py:171` (`zlib_decompress(output[:self.zlib_size])`); uses the `flate2` crate per R-DEV-7. Non-test consumer: `psptool-ops/src/extract.rs:60` (`header.get_decompressed_body(plaintext)`) → CLI `psptool extract`. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `get_decompressed_body_round_trips_micro_fixture`, `..._preserves_pre_zlib_prefix`, `find_zlib_start_*`. |
 | REQ-4 (combined decrypt+decompress) | SHIPPED | Impl `body.rs:306` (`pub fn get_decrypted_decompressed_body`): decrypt iff `is_encrypted`, decompress iff `is_compressed`, else data region verbatim — mirrors `header_file.py:166-174`. Non-test consumer: `body.rs:330` (`get_signed_bytes` calls it in production). Corpus-anchored: `divergence_signature_byte_order.rs:101` (`upstream_signed`) feeds its output to RSA-PSS and the control asserts the result verifies real signatures (`correct_plain_ok == true`), proving the composition is byte-correct on real firmware. Verification: `cargo test -p psptool-core --lib` (146 passed); `cargo test -p psptool-ops --test divergence_signature_byte_order` (control passes). |
-| REQ-5 (signed-region = 0x100+size_signed) | NOT-STARTED | Open prereq blocker **#79**. Impl `body.rs:325` (`get_signed_bytes`) truncates the TOTAL to `size_signed` — `body.rs:333-349` computes `body_signed = size_signed - 0x100` and emits `header(0x100) || plaintext[..size_signed - 0x100]`, signing **0x100 fewer bytes** than upstream `header_file.py:162-164` (`file_bytes[:len(self.header) + self.size_signed]` = `0x100 + size_signed`). Root cause: `entry.rs:126` documents `size_signed` as header-INCLUSIVE, but the raw on-disk field is header-EXCLUSIVE. Falsified by the corpus control `real_corpus_headerfile_convention_is_nonreversed_and_full_length` (`prod_len_plain_ok` asserted `false`). |
-| REQ-6 (verify a real signed HeaderFile) | NOT-STARTED | Open prereq blocker **#78** (also depends on #79). Impl `body.rs:358` (`verify_signature`) reverses HeaderFile signature bytes — `body.rs:392-393` (`sig_be.reverse()`) — applying the PubkeyFile-only `ReversedSignature` convention (`crypto.py:386-408`) to HeaderFiles, whereas upstream wraps them in a **plain** `Signature` (`cert_tree.py:63` `Signature.from_nested_buffer(hf.signature)`; verified plain at `cert_tree.py:98` + `crypto.py:247-258`). Combined with REQ-5, `verify_chain_of_trust` (`psptool-ops/src/verify.rs:264`) verifies **0** real corpus HeaderFile signatures; pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust` is `#[ignore]`d against #78. The synthetic sign→verify round-trip (`verify_signature_round_trip_rsa2048`, `verify.rs::sign_then_verify_round_trip_via_blob_editor`) passes only because `sign_entry` applies the SAME two defects — it is circular and does NOT establish SHIPPED (R-HONEST-3). |
+| REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | Impl `body.rs:333` (`get_signed_bytes`) emits `header(0x100) || plaintext[..size_signed]` (total `0x100 + size_signed`), mirroring upstream `header_file.py:162-164` (`file_bytes[:len(self.header) + self.size_signed]`); `size_signed` is read raw/header-EXCLUSIVE at `entry.rs:177`. Non-test consumers: `psptool-ops/src/sign.rs:143` (`header.get_signed_bytes(body_bytes, ikek)`) → CLI `psptool-cli/src/cmds/sign.rs:21`; and `body.rs:388` (in production `verify_signature`) → `psptool-ops/src/verify.rs:264` → CLI `psptool-cli/src/cmds/verify.rs:14`. Corpus-proven: the control `real_corpus_headerfile_convention_is_nonreversed_and_full_length` asserts `short_len_plain_ok == false` (the old short region fails) and `prod_plain_ok == true` (production length verifies real signatures). Closes **#79**. |
+| REQ-6 (verify a real signed HeaderFile) | SHIPPED | Impl `body.rs:360` (`verify_signature`) uses the on-disk HeaderFile signature **plain** (`body.rs:395` `let signature = self.signature_bytes(body)?`, passed unchanged at `body.rs:400`), matching upstream's plain `Signature` (`cert_tree.py:63`; verified at `cert_tree.py:98` + `crypto.py:247-258`) — the reversed `ReversedSignature` convention (`crypto.py:386-409`) is PubkeyFile-only and untouched. Non-test consumer: `psptool-ops/src/verify.rs:264` (`header.verify_signature(...)` inside `verify_with_directories`) → CLI `psptool-cli/src/cmds/verify.rs:14`. Corpus-proven: `verify_chain_of_trust` now verifies **2993** real corpus HeaderFile signatures (26 BadSignature, same IKEK/key limits upstream shares) where it previously verified 0; the pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust` is now a plain `#[test]` (0 ignored). Closes **#78** (with #79). |
 | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | Impl `body.rs:447` (`pub fn rsa_public_key`) with LE exponent/modulus (`body.rs:454-455` `BigUint::from_bytes_le`) + `body.rs:423`/`body.rs:435` (`pubexp_bytes`/`modulus_bytes`). Mirrors `crypto.py:219` (`pubexp = int.from_bytes(crypto_material[:cls.signature_size], 'little')`) + `crypto.py:222` (`modulus = int.from_bytes(crypto_material[cls.signature_size:], 'little')`). Non-test consumer: `body.rs:395` (`pubkey.rsa_public_key()` in production `verify_signature`). Corpus-anchored independently of the verify defects: the control test builds the key via `pubkey.rsa_public_key()` and RSA-PSS verifies real corpus signatures with it (`correct_plain_ok` asserted `true`), so the extraction itself is proven correct on real firmware keys. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `pubkey_entry_modulus_and_pubexp_extracted_from_micro_fixture`; `cargo test -p psptool-ops --test divergence_signature_byte_order` control. |
 
 ## Architecture
@@ -176,40 +179,39 @@ both switch on it. RSA-PSS salt length defaults to the digest length via
 `PssVerifyingKey::new` (`body.rs:506`), matching `crypto.py:191-194`
 (salt 32 for 2048, 48 for 4096).
 
-**Signed-region defect (#79) — critic watch-item.** Upstream
+**Signed-region computation (#79, FIXED).** Upstream
 (`header_file.py:162-164`) signs `header.get_bytes() +
 get_decrypted_decompressed_body()` truncated to `len(header) + size_signed`.
-The on-disk `size_signed` (read at `header_file.py:43`, mirrored at
+The on-disk `size_signed` (read at `header_file.py:43`, mirrored raw at
 `entry.rs:177`) is the length of the *body* covered by the signature, added on
-top of the full `0x100` header. Our `get_signed_bytes` (`body.rs:333-349`)
-instead treats `size_signed` as the header-inclusive total and slices
-`plaintext[..size_signed - 0x100]`, signing `0x100` fewer bytes. On the corpus
-this is provably wrong: the control `upstream_signed` (which uses the correct
-`0x100 + size_signed` length) verifies real signatures while
-`prod_len_plain_ok` (the production length) does not.
+top of the full `0x100` header. `get_signed_bytes` (`body.rs:333`) now emits
+`header(0x100) || plaintext[..size_signed]` (total `0x100 + size_signed`),
+matching upstream. On the corpus this is proven correct: the control asserts
+the old short region (`short_len_plain_ok`) does NOT verify while the fixed
+production region (`prod_plain_ok`) does.
 
-**Signature byte-order defect (#78) — critic watch-item.** PSPTool stores
-PubkeyFile signatures reversed (the `ReversedSignature` adapter,
-`crypto.py:386-408`) but HeaderFile signatures **plain**: `cert_tree.py:63`
-builds the HeaderFile signed-entity with `Signature.from_nested_buffer(...)`
-(base `Signature`, non-reversed), and `cert_tree.py:98` passes those on-disk
-bytes straight to `verify_blob` (`crypto.py:247-258`). Our `verify_signature`
-reverses them (`body.rs:392-393`), and the module doc-comment
-(`body.rs:207-211`, `body.rs:353-357`) and `sign_entry` (`sign.rs:174-175`)
-carry the same wrong assumption. A real firmware HeaderFile RSA-PSS signature is
-standard big-endian (I2OSP); reversing it makes verification fail for every real
-entry.
+**Signature byte-order (#78, FIXED).** PSPTool stores PubkeyFile signatures
+reversed (the `ReversedSignature` adapter, `crypto.py:386-409`) but HeaderFile
+signatures **plain**: `cert_tree.py:63` builds the HeaderFile signed-entity
+with `Signature.from_nested_buffer(...)` (base `Signature`, non-reversed), and
+`cert_tree.py:98` passes those on-disk bytes straight to `verify_blob`
+(`crypto.py:247-258`). `verify_signature` (`body.rs:395`) now uses the on-disk
+bytes plain, and `sign_entry` (`sign.rs:179`) writes them plain; the PubkeyFile
+LE modulus/exponent extraction (`body.rs:454-455`) and the `ReversedSignature`
+path are untouched. A real firmware HeaderFile RSA-PSS signature is standard
+big-endian (I2OSP); using it plain makes verification succeed for real entries.
 
-**Why the synthetic tests are green but the REQs are NOT-STARTED.**
-`verify_signature_round_trip_rsa2048` (`body.rs:930`) and the
-`sign_then_verify_round_trip_via_blob_editor` path both build the signature with
-the *same* reversal and *same* `size_signed`-as-total convention the verifier
-consumes, so they are internally consistent and pass. They do not touch a real
-signature, so they cannot detect either divergence. The oracle that does is
-`crates/psptool-ops/tests/divergence_signature_byte_order.rs`, whose control
-anchors the true on-disk convention from real corpus bytes and whose `#[ignore]`d
-pin fails until #78/#79 land (R-DEFER-3: the pin flips to `#[test]` only when the
-fix lands).
+**The corpus oracle.** `verify_signature_round_trip_rsa2048` (`body.rs`) and the
+`sign_then_verify_round_trip_via_blob_editor` path are internally consistent
+synthetic sign→verify checks; they now build fixtures with the CORRECT
+convention (header-exclusive `size_signed`, plain signature). The oracle that
+anchors the true on-disk convention from real corpus bytes is
+`crates/psptool-ops/tests/divergence_signature_byte_order.rs`: its control
+proves plain + full-length verifies (and reversed / short-length do not), and
+its now-plain-`#[test]` pin
+`real_corpus_headerfile_verifies_under_verify_chain_of_trust` verifies 2993 real
+signatures (R-DEFER-3: the pin flipped from `#[ignore]` to `#[test]` when the
+fix landed).
 
 **PubkeyEntry extraction is correct and independent.** `rsa_public_key`
 (`body.rs:447`) is not implicated in #78/#79: the control test builds the key
@@ -229,12 +231,14 @@ corpus suite is a red gate, not a pass).
   `get_decompressed_body_*`, `find_zlib_start_*`, `get_signed_bytes_*`,
   `pubkey_entry_modulus_and_pubexp_extracted_from_micro_fixture`,
   `verify_signature_round_trip_rsa2048`).
-- `cargo test -p psptool-ops --test divergence_signature_byte_order` — 1 passed
-  (control `real_corpus_headerfile_convention_is_nonreversed_and_full_length`),
-  1 ignored (pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust`,
-  tracking #78/#79). This crate-side verify-against-corpus test IS the module's
-  oracle — the one that was missing, and the one whose pin the #78/#79 fix must
-  flip to `#[test]`. It is why REQ-5 and REQ-6 are NOT-STARTED, not SHIPPED.
+- `cargo test -p psptool-ops --test divergence_signature_byte_order` — **2
+  passed, 0 failed, 0 ignored**: control
+  `real_corpus_headerfile_convention_is_nonreversed_and_full_length` (plain +
+  full-length verifies; reversed / short-length do not) and the pin
+  `real_corpus_headerfile_verifies_under_verify_chain_of_trust` (2993 real
+  corpus HeaderFile signatures verify, 26 BadSignature). This crate-side
+  verify-against-corpus test IS the module's oracle; its now-plain-`#[test]`
+  pin is the SHIPPED gate REQ-5 and REQ-6 now pass.
 - Route note: this unit's declared `parity_ops` should be `[]`. Neither
   `corpus_roundtrip` (no mutation on the read path) nor the `list` `differential`
   (read-only `ls`/`ls_json`, and `differential.rs:73` explicitly excludes
@@ -244,12 +248,18 @@ corpus suite is a red gate, not a pass).
 
 ## Open blockers
 
-- **#79** — signed-region length: `get_signed_bytes` (`body.rs:333-349`) signs
-  `size_signed` total bytes; upstream (`header_file.py:162-164`) signs
-  `0x100 + size_signed`. Blocks REQ-5, contributes to REQ-6.
-- **#78** — signature byte-order: `verify_signature` (`body.rs:392-393`) and
-  `sign_entry` (`sign.rs:174-175`) reverse HeaderFile signature bytes; upstream
-  (`cert_tree.py:63`) uses them plain. Blocks REQ-6. Fixing both #78 and #79 and
-  flipping `real_corpus_headerfile_verifies_under_verify_chain_of_trust` from
-  `#[ignore]` to `#[test]` (0 failed, 0 ignored) is the SHIPPED gate for REQ-5
-  and REQ-6.
+- **#79** (CLOSED) — signed-region length: `get_signed_bytes` (`body.rs:333`)
+  now signs `0x100 + size_signed` bytes, matching upstream
+  (`header_file.py:162-164`). REQ-5 SHIPPED.
+- **#78** (CLOSED) — signature byte-order: `verify_signature` (`body.rs:395`)
+  and `sign_entry` (`sign.rs:179`) now use HeaderFile signature bytes plain,
+  matching upstream (`cert_tree.py:63`). REQ-6 SHIPPED. The pin
+  `real_corpus_headerfile_verifies_under_verify_chain_of_trust` is a plain
+  `#[test]` (0 failed, 0 ignored), verifying 2993 real corpus signatures.
+
+Remaining follow-up (not a blocker for REQ-5/REQ-6):
+
+- **extract.rs spillover** — `psptool-ops/src/extract.rs:156-157`
+  (`build_encrypted_header_body`, a `#[cfg(test)]` helper) still stamps a
+  header-inclusive `size_signed`; harmless (that test exercises decryption, not
+  the signed region) but tracked for when `extract.rs` is routed.

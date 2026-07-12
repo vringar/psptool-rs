@@ -205,10 +205,12 @@ impl HeaderEntry {
     }
 
     /// Trailing RSA signature bytes. Equivalent to PSPTool's
-    /// `body[-signature_len:]` after truncating to `rom_size`. Stored
-    /// byte-reversed on disk vs. the wire RSA-PSS encoding (§7.1) —
-    /// [`Self::verify_signature`] handles the reversal internally; consumers
-    /// that need the wire-order bytes should reverse this slice themselves.
+    /// `body[-signature_len:]` after truncating to `rom_size`. For a
+    /// HeaderFile these are the RSA-PSS signature in standard big-endian
+    /// (I2OSP) order — stored **plain**, matching upstream's plain `Signature`
+    /// wrapper (`cert_tree.py:63`). [`Self::verify_signature`] passes them to
+    /// RSA-PSS verification unchanged. (The reversed `ReversedSignature`
+    /// convention, `crypto.py:386-409`, applies only to PubkeyFile signatures.)
     pub fn signature_bytes<'a>(&self, body: &'a [u8]) -> Result<&'a [u8], BodyError> {
         if body.len() < HEADER_FILE_LEN {
             return Err(BodyError::Truncated(body.len()));
@@ -321,40 +323,40 @@ impl HeaderEntry {
         }
     }
 
-    /// Bytes covered by the RSA signature (§4.1): `header || decrypted_decompressed_body[..size_signed]`.
+    /// Bytes covered by the RSA signature: `header(0x100) ||
+    /// decrypted_decompressed_body`, truncated to `0x100 + size_signed`
+    /// (`header_file.py:162-164`: `file_bytes[:len(self.header) +
+    /// self.size_signed]`, `len(header) == 0x100`). `size_signed` is the
+    /// length of the *body* region covered by the signature, added on top of
+    /// the full `0x100` header — the on-disk field is header-EXCLUSIVE
+    /// (`entry.rs:177` reads `h[0x14..0x18]` raw, no adjustment).
     pub fn get_signed_bytes(&self, body: &[u8], ikek: Option<Ikek>) -> Result<Vec<u8>, BodyError> {
         if body.len() < HEADER_FILE_LEN {
             return Err(BodyError::Truncated(body.len()));
         }
         let header_bytes = &body[..HEADER_FILE_LEN];
         let plaintext = self.get_decrypted_decompressed_body(body, ikek)?;
-        // size_signed is "header || decrypted_decompressed_body[..N]" — but
-        // the header is already 0x100 bytes, so the body portion is N - 0x100.
         let size_signed = self.size_signed as usize;
-        let body_signed =
-            size_signed
-                .checked_sub(HEADER_FILE_LEN)
-                .ok_or(BodyError::SignedRegionOutOfRange(
-                    size_signed,
-                    plaintext.len() + HEADER_FILE_LEN,
-                ))?;
-        if body_signed > plaintext.len() {
+        if size_signed > plaintext.len() {
             return Err(BodyError::SignedRegionOutOfRange(
                 size_signed,
-                plaintext.len() + HEADER_FILE_LEN,
+                plaintext.len(),
             ));
         }
-        let mut out = Vec::with_capacity(size_signed);
+        let mut out = Vec::with_capacity(HEADER_FILE_LEN + size_signed);
         out.extend_from_slice(header_bytes);
-        out.extend_from_slice(&plaintext[..body_signed]);
+        out.extend_from_slice(&plaintext[..size_signed]);
         Ok(out)
     }
 
     /// Verify the trailing RSA-PSS signature against `pubkey`. Mirrors
-    /// PSPTool's `HeaderFile.verify_signature`. The hash function is selected
-    /// per `signature_type` (RSA-2048 → SHA-256, RSA-4096 → SHA-384), and the
-    /// on-disk signature bytes are reversed before verification (PSPTool's
-    /// `ReversedSignature` adapter — see `docs/firmware-layout.md` §7.1).
+    /// PSPTool's HeaderFile verify path (`cert_tree.py:63` wraps the on-disk
+    /// signature in a plain `Signature`; `cert_tree.py:98` + `crypto.py:247-258`
+    /// pass it straight to RSA verify). The hash function is selected per
+    /// `signature_type` (RSA-2048 → SHA-256, RSA-4096 → SHA-384), and the
+    /// on-disk signature bytes are used **plain** (standard big-endian I2OSP) —
+    /// a HeaderFile signature is NOT reversed (the `ReversedSignature`
+    /// convention, `crypto.py:386-409`, applies only to PubkeyFile signatures).
     pub fn verify_signature(
         &self,
         body: &[u8],
@@ -387,16 +389,16 @@ impl HeaderEntry {
         // Signed region (decrypted, decompressed if applicable, header + body).
         let signed = self.get_signed_bytes(body, ikek)?;
 
-        // Trailing signature, reversed for wire-order RSA-PSS.
-        let sig_on_disk = self.signature_bytes(body).map_err(VerifyError::Body)?;
-        let mut sig_be = sig_on_disk.to_vec();
-        sig_be.reverse();
+        // Trailing signature — used PLAIN (standard big-endian I2OSP). A
+        // HeaderFile signature is a plain `Signature` (`cert_tree.py:63`), NOT
+        // the reversed PubkeyFile convention (`crypto.py:386-409`).
+        let signature = self.signature_bytes(body).map_err(VerifyError::Body)?;
 
         let public_key = pubkey.rsa_public_key()?;
 
         match self.signature_type {
-            0 => verify_pss::<Sha256>(&public_key, &signed, &sig_be),
-            2 => verify_pss::<Sha384>(&public_key, &signed, &sig_be),
+            0 => verify_pss::<Sha256>(&public_key, &signed, signature),
+            2 => verify_pss::<Sha384>(&public_key, &signed, signature),
             _ => unreachable!("checked above"),
         }
     }
@@ -738,8 +740,9 @@ mod tests {
         // Build the header.
         let mut h = [0u8; HEADER_FILE_LEN];
         h[0x10..0x14].copy_from_slice(b"$PS1");
-        // size_signed = header || plaintext (signature does not need to match)
-        let size_signed = (HEADER_FILE_LEN + plaintext.len()) as u32;
+        // size_signed is the body-signed length (header-EXCLUSIVE); the signed
+        // region is header(0x100) || plaintext (signature does not need to match).
+        let size_signed = plaintext.len() as u32;
         h[0x14..0x18].copy_from_slice(&size_signed.to_le_bytes());
         h[0x18..0x1C].copy_from_slice(&1u32.to_le_bytes()); // is_encrypted
         h[0x20..0x30].copy_from_slice(&iv);
@@ -809,12 +812,27 @@ mod tests {
 
     // -- signed bytes --------------------------------------------------------
     #[test]
-    fn get_signed_bytes_returns_header_plus_plaintext() {
-        let bytes = psptool_fixtures::micro::header_signed().to_vec();
-        let body = SourceBytes::from_blob(bytes);
-        let h = HeaderEntry::parse(&body).unwrap();
-        let signed = h.get_signed_bytes(body.as_bytes(), None).unwrap();
-        // size_signed = HEADER_LEN + BODY_LEN = 0x110 (per the fixture builder).
+    fn get_signed_bytes_returns_header_plus_plaintext() -> Result<(), Box<dyn std::error::Error>> {
+        // size_signed is the BODY-signed length added on top of the full 0x100
+        // header (header_file.py:162-164: `file_bytes[:len(header) +
+        // size_signed]`). Build an in-memory unencrypted/uncompressed
+        // HeaderFile with a 0x10-byte body and size_signed = 0x10; the signed
+        // region must be exactly 0x100 (header) + 0x10 (body).
+        let mut h = [0u8; HEADER_FILE_LEN];
+        h[0x10..0x14].copy_from_slice(b"$PS1");
+        h[0x14..0x18].copy_from_slice(&0x10u32.to_le_bytes()); // size_signed = body length
+        h[0x30..0x34].copy_from_slice(&1u32.to_le_bytes()); // is_signed
+        h[0x34..0x38].copy_from_slice(&0u32.to_le_bytes()); // RSA-2048
+        // rom_size = header(0x100) + body(0x10) + sig(0x100).
+        h[0x6C..0x70].copy_from_slice(&0x210u32.to_le_bytes());
+        let mut blob = Vec::new();
+        blob.extend_from_slice(&h);
+        blob.extend_from_slice(b"SIGNED-FIXTURE\x00\x00"); // 0x10-byte body
+        blob.extend(std::iter::repeat_n(0u8, 0x100)); // signature placeholder
+        let body = SourceBytes::from_blob(blob);
+        let hdr = HeaderEntry::parse(&body)?;
+        let signed = hdr.get_signed_bytes(body.as_bytes(), None)?;
+        // 0x100 header + 0x10 signed body.
         assert_eq!(signed.len(), 0x110);
         // First 0x100 bytes are the header verbatim.
         assert_eq!(
@@ -823,6 +841,7 @@ mod tests {
         );
         // The next 0x10 bytes are the (uncompressed, unencrypted) body.
         assert_eq!(&signed[HEADER_FILE_LEN..], b"SIGNED-FIXTURE\x00\x00");
+        Ok(())
     }
 
     // -- pubkey extraction ---------------------------------------------------
@@ -872,7 +891,9 @@ mod tests {
         let sig_len = 0x100;
         let mut h = [0u8; HEADER_FILE_LEN];
         h[0x10..0x14].copy_from_slice(b"$PS1");
-        h[0x14..0x18].copy_from_slice(&((header_len + body_len) as u32).to_le_bytes());
+        // size_signed is the body-signed length (header-EXCLUSIVE per
+        // header_file.py:162-164 / entry.rs:177).
+        h[0x14..0x18].copy_from_slice(&(body_len as u32).to_le_bytes());
         // is_encrypted = 0, is_compressed = 0, is_signed = 1, signature_type = 0.
         h[0x30..0x34].copy_from_slice(&1u32.to_le_bytes());
         h[0x34..0x38].copy_from_slice(&0u32.to_le_bytes());
@@ -886,10 +907,9 @@ mod tests {
         // RSA-PSS sign with SHA-256, salt_len = 32 (digest length).
         let signing_key = SigningKey::<Sha256>::new(priv_key);
         let sig = signing_key.sign_with_rng(&mut rng, &message);
-        let sig_be = sig.to_bytes(); // wire-order, big-endian
-        // Reverse for on-disk storage (PSPTool's ReversedSignature adapter).
-        let mut sig_disk = sig_be.to_vec();
-        sig_disk.reverse();
+        // On-disk HeaderFile signature is PLAIN big-endian (I2OSP), not
+        // reversed (cert_tree.py:63 plain Signature).
+        let sig_disk = sig.to_bytes().to_vec();
         assert_eq!(sig_disk.len(), sig_len);
 
         let mut entry_body = Vec::with_capacity(header_len + body_len + sig_len);
