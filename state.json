@@ -179,11 +179,12 @@
       "uuid": "0e3dee61-386f-471e-9b70-03d7531271c2",
       "display_id": 43,
       "title": "Blocker for REQ-6 of psptool-core/fletcher: no production consumer recomputes fletcher32 — writer.rs is diff-and-patch only (writer.rs:15) and never calls psptool_core::fletcher32; a mutation path that recomputes the directory checksum and writes it LE into header [0x04..0x08] does not exist",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:28:58.093783122Z",
-      "updated_at": "2026-07-12T03:58:20.662580817Z",
+      "updated_at": "2026-07-12T03:58:25.488515144Z",
+      "closed_at": "2026-07-12T03:58:25.488511196Z",
       "labels": [
         "blocker"
       ],
@@ -2594,11 +2595,16 @@
       "agent_id": "tLiK",
       "agent_seq": 132,
       "timestamp": "2026-07-12T03:58:20.662580817Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 133,
+      "timestamp": "2026-07-12T03:58:25.488515144Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T03:58:20.662580817Z",
+    "timestamp": "2026-07-12T03:58:25.488515144Z",
     "agent_id": "tLiK",
-    "agent_seq": 132
+    "agent_seq": 133
   }
 }
