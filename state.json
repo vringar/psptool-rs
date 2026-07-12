@@ -1,6 +1,6 @@
 {
   "next_display_id": 85,
-  "next_comment_id": 104,
+  "next_comment_id": 105,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1763,10 +1763,21 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:45:46.244990490Z",
-      "updated_at": "2026-07-12T08:45:51.067589635Z",
+      "updated_at": "2026-07-12T08:48:27.027363431Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "4b7a88dc-6500-4c8b-959f-33ee01fd10f5": {
+          "display_id": 104,
+          "author": "tLiK",
+          "content": "Failing pin at crates/psptool-core/tests/divergence_body_bounds.rs::signature_bytes_of_unsigned_headerfile_is_empty (#[ignore]d, tracking #83). Current: signature_bytes returns 256 bytes (the last 0x100 of the data region) for an unsigned HeaderFile; upstream signature_len==0 => empty. Verified failing under nix-shell cargo test -p psptool-core --test divergence_body_bounds -- --ignored.",
+          "created_at": "2026-07-12T08:48:27.022538581Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIWJrAuotIdR1D8cxTWBlVHAwNGbqQhiHLwRciu1aDco3gIsxyNV8f1rtTxOw/3XE3hP62UyGnERBwGZafXu1Bg=="
+        }
+      }
     },
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": {
       "uuid": "bc034fa5-f3ae-4faf-99a1-18d096bf29fd",
@@ -3543,11 +3554,16 @@
       "agent_id": "tLiK",
       "agent_seq": 212,
       "timestamp": "2026-07-12T08:46:17.393207959Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 213,
+      "timestamp": "2026-07-12T08:48:27.027363431Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:46:17.393207959Z",
+    "timestamp": "2026-07-12T08:48:27.027363431Z",
     "agent_id": "tLiK",
-    "agent_seq": 212
+    "agent_seq": 213
   }
 }
