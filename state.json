@@ -1,6 +1,6 @@
 {
   "next_display_id": 77,
-  "next_comment_id": 83,
+  "next_comment_id": 84,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -214,11 +214,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:48.357942464Z",
-      "updated_at": "2026-07-12T04:24:58.161729306Z",
+      "updated_at": "2026-07-12T05:25:31.647814013Z",
       "labels": [
         "blocker",
         "bug"
-      ]
+      ],
+      "comments": {
+        "c9807a87-a6c9-4729-883a-ff13c2dc7c87": {
+          "display_id": 83,
+          "author": "tLiK",
+          "content": "Cross-ref (EPYC entry-11 address question, #41/#52): SETTLED as T1 (upstream files_by_offset cross-ROM cache echo; our address 0x13c8000 is address-mode-correct) by live-oracle + byte trace on GENOAD8HM3 -- see #41 result comment. This does NOT resolve THIS issue: #72 is a distinct genuine production bug (72=72 zlib overrun uses whole-file blob_end vs upstream ROM-window file.py:297 / 72=73 replace updates only one parent vs upstream file.py:385-393 all references). The T1 verdict only means the entry-11 ADDRESS diff is not a resolve-path bug; the multi-ROM window/multi-ref concerns here remain open and are unaffected.",
+          "created_at": "2026-07-12T05:25:31.643248888Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAy7F1SwNKLc9kraO+hhuhObqqSduefJktqwXflYGTCcMWnxJWQq2QTZgnRaLmckM0OTRpAMQdYjJtRGRYCpBiDg=="
+        }
+      }
     },
     "0e3dee61-386f-471e-9b70-03d7531271c2": {
       "uuid": "0e3dee61-386f-471e-9b70-03d7531271c2",
@@ -2938,11 +2949,16 @@
       "agent_id": "tLiK",
       "agent_seq": 162,
       "timestamp": "2026-07-12T05:25:18.234347045Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 163,
+      "timestamp": "2026-07-12T05:25:31.647814013Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:25:18.234347045Z",
+    "timestamp": "2026-07-12T05:25:31.647814013Z",
     "agent_id": "tLiK",
-    "agent_seq": 162
+    "agent_seq": 163
   }
 }
