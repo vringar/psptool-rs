@@ -293,7 +293,6 @@ impl HeaderEntry {
         if !self.is_compressed {
             return Err(BodyError::NotCompressed);
         }
-        let stream_start = find_zlib_start(plaintext)?;
         // `zlib_size` is an ABSOLUTE end offset into the data region, not a
         // length measured from the zlib magic. Upstream feeds
         // `zlib_decompress(output[:self.zlib_size])` (`header_file.py:171`),
@@ -303,6 +302,15 @@ impl HeaderEntry {
         // offset `zlib_size`, and any pre-magic prefix (`output[..zlib_start]`)
         // is prepended to the decompressed output.
         let zlib_size = self.zlib_size as usize;
+        // Search for the zlib magic ONLY within `output[:zlib_size]`, exactly
+        // like upstream: `zlib_find_header(s)` is called with `s ==
+        // output[:zlib_size]` (`utils.py:245`), so upstream never inspects a
+        // byte at or beyond `zlib_size`. Bounding the scan here (instead of
+        // scanning the whole data region and clamping afterwards) ensures a
+        // spurious magic living past `zlib_size` is not located — upstream
+        // would return -1 (no magic), which surfaces as `ZlibMagicMissing`.
+        let search_end = zlib_size.min(plaintext.len());
+        let stream_start = find_zlib_start(&plaintext[..search_end])?;
         if zlib_size > plaintext.len() || zlib_size < stream_start {
             return Err(BodyError::ZlibSizeOutOfRange {
                 size: self.zlib_size as u64,

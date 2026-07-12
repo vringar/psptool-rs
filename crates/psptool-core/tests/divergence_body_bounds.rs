@@ -269,9 +269,8 @@ fn get_decompressed_body_zlib_size_is_absolute_offset_not_length() {
 /// locate the magic that lives at offset 0x50 (past `zlib_size`). The current
 /// `ZlibSizeOutOfRange` is direct evidence the scan over-read past `zlib_size`.
 ///
-/// Tracking: #84
+/// Tracking: #84 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: find_zlib_start scans whole plaintext, not plaintext[..zlib_size]; tracking #84"]
 fn find_zlib_start_ignores_magic_beyond_zlib_size() {
     // Data region: 0x50 non-magic bytes, then a zlib magic (0x78 0xDA) at
     // offset 0x50. zlib_size == 0x40, so upstream searches only output[:0x40]
