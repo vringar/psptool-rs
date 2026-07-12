@@ -1,6 +1,6 @@
 {
   "next_display_id": 83,
-  "next_comment_id": 103,
+  "next_comment_id": 104,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1936,7 +1936,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:04:05.775568022Z",
-      "updated_at": "2026-07-12T08:35:20.703099566Z",
+      "updated_at": "2026-07-12T08:36:25.318466072Z",
       "closed_at": "2026-07-12T08:35:20.703098234Z",
       "labels": [
         "blocker"
@@ -1968,6 +1968,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAsUKXxiR9eKnPLWaG96BJdaYXWJsmRtwqfC3ru0vjbvIrBHn+0uKA37k5bO1AMOL8h83ridFFgFu7XeOE3DYCAQ=="
+        },
+        "d95a0061-5618-428f-af04-088b7f9a58ce": {
+          "display_id": 103,
+          "author": "tLiK",
+          "content": "Fixed in 514a4d34. get_decompressed_body now treats zlib_size as an absolute end offset into the data region (plaintext[stream_start..zlib_size]), mirroring upstream header_file.py:171 / utils.py:245-252. Pin get_decompressed_body_zlib_size_is_absolute_offset_not_length now live; no-prefix control + real-corpus roundtrip/differential green.",
+          "created_at": "2026-07-12T08:36:25.313817235Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABASxa6k7YD8MVtSGkzyU//J/zkCqKhWevz+sjEKXHn0QdDD+QbKdRxKwlPsVQ/MIcqMrUaP8QrjmRYN/UNQeP4BQ=="
         }
       }
     },
@@ -3461,11 +3470,16 @@
       "agent_id": "tLiK",
       "agent_seq": 205,
       "timestamp": "2026-07-12T08:35:20.703099566Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 206,
+      "timestamp": "2026-07-12T08:36:25.318466072Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:35:20.703099566Z",
+    "timestamp": "2026-07-12T08:36:25.318466072Z",
     "agent_id": "tLiK",
-    "agent_seq": 205
+    "agent_seq": 206
   }
 }
