@@ -1,6 +1,6 @@
 {
   "next_display_id": 78,
-  "next_comment_id": 88,
+  "next_comment_id": 89,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -703,12 +703,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:33.824682364Z",
-      "updated_at": "2026-07-12T05:50:10.705223613Z",
+      "updated_at": "2026-07-12T05:54:16.948738793Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "08da5af5-21ac-486d-a780-3f3fbbce72bd": {
+          "display_id": 88,
+          "author": "tLiK",
+          "content": "Result: R-CODE-2 typed-Err hardening landed in 777cc32. Both .expect() in rewrite_size_field replaced: u32::try_from -> ReplaceError::SizeTooLarge (new_size > u32::MAX, the on-disk size field is a 4-byte u32 per entry.py:108-110); record.offset()+4 -> ReplaceError::RecordOffsetOverflow via checked_add.ok_or. Trigger is a contrived >=4 GiB untrusted blob whose zlib-recovered slot exceeds u32::MAX; the in-bounds shrink/equal-length path is byte-identical (corpus_replace 54/0/0 unchanged). Value-level regression test rewrite_size_field_rejects_size_exceeding_u32_max passes (new_size=0x1_0000_0000 returns Err, not panic). clippy/fmt clean, no expect/unwrap/panic in production.",
+          "created_at": "2026-07-12T05:54:16.944195445Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABApkiQw15Zne7gdsLPMW2Ei2exhZuZn45JVW1+AcGrEiJt/WBRPe9q/owd2y4zShazBT2OayxdEWD9hFs7SnyeDA=="
+        },
         "e2e9bbe1-a52f-4fe5-a81e-7f86c173bbff": {
           "display_id": 87,
           "author": "tLiK",
@@ -3046,11 +3055,16 @@
       "agent_id": "tLiK",
       "agent_seq": 170,
       "timestamp": "2026-07-12T05:50:10.705223613Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 171,
+      "timestamp": "2026-07-12T05:54:16.948738793Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:50:10.705223613Z",
+    "timestamp": "2026-07-12T05:54:16.948738793Z",
     "agent_id": "tLiK",
-    "agent_seq": 170
+    "agent_seq": 171
   }
 }
