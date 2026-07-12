@@ -21,6 +21,18 @@
 //!
 //! The `body` argument is always the entry's full body slice
 //! (`[header(0x100) | data | signature]`). Nothing here mutates it.
+//!
+//! ## REQ status (per `.design/psptool-core/body.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:190` + `signature_bytes` at `body.rs:222`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; consumer `psptool-ops/src/extract.rs:59` + `psptool-ops/src/sign.rs:147`. Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`. |
+//! | REQ-2 (AES-128 decryption) | SHIPPED | `get_decrypted_body` at `body.rs:255` (ECB-unwrap key then CBC-decrypt) per upstream `utils.py:281,283`, `header_file.py:184-190`; consumer `psptool-ops/src/extract.rs:79` → CLI `extract -d`. |
+//! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:292` + `find_zlib_start` (0x500 window, bounded to `plaintext[..zlib_size]`) per upstream `utils.py:218-234,241-254`, `header_file.py:171`; consumer `psptool-ops/src/extract.rs:60`. Pins #82 (absolute zlib_size) / #84 (scan bound) live. |
+//! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` (decrypt iff encrypted, decompress iff compressed) per upstream `header_file.py:166-174`; production consumer `get_signed_bytes` at `body.rs:365`. |
+//! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:365` emits `header(0x100) || plaintext[..size_signed]` per upstream `header_file.py:162-164`; consumer `psptool-ops/src/sign.rs:143` + `verify_signature` at `body.rs:392`. Closes #79. |
+//! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_signature` at `body.rs:392` uses the on-disk signature **plain** (not the PubkeyFile-reversed convention) per upstream `cert_tree.py:63,98`, `crypto.py:247-258`; consumer `psptool-ops/src/verify.rs:264` → CLI `verify`. Corpus-proven: 2993 real signatures verify (was 0). Closes #78. |
+//! | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | `rsa_public_key` at `body.rs:481` with LE exponent/modulus per upstream `crypto.py:219-229`; production consumer `verify_signature` at `body.rs:392` (`pubkey.rsa_public_key()`). |
 
 use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;
