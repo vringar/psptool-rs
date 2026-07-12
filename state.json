@@ -1,6 +1,6 @@
 {
   "next_display_id": 77,
-  "next_comment_id": 79,
+  "next_comment_id": 80,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1260,12 +1260,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:19.328416860Z",
-      "updated_at": "2026-07-12T04:32:22.435660276Z",
+      "updated_at": "2026-07-12T04:55:31.822949475Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "4f7874f8-7230-4fec-b18e-af97598e7932": {
+          "display_id": 79,
+          "author": "tLiK",
+          "content": "Plan: thread block[20:24] Zen generation id through the tertiary walk. (1) directory.rs: tertiary_actual_offset returns (FlashOffset, PspGenerationId) reading block[20:24] as u32 LE (upstream directory.py:89/94); new DirectoryProvenance::Tertiary { parent_offset, index, generation } carried by both PSP and BIOS tertiary walk branches (was L2Pointer). (2) list.rs: directory_generation renders the Tertiary generation via zen_label, mirroring the ComboEntry arm; unknown id -> empty. (3) un-ignore the two #70 pins; flip list.md REQ-11 NOT-STARTED->SHIPPED, update directory.md REQ-9 traversal note. Consumer: psptool-cli list -> list_default -> directory_generation.",
+          "created_at": "2026-07-12T04:55:31.817824047Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAuCQASetixg/xTJZPTD0MLAjKhxZucDeP9cS6rMWDzlw6oigi5GQjYbNUU9iU170nXQoJsojBMwyLzOs/LtNFDw=="
+        },
         "6f89298e-7a3f-421a-8f0a-481191417f0c": {
           "display_id": 78,
           "author": "tLiK",
@@ -2876,11 +2885,16 @@
       "agent_id": "tLiK",
       "agent_seq": 157,
       "timestamp": "2026-07-12T04:40:11.854149842Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 158,
+      "timestamp": "2026-07-12T04:55:31.822949475Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:40:11.854149842Z",
+    "timestamp": "2026-07-12T04:55:31.822949475Z",
     "agent_id": "tLiK",
-    "agent_seq": 157
+    "agent_seq": 158
   }
 }
