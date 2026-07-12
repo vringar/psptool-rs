@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 127,
+  "next_comment_id": 128,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2744,7 +2744,7 @@
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-11T19:37:43.883741054Z",
-      "updated_at": "2026-07-12T11:06:45.713043156Z",
+      "updated_at": "2026-07-12T13:41:33.861772721Z",
       "labels": [
         "blocker"
       ],
@@ -2766,6 +2766,15 @@
           "kind": "handoff",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA0l7NbGfCZaCMDMCZSDTNS6m1mmEtCdsPiqkVeVzfPZbvxBAO1ocgbJlDfZo5ntTBvt7PdSgvKEHPwEV4HofzCQ=="
+        },
+        "7505c1d3-3c20-474e-b8c7-98c95c3b5236": {
+          "display_id": 127,
+          "author": "tLiK",
+          "content": "[decision] User: do NOT drop; KEEP the entry as Plain (protect byte-exact roundtrip) but WARN on stderr when the typed sub-parse fails (mirrors upstream's print_warning, minus the drop). So the fix is to emit a stderr warning on sub-parser rejection, not to change classify's Plain fallback. The committed pins (which assert parse_psp -> Err/drop) must be REFRAMED to assert keep-as-Plain + a warning is surfaced.",
+          "created_at": "2026-07-12T13:41:33.806554755Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAFnlzMKdTNhv7QnYbF3OuW7eOjX2DSnfQEyOy4+75nf9aRx9CtABkyCo5HisaJT6IjwsNAql4oIoUH9nt7seYBw=="
         },
         "9a3bf510-e6e6-4f7b-ba6c-ed2bae063f0d": {
           "display_id": 126,
@@ -4045,11 +4054,16 @@
       "agent_id": "tLiK",
       "agent_seq": 253,
       "timestamp": "2026-07-12T12:45:31.696662454Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 254,
+      "timestamp": "2026-07-12T13:41:33.861772721Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T12:45:31.696662454Z",
+    "timestamp": "2026-07-12T13:41:33.861772721Z",
     "agent_id": "tLiK",
-    "agent_seq": 253
+    "agent_seq": 254
   }
 }
