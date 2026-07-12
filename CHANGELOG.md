@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: body.rs data_region ignores is_signed (drops signature_len bytes for unsigned HeaderFiles) vs header_file.py:83-84,100 (#81)
 - Blocker for REQ-8 of sign: needs real-corpus/upstream cross-validation of re-signed HeaderFile output. sign_entry reverses the on-disk signature bytes (sign.rs:174-175, per firmware-layout §7.1 PubkeyFile convention) and target verify (body.rs:393) reverses to match — internally self-consistent (synthetic sign->verify roundtrip verify.rs:360). But upstream HeaderFile verifies via a PLAIN non-reversed Signature (cert_tree.py:63 wraps hf.signature as Signature, not ReversedSignature), so a re-signed HeaderFile may not verify under upstream PSPTool. No psptool-ops test re-signs a real corpus entry and checks it verifies under the reference tool. (#78)
 - Divergence: psptool-core HeaderEntry::get_signed_bytes signs 0x100 too few bytes vs upstream (body.rs:333-349 vs header_file.py:162-164) (#79)
 - psptool-core: multi-ROM blob directory parsing diverges from reference (BIOS entry base + entry 3 type) (#41)
