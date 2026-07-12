@@ -114,6 +114,10 @@ fn dispatch(cli: &Cli, out: &mut dyn Write) -> Result<()> {
         key_tree: cli.key_tree,
         metrics: cli.metrics,
         verbose: cli.verbose,
+        // The legacy `-E` fast-path has no `--sparse`; `cmds::list::run` still
+        // honours the `PSPTOOL_LS_SPARSE` env var (read there, not via clap), so
+        // scripts using the single-letter flags migrate by setting the env var.
+        sparse: false,
         file,
     };
     cmds::list::run(&args, out)

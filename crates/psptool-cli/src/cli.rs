@@ -178,6 +178,13 @@ pub struct ListArgs {
     #[arg(short = 'v', long = "verbose", action = ArgAction::SetTrue)]
     pub verbose: bool,
 
+    /// Render the upstream-exact SPARSE `-v` columns: an empty `flags` cell and
+    /// a 4-char uppercase `MD5` (`psptool.py:179`/`:180`). The default output is
+    /// richer (populated `flags` + full 32-char MD5). Also enabled by setting
+    /// the `PSPTOOL_LS_SPARSE` env var to `1`/`true`.
+    #[arg(long = "sparse", action = ArgAction::SetTrue)]
+    pub sparse: bool,
+
     /// Firmware image.
     #[arg(value_name = "FILE")]
     pub file: PathBuf,

@@ -93,6 +93,7 @@ fn render(buf: Vec<u8>) -> String {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     list_default(&rom)
 }

@@ -90,6 +90,24 @@ parity_ops = ["roundtrip"]
 # --- psptool-cli (top layer; consumes psptool-ops) -----------------------
 
 [[route]]
+crate_pattern = "crates/psptool-cli/src/cli.rs"
+upstream = ["/tmp/psptool-ref/psptool/__main__.py"]
+design = ".design/psptool-ops/list.md"
+parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-cli/src/cmds/list.rs"
+upstream = ["/tmp/psptool-ref/psptool/psptool.py"]
+design = ".design/psptool-ops/list.md"
+parity_ops = ["differential"]
+
+[[route]]
+crate_pattern = "crates/psptool-cli/src/main.rs"
+upstream = ["/tmp/psptool-ref/psptool/__main__.py"]
+design = ".design/psptool-ops/list.md"
+parity_ops = []
+
+[[route]]
 crate_pattern = "crates/psptool-cli/src/cmds/extract.rs"
 upstream = [
   "/tmp/psptool-ref/psptool/__main__.py",

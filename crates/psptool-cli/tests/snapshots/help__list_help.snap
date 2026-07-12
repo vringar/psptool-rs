@@ -16,4 +16,5 @@ Options:
   -t, --key-tree               Print the cert-tree key tree
   -m, --metrics                Print parsing metrics
   -v, --verbose                Verbose columns
+      --sparse                 Render the upstream-exact SPARSE `-v` columns: an empty `flags` cell and a 4-char uppercase `MD5` (`psptool.py:179`/`:180`). The default output is richer (populated `flags` + full 32-char MD5). Also enabled by setting the `PSPTOOL_LS_SPARSE` env var to `1`/`true`
   -h, --help                   Print help

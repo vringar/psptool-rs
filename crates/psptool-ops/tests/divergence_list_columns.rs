@@ -10,9 +10,11 @@
 //!
 //! Each test below asserts the value upstream `ls_files` *actually* renders,
 //! derived from a quoted upstream `psptool.py` line (never copied from the
-//! Rust side). They FAIL against the current `list.rs` renderer and are
-//! `#[ignore]`d pending the tracked fix — per goal.md R-DEFER-3 they move to
-//! `#[test]` when the fix lands.
+//! Rust side). The #86 (`flags`) and #87 (`MD5`) pins now render upstream-exact
+//! in SPARSE mode ([`RomListing::sparse`]) — they invoke the renderer with
+//! `sparse=true` and are live `#[test]`s (per goal.md R-DEFER-3, un-ignored
+//! when the fix landed). `default_mode_flags_populated_and_md5_full_lowercase`
+//! pins that the richer rendering remains the default (`sparse=false`).
 
 use psptool_core::{Fet, FlashOffset, RomSize, SourceBytes, walk_directories};
 use psptool_fixtures::micro;
@@ -46,7 +48,10 @@ fn build_psp_blob() -> Vec<u8> {
 /// Render `list_verbose` over the PSP micro-fixture and return the cells of
 /// the entry data row keyed by column header (both the header row and the
 /// data row are split on `|` identically by PrettyTable-style layout).
-fn verbose_entry_cells() -> std::collections::HashMap<String, String> {
+///
+/// `sparse` selects the upstream-exact `flags`/`MD5` rendering
+/// ([`RomListing::sparse`]); `false` is the richer default.
+fn verbose_entry_cells(sparse: bool) -> std::collections::HashMap<String, String> {
     let buf = build_psp_blob();
     let blob = SourceBytes::from_blob(buf);
     let fet = Fet::parse_at(&blob, FlashOffset(0x20_000)).expect("parse FET");
@@ -58,6 +63,7 @@ fn verbose_entry_cells() -> std::collections::HashMap<String, String> {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse,
     };
     let table = list_verbose(&rom);
 
@@ -95,7 +101,8 @@ fn verbose_entry_cells() -> std::collections::HashMap<String, String> {
 /// Tracking: #85 (fixed — pin now live)
 #[test]
 fn divergence_subprogram_instance_rendered_decimal_not_hex() {
-    let cells = verbose_entry_cells();
+    // Subprogram/Instance are basic columns, unaffected by sparse mode.
+    let cells = verbose_entry_cells(false);
     // Upstream `hex(0)` == "0x0" (psptool.py:174/:175).
     assert_eq!(
         cells.get("Subprogram").map(String::as_str),
@@ -115,12 +122,12 @@ fn divergence_subprogram_instance_rendered_decimal_not_hex() {
 ///
 /// Upstream `psptool.py:179` — the `flags` slot of `all_values` is the literal
 /// `''` (the `hex(file.entry.flags)` form is commented out). Upstream's
-/// `flags` column is therefore always empty; `list.rs` shows `"0x0"`.
-/// Tracking: #86
+/// `flags` column is therefore always empty; the richer default shows `"0x0"`.
+/// SPARSE mode ([`RomListing::sparse`]) reproduces the upstream `''`.
+/// Tracking: #86 (fixed — pin now live in sparse mode)
 #[test]
-#[ignore = "divergence: verbose flags column populated, upstream renders '' (psptool.py:179); tracking #86"]
 fn divergence_verbose_flags_column_is_empty_upstream() {
-    let cells = verbose_entry_cells();
+    let cells = verbose_entry_cells(true);
     assert_eq!(
         cells.get("flags").map(String::as_str),
         Some(""),
@@ -133,13 +140,13 @@ fn divergence_verbose_flags_column_is_empty_upstream() {
 /// renders only the first 4 hex chars, UPPERCASED.
 ///
 /// Upstream `psptool.py:180` — `file.md5()[:4].upper()`. So upstream's MD5
-/// cell is exactly 4 characters and all-uppercase; `list.rs` produces 32
-/// lowercase characters.
-/// Tracking: #87
+/// cell is exactly 4 characters and all-uppercase; the richer default produces
+/// 32 lowercase characters. SPARSE mode ([`RomListing::sparse`]) reproduces the
+/// upstream 4-char uppercase cell.
+/// Tracking: #87 (fixed — pin now live in sparse mode)
 #[test]
-#[ignore = "divergence: verbose MD5 column full-32-lowercase, upstream md5()[:4].upper() (psptool.py:180); tracking #87"]
 fn divergence_verbose_md5_column_truncated_and_uppercased() {
-    let cells = verbose_entry_cells();
+    let cells = verbose_entry_cells(true);
     let md5 = cells
         .get("MD5")
         .expect("verbose table has an MD5 column")
@@ -155,5 +162,38 @@ fn divergence_verbose_md5_column_truncated_and_uppercased() {
         md5,
         md5.to_uppercase(),
         "MD5 column must be uppercased per psptool.py:180 `.upper()`, got {md5:?}"
+    );
+}
+
+/// The DEFAULT (non-sparse) rendering keeps the richer PSPTool-rs columns: a
+/// populated `flags` cell (`format_hex_u64`) and the full 32-char lowercase
+/// `MD5`. This pins that `sparse=false` is the default and does NOT narrow the
+/// two cells — the opt-in sparse mode above is strictly additive.
+#[test]
+fn default_mode_flags_populated_and_md5_full_lowercase() {
+    let cells = verbose_entry_cells(false);
+
+    // Richer default: `flags` is `hex(flags)`; this fixture's entry flags are 0
+    // → "0x0" (populated, not the upstream empty string).
+    assert_eq!(
+        cells.get("flags").map(String::as_str),
+        Some("0x0"),
+        "default flags column must be populated (hex(flags)); sparse mode empties it"
+    );
+
+    // Richer default: full 32-char lowercase MD5 digest (not md5()[:4].upper()).
+    let md5 = cells
+        .get("MD5")
+        .expect("verbose table has an MD5 column")
+        .clone();
+    assert_eq!(
+        md5.len(),
+        32,
+        "default MD5 column must be the full 32-char digest, got {md5:?}"
+    );
+    assert_eq!(
+        md5,
+        md5.to_lowercase(),
+        "default MD5 column must be lowercase, got {md5:?}"
     );
 }

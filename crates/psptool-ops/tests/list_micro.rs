@@ -87,6 +87,7 @@ fn list_default_psp_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_snapshot!(list_default(&rom));
 }
@@ -102,6 +103,7 @@ fn list_verbose_psp_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_snapshot!(list_verbose(&rom));
 }
@@ -117,6 +119,7 @@ fn list_json_psp_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_json_snapshot!(list_json(&rom, false));
 }
@@ -132,6 +135,7 @@ fn list_json_verbose_psp_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_json_snapshot!(list_json(&rom, true));
 }
@@ -147,6 +151,7 @@ fn list_default_bhd_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_snapshot!(list_default(&rom));
 }
@@ -162,6 +167,7 @@ fn list_json_bhd_micro() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_json_snapshot!(list_json(&rom, false));
 }
@@ -178,6 +184,7 @@ fn list_default_empty_directories() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     insta::assert_snapshot!(list_default(&rom));
 }
@@ -193,6 +200,7 @@ fn list_json_empty_directories_is_empty_array() {
         rom_origin: FlashOffset::ZERO,
         fet: &fet,
         directories: &dirs,
+        sparse: false,
     };
     let v = list_json(&rom, false);
     assert_eq!(v, serde_json::Value::Array(Vec::new()));

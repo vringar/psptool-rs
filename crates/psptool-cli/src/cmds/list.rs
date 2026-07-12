@@ -36,7 +36,15 @@ pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
         write_metrics(&args.file, &opened, out)?;
         return Ok(());
     }
-    let listing = build_listing(&opened, args.rom_index);
+    // Sparse (upstream-exact `-v` columns) is opt-in via the `--sparse` flag OR
+    // the `PSPTOOL_LS_SPARSE` env var (so scripts migrate by setting it once).
+    // The env var is read here — not via clap's `env` attribute — so the
+    // main.rs legacy fast-path (which builds `ListArgs` directly) honours it too.
+    let sparse = args.sparse
+        || std::env::var("PSPTOOL_LS_SPARSE")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+    let listing = build_listing(&opened, args.rom_index, sparse);
     if args.json {
         let value = list_json(&listing, args.verbose);
         let s = serde_json::to_string(&value)?;
@@ -49,7 +57,7 @@ pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
     Ok(())
 }
 
-fn build_listing<'a>(opened: &'a OpenedRom, rom_index: usize) -> RomListing<'a> {
+fn build_listing<'a>(opened: &'a OpenedRom, rom_index: usize, sparse: bool) -> RomListing<'a> {
     RomListing {
         index: rom_index,
         blob: &opened.blob,
@@ -57,6 +65,7 @@ fn build_listing<'a>(opened: &'a OpenedRom, rom_index: usize) -> RomListing<'a> 
         rom_origin: opened.rom_origin,
         fet: &opened.fet,
         directories: &opened.directories,
+        sparse,
     }
 }
 

@@ -12,6 +12,12 @@
 //!   directory header table + entry table with the fixed column set.
 //! * `list_verbose` — same as default plus the `flags / MD5 / size_signed /
 //!   size_full / size_packed / load_addr` extension columns.
+//!
+//! [`RomListing::sparse`] selects between the richer default rendering of the
+//! two verbose cells PSPTool narrows and the upstream-exact rendering
+//! (`flags` = `''` per `psptool.py:179`; `MD5` = `md5()[:4].upper()` per
+//! `psptool.py:180`). It defaults to `false` (richer); the CLI wires it behind
+//! `--sparse` / `PSPTOOL_LS_SPARSE`. The default rendering is unchanged.
 //! * `list_json(verbose)` — array of directory objects with
 //!   `directory / address / magic / secondaryAddresses / entries[]`. Each
 //!   entry mirrors PSPTool's `ls_files_dict` keys; `verbose=true` adds the
@@ -34,6 +40,7 @@
 //! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:405` + `version_string` `list.rs:424` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:41` |
 //! | REQ-7 | SHIPPED | self-oracle (differential-tolerated key). `info_list` `list.rs:447` emits compressed/signed/encrypted/sha tokens per `psptool.py:114`; consumer `psptool-cli/src/cmds/list.rs:47` |
 //! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:238` + `entry_to_json` `list.rs:330` per `psptool.py:104`/`:183`; consumer `psptool-cli/src/cmds/list.rs:45` |
+//! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `md5`=`body_md5_short_upper`) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
 //! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:592` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:41` |
 //! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:536` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:47` |
 //! | REQ-11 | SHIPPED | `directory_generation` tertiary branch `list.rs:572` renders the `block[20:24]` id per `directory.py:89` printed `psptool.py:84` (#70); consumer `psptool-cli/src/cmds/list.rs:47` |
@@ -65,6 +72,13 @@ pub struct RomListing<'a> {
     pub rom_origin: FlashOffset,
     pub fet: &'a Fet,
     pub directories: &'a [DirectoryRef],
+    /// Render the upstream-exact SPARSE form of the two verbose cells PSPTool
+    /// narrows: `flags` = `''` (`psptool.py:179`) and `MD5` = `md5()[:4].upper()`
+    /// (`psptool.py:180`). `false` keeps the richer default (populated `flags`
+    /// + full 32-char lowercase MD5) and is unchanged from prior behaviour.
+    ///
+    /// The CLI sets this from `--sparse` / `PSPTOOL_LS_SPARSE`.
+    pub sparse: bool,
 }
 
 /// Parse outcome for one directory entry — either the parsed [`Entry`] or
@@ -81,14 +95,22 @@ const SIG_UNKNOWN: &str = "SIG_UNKNOWN";
 const SHA_UNKNOWN: &str = "SHA_UNKNOWN";
 
 /// Render `psp.ls()` — basic columns only.
+///
+/// The `flags` / `MD5` extension cells honour [`RomListing::sparse`], but the
+/// basic column set has neither, so this variant is unaffected by sparse mode.
 pub fn list_default(rom: &RomListing<'_>) -> String {
-    render_text(rom, false)
+    render_text(rom, false, rom.sparse)
 }
 
 /// Render `psp.ls(verbose=True)` — basic columns plus the verbose extension
 /// (`flags / MD5 / size_signed / size_full / size_packed / load_addr`).
+///
+/// When [`RomListing::sparse`] is set, the `flags` cell is the upstream-exact
+/// empty string and the `MD5` cell is `md5()[:4].upper()` (`psptool.py:179`/
+/// `:180`); otherwise the richer default (populated `flags` + full 32-char
+/// lowercase digest) is used.
 pub fn list_verbose(rom: &RomListing<'_>) -> String {
-    render_text(rom, true)
+    render_text(rom, true, rom.sparse)
 }
 
 /// Render `psp.ls_json(verbose)`. Returns a [`serde_json::Value`] that
@@ -123,14 +145,19 @@ pub fn list_json(rom: &RomListing<'_>, verbose: bool) -> Value {
 // Text renderer
 // ---------------------------------------------------------------------------
 
-fn render_text(rom: &RomListing<'_>, verbose: bool) -> String {
+fn render_text(rom: &RomListing<'_>, verbose: bool, sparse: bool) -> String {
     let mut out = String::new();
     out.push_str(&render_rom_table(rom));
     out.push('\n');
     for (idx, dir_ref) in rom.directories.iter().enumerate() {
         let parsed = entries_for_directory(rom, &dir_ref.directory);
         out.push_str(&render_directory_header_table(idx, dir_ref, rom));
-        out.push_str(&render_entries_table(&dir_ref.directory, &parsed, verbose));
+        out.push_str(&render_entries_table(
+            &dir_ref.directory,
+            &parsed,
+            verbose,
+            sparse,
+        ));
         out.push_str("\n\n");
     }
     out
@@ -184,7 +211,12 @@ fn render_directory_header_table(
     t.render()
 }
 
-fn render_entries_table(dir: &Directory, parsed: &[EntryRow], verbose: bool) -> String {
+fn render_entries_table(
+    dir: &Directory,
+    parsed: &[EntryRow],
+    verbose: bool,
+    sparse: bool,
+) -> String {
     let basic_fields: &[&str] = &[
         "",
         " ",
@@ -222,7 +254,7 @@ fn render_entries_table(dir: &Directory, parsed: &[EntryRow], verbose: bool) -> 
 
     for (idx, row) in parsed.iter().enumerate() {
         match row {
-            Ok(e) => t.add_row(build_entry_row(idx, e, is_bios, verbose)),
+            Ok(e) => t.add_row(build_entry_row(idx, e, is_bios, verbose, sparse)),
             Err(err) => t.add_row(build_error_row(idx, err, verbose)),
         }
     }
@@ -230,7 +262,13 @@ fn render_entries_table(dir: &Directory, parsed: &[EntryRow], verbose: bool) -> 
     t.render()
 }
 
-fn build_entry_row(idx: usize, e: &Entry, is_bios: bool, verbose: bool) -> Vec<String> {
+fn build_entry_row(
+    idx: usize,
+    e: &Entry,
+    is_bios: bool,
+    verbose: bool,
+    sparse: bool,
+) -> Vec<String> {
     let address = format_hex_u64(e.body.offset().get());
     let size = format_hex_u64(e.body.len() as u64);
     let type_name = readable_type(e.entry_type(), is_bios);
@@ -254,8 +292,22 @@ fn build_entry_row(idx: usize, e: &Entry, is_bios: bool, verbose: bool) -> Vec<S
     ];
 
     if verbose {
-        let flags = entry_flags(&e.record);
-        let md5 = body_md5_hex(&e.body);
+        // Upstream narrows two verbose cells in `ls_files` (`psptool.py`):
+        // * `flags` is the literal `''` (`psptool.py:179`; the
+        //   `hex(file.entry.flags)` form is commented out), and
+        // * `MD5` is `file.md5()[:4].upper()` (`psptool.py:180`).
+        // The richer default keeps the full `hex(flags)` + 32-char lowercase
+        // digest; `sparse` reproduces the upstream-exact cells.
+        let flags = if sparse {
+            String::new()
+        } else {
+            format_hex_u64(entry_flags(&e.record) as u64)
+        };
+        let md5 = if sparse {
+            body_md5_short_upper(&e.body)
+        } else {
+            body_md5_hex(&e.body)
+        };
         let header = e.class.header();
         let (size_signed, size_full, size_packed, load_addr) = match header {
             Some(h) => (
@@ -266,14 +318,7 @@ fn build_entry_row(idx: usize, e: &Entry, is_bios: bool, verbose: bool) -> Vec<S
             ),
             None => (String::new(), String::new(), String::new(), String::new()),
         };
-        row.extend([
-            format_hex_u64(flags as u64),
-            md5,
-            size_signed,
-            size_full,
-            size_packed,
-            load_addr,
-        ]);
+        row.extend([flags, md5, size_signed, size_full, size_packed, load_addr]);
     }
 
     row
@@ -521,6 +566,14 @@ fn body_md5_hex(body: &SourceBytes) -> String {
         let _ = write!(s, "{:02x}", b);
     }
     s
+}
+
+/// Upstream-exact sparse MD5 cell: `file.md5()[:4].upper()`
+/// (`psptool.py:180`) — the first four hex characters of the body MD5,
+/// uppercased. The four leading characters are ASCII hex digits, so slicing
+/// `body_md5_hex` at byte 4 is a valid char boundary.
+fn body_md5_short_upper(body: &SourceBytes) -> String {
+    body_md5_hex(body)[..4].to_uppercase()
 }
 
 fn ascii_or_hex_4(bytes: &[u8; 4]) -> String {
