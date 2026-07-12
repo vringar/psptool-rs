@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 124,
+  "next_comment_id": 125,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -270,12 +270,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:48.357942464Z",
-      "updated_at": "2026-07-12T10:33:21.002054614Z",
+      "updated_at": "2026-07-12T10:35:18.385671322Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "41b63204-1a96-4eb6-8c04-b0ce6322d4fe": {
+          "display_id": 124,
+          "author": "tLiK",
+          "content": "Fix applied and verified (NOT committed — left in working tree for orchestrator to seal; #[ignore] left in place per dispatch).\n\nentry.rs resolve_body: overrun trigger now bounds by the ROM window instead of whole-file blob_end. Added `rom_window_end = min(rom_origin.get()+rom_size.bytes(), blob_end)` (saturating) and changed the :537 trigger from `body_end > blob_end` to `body_end > rom_window_end`. +15 -1, single file.\n\nGauntlet (nix-shell default.nix -A shell):\n- divergence_zlib_rom_window --include-ignored: 2 passed, 0 failed (pin divergence_rom_window_smaller_than_blob PASS; control_rom_window_equals_blob_recovers green).\n- cargo test -p psptool-core: 146 passed, 0 failed (+ all bin targets 0 failed; divergence bin shows 1 ignored = the still-#[ignore]d pin per dispatch).\n- corpus_roundtrip: 54 passed, 0 failed, 0 ignored, 0 skipped.\n- differential: 53 passed, 0 failed, 1 ignored (pre-existing unrelated), 0 skipped.\n- clippy --all-targets -D warnings: PASS.\n- cargo fmt --check: PASS.\n\nSingle-ROM images unaffected (rom_origin+rom_size == blob_end there). No regression.",
+          "created_at": "2026-07-12T10:35:18.380733425Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAP0lwhxsygceLXyVPg0bSdpkeotMEegH7uyC8rDwJjXvyTlsRjaOx6hZRW9a0/6LMNFMJCQPYqF/reZPkiUqcAg=="
+        },
         "42505a4b-a3ab-41d0-b560-a83056f0e963": {
           "display_id": 123,
           "author": "tLiK",
@@ -3985,11 +3994,16 @@
       "agent_id": "tLiK",
       "agent_seq": 247,
       "timestamp": "2026-07-12T10:33:21.002054614Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 248,
+      "timestamp": "2026-07-12T10:35:18.385671322Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T10:33:21.002054614Z",
+    "timestamp": "2026-07-12T10:35:18.385671322Z",
     "agent_id": "tLiK",
-    "agent_seq": 247
+    "agent_seq": 248
   }
 }
