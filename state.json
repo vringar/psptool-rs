@@ -1,5 +1,5 @@
 {
-  "next_display_id": 86,
+  "next_display_id": 87,
   "next_comment_id": 111,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -69,6 +69,7 @@
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
     "cdc4c578-ed06-4ff6-8395-41a3b3561c31": 82,
     "cf133cc6-457d-4b4c-8000-bd9958a02990": 85,
+    "d3ce0e1b-00bf-435e-987c-78c4119ad087": 86,
     "d434f175-a545-41e6-9748-d52c77e1eb5d": 54,
     "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334": 44,
     "d56107de-8835-47c3-ac4c-ec75ae9980ab": 62,
@@ -2105,6 +2106,16 @@
         "blocker"
       ]
     },
+    "d3ce0e1b-00bf-435e-987c-78c4119ad087": {
+      "uuid": "d3ce0e1b-00bf-435e-987c-78c4119ad087",
+      "display_id": 86,
+      "title": "Divergence: list.rs ls verbose 'flags' column populated (0x..), upstream psptool.py:179 renders it empty ('')",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T09:22:18.403668612Z",
+      "updated_at": "2026-07-12T09:22:18.403668612Z"
+    },
     "d434f175-a545-41e6-9748-d52c77e1eb5d": {
       "uuid": "d434f175-a545-41e6-9748-d52c77e1eb5d",
       "display_id": 54,
@@ -3690,11 +3701,16 @@
       "agent_id": "tLiK",
       "agent_seq": 224,
       "timestamp": "2026-07-12T09:22:12.212422390Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 225,
+      "timestamp": "2026-07-12T09:22:18.403668612Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:22:12.212422390Z",
+    "timestamp": "2026-07-12T09:22:18.403668612Z",
     "agent_id": "tLiK",
-    "agent_seq": 224
+    "agent_seq": 225
   }
 }
