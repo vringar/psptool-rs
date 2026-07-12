@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 76,
+  "next_comment_id": 77,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -183,10 +183,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T18:28:58.093783122Z",
-      "updated_at": "2026-07-11T18:29:02.859853224Z",
+      "updated_at": "2026-07-12T03:58:20.662580817Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "91e6022a-d084-43cb-a2d4-24b9daf94451": {
+          "display_id": 76,
+          "author": "tLiK",
+          "content": "Result: closed via 96e635f. psptool_core::fletcher32 now has a production consumer: replace.rs::recompute_directory_checksum computes the directory checksum on a length-changing replace (REQ-7/#66). Verified GREEN across the psptool-ops gauntlet.",
+          "created_at": "2026-07-12T03:58:20.658070769Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAtk9wm9Tm741ILUWhFfkkMUCbI2EJ6vcidql4/t7N/DnRGcSgoamp+Ta+kHy3Oc0pgFBlFUCO6iAFveyXm60eBg=="
+        }
+      }
     },
     "0f24762a-6628-418c-8dba-a35bd76fd3d8": {
       "uuid": "0f24762a-6628-418c-8dba-a35bd76fd3d8",
@@ -2578,11 +2589,16 @@
       "agent_id": "tLiK",
       "agent_seq": 131,
       "timestamp": "2026-07-12T03:58:15.909338475Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 132,
+      "timestamp": "2026-07-12T03:58:20.662580817Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T03:58:15.909338475Z",
+    "timestamp": "2026-07-12T03:58:20.662580817Z",
     "agent_id": "tLiK",
-    "agent_seq": 131
+    "agent_seq": 132
   }
 }
