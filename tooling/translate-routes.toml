@@ -87,6 +87,20 @@ upstream = [
 design = ".design/psptool-core/writer.md"
 parity_ops = ["roundtrip"]
 
+# --- psptool-cli (top layer; consumes psptool-ops) -----------------------
+
+[[route]]
+crate_pattern = "crates/psptool-cli/src/cmds/extract.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/__main__.py",
+]
+design = ".design/psptool-ops/extract.md"
+# The CLI extract subcommand — mirrors the reference __main__.py -X path
+# (single-file -u/-c preconditions + envelope accessors, multi-file bare-body
+# -c). Not exercised by roundtrip or the ls differential; its oracle is the
+# psptool-ops extract suite + the envelope pins.
+parity_ops = []
+
 # --- psptool-ops (depends on psptool-core; leaf-first order satisfied) ----
 
 [[route]]

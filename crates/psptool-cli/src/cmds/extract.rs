@@ -124,8 +124,23 @@ fn resolve_single(opened: &OpenedRom, selector: &EntrySelector) -> Result<Entry>
 
 fn transform_single(entry: &Entry, args: &ExtractArgs) -> Result<Vec<u8>> {
     if args.decompress {
+        // Upstream errors before extracting a non-compressed file
+        // (`__main__.py:170`); `get_signed_bytes` itself is defined for
+        // uncompressed files, so the precondition lives here in the CLI.
+        if let Some(h) = entry.class.header()
+            && !h.is_compressed
+        {
+            bail!("File is not compressed {}", single_readable_type(entry));
+        }
         Ok(extract_decompressed(entry).context("decompressing entry")?)
     } else if args.decrypt {
+        // Upstream errors before decrypting a non-encrypted file
+        // (`__main__.py:174`).
+        if let Some(h) = entry.class.header()
+            && !h.is_encrypted
+        {
+            bail!("File is not encrypted {}", single_readable_type(entry));
+        }
         Ok(extract_decrypted(entry, Ikek::ZenPlus).context("decrypting entry")?)
     } else if args.pem_key {
         let pk = match &entry.class {
@@ -155,13 +170,31 @@ fn write_single_output(bytes: &[u8], outfile: Option<&Path>, out: &mut dyn Write
     Ok(())
 }
 
+/// The reference `file.get_readable_type()` for a single entry, used in the
+/// `-u`/`-c` precondition error messages (`__main__.py:170`/`:174`).
+fn single_readable_type(entry: &Entry) -> String {
+    readable_type(
+        entry.entry_type(),
+        matches!(entry.record, EntryRecord::Bios(_)),
+    )
+}
+
 fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<()> {
     let mut written = 0usize;
     for_each_entry(opened, |entry, dir_idx, entry_idx, is_bios| {
         let bytes = if args.decompress {
             extract_decompressed(entry).unwrap_or_else(|_| extract_raw(entry))
         } else if args.decrypt {
-            extract_decrypted(entry, Ikek::ZenPlus).unwrap_or_else(|_| extract_raw(entry))
+            // Upstream multi-file `-c` writes the BARE decrypted body
+            // (`__main__.py:196` `file.get_decrypted_body()`), NOT the
+            // single-file `to_decrypted_file_bytes()` envelope that
+            // `extract_decrypted` produces.
+            entry
+                .class
+                .header()
+                .map(|h| h.get_decrypted_body(entry.body.as_bytes(), Ikek::ZenPlus))
+                .and_then(Result::ok)
+                .unwrap_or_else(|| extract_raw(entry))
         } else if args.pem_key {
             match &entry.class {
                 EntryClass::Pubkey(p) => pem_for_pubkey(p).unwrap_or_else(|_| extract_raw(entry)),

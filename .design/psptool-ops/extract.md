@@ -87,10 +87,11 @@ class-gate + error-surface pins).
   — decrypt-then-decompress, header-prefixed, truncated to `size_signed`; and
   upstream single-file `-X -c` returns `file.to_decrypted_file_bytes()`
   (`__main__.py:176`) = `header(enc-flags cleared) ++ get_decrypted_body() ++
-  signature` (`header_file.py:176-182`). The Rust extract ops return only the
-  bare inflated / decrypted body (no header prefix, no `size_signed` truncation,
-  no decrypt-first for encrypted+compressed entries, no signature). This
-  observable-byte parity is not yet delivered.
+  signature` (`header_file.py:176-182`). `extract_decompressed` now delegates to
+  `HeaderEntry::get_signed_bytes` and `extract_decrypted` assembles the
+  cleared-header + decrypted-body + signature envelope inline; the CLI single-file
+  path (`cmds/extract.rs`) applies the not-compressed / not-encrypted guards
+  (`__main__.py:170`,`:174`) around them.
 
 ## Acceptance criteria
 
@@ -123,10 +124,12 @@ class-gate + error-surface pins).
   to an outfile (`psptool-cli/tests/synthetic.rs:213`
   `extract_raw_to_outfile_on_synthetic_rom`), reachable via `main.rs:125`
   (`Command::Extract`) and `main.rs:82` (`-X` fast-path).
-- AC-8 (REQ-7): **Not met.** No test asserts extract output equals upstream
-  `get_signed_bytes` / `to_decrypted_file_bytes`; the extract ops return the bare
-  body. Tracked by blocker #88 — the AC lands when the `-u`/`-c` path is wired to
-  the envelope primitives and a byte-parity test moves from absent to green.
+- AC-8 (REQ-7): **Met.** `divergence_extract_envelope.rs`
+  (`divergence_decompress_envelope_matches_get_signed_bytes`,
+  `divergence_decrypt_envelope_matches_to_decrypted_file_bytes`) assert extract
+  output equals upstream `get_signed_bytes` / `to_decrypted_file_bytes`
+  (envelope constructed from the upstream algorithm, not copied from the target
+  side). Both moved from `#[ignore]` to `#[test]` — 2 passed. Closes #88.
 
 ## REQ status table
 
@@ -138,7 +141,7 @@ class-gate + error-surface pins).
 | REQ-4 (HeaderFile-class gate) | SHIPPED | Impl `extract.rs:58` / `:78` (`entry.class.header().ok_or(ExtractError::NotHeaderEntry)?`) via `EntryClass::header` (`entry.rs:348-353`, returns `Some` only for `Header`/`KeyStore`); mirrors upstream `type(file) is HeaderFile` guards (`__main__.py:193`, `:195`). Non-test consumer: `cmds/extract.rs:127`/`:129` propagate the error via `?`/`context`. Verification: `extract_{decompressed,decrypted}_errors_for_{non_header,pubkey}_entry` (`extract.rs:229-248`, `:295-313`) + `extract_decompressed_works_on_keystore_class` (`extract.rs:344-356`) — 5 passed. |
 | REQ-5 (typed panic-free errors) | SHIPPED | Impl `extract.rs:22-34` (`enum ExtractError { NotHeaderEntry, Body(#[from] BodyError) }`); every failure returns typed `Err`, no `unwrap`/`expect`/`panic` on the production path. Mirrors upstream's typed `NotCompressed`/`NotEncrypted` gates (`header_file.py:185`, `header_file.py` compressed field). Non-test consumer: `cmds/extract.rs:127-129` wrap with `.context(..)`, `:162-164` `unwrap_or_else(|_| extract_raw(entry))` fallback. Verification: covered by the `..._errors_*` tests (AC-3/AC-5/AC-6); `cargo test -p psptool-ops --lib extract` 14 passed. |
 | REQ-6 (CLI `extract` consumer) | SHIPPED | Consumer `psptool-cli/src/cmds/extract.rs`: `extract_decompressed` (`:127` single, `:162` multi), `extract_decrypted` (`:129` single, `:164` multi), `extract_raw` (`:137`/`:171` default, `:162-168` multi fallback); imported `:25`. Dispatched from `main.rs:82` (`cmds::extract::run` `-X` fast-path) and `main.rs:125` (`Command::Extract(args) => cmds::extract::run(args, out)`). This IS the boundary CLI surface (goal.md R-DEFER-1). Verification: `psptool-cli/tests/synthetic.rs:213` (`extract_raw_to_outfile_on_synthetic_rom`); CLI builds and dispatches. |
-| REQ-7 (`-u`/`-c` envelope parity) | NOT-STARTED | Open prereq blocker #88. `extract_decompressed` (`extract.rs:57-62`) returns bare `zlib_inflate(data_region)` — upstream `-u` returns `file.get_signed_bytes()` = `header ++ decrypted-decompressed[:0x100+size_signed]` (`__main__.py:172`, `header_file.py:162-164`); `extract_decrypted` (`extract.rs:77-81`) returns bare `get_decrypted_body()` — upstream single-file `-c` returns `file.to_decrypted_file_bytes()` = `header(enc-cleared) ++ body ++ signature` (`__main__.py:176`, `header_file.py:176-182`). The envelope primitive already exists in core (`get_signed_bytes` `body.rs:377`, used by `sign.rs`) but the extract path uses the wrong primitive; no header prefix, no `size_signed` truncation, no decrypt-first, no signature. Not caught by any suite (`parity_ops=[]`; extract absent from the `ls`/`ls_json` differential). |
+| REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` now returns `header.get_signed_bytes(body, Some(Ikek::ZenPlus))` (`extract.rs`, `get_signed_bytes` `body.rs:377`) = `header ++ decrypted-decompressed[:0x100+size_signed]` per upstream `-u` (`__main__.py:172`, `header_file.py:162-164`); `extract_decrypted` assembles `header(is_encrypted+IV cleared) ++ get_decrypted_body() ++ signature_bytes()` (`extract.rs`, `header_file.py:176-182`) per single-file `-c` (`__main__.py:176`). Non-test consumer: `cmds/extract.rs:127` (`-u`) / `:129` (`-c`) single-file path, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`. Verification: `divergence_extract_envelope.rs` — both pins `#[test]`, 2 passed. |
 
 ## Architecture
 
@@ -193,16 +196,11 @@ the CLI surface, not as REQs of this ops unit.
 
 ## Known issues
 
-**Blocker #80 — test-helper `size_signed` convention (harmless, not a REQ
-regression).** The `#[cfg(test)]` helper `build_encrypted_header_body`
-(`extract.rs:132-171`) stamps `size_signed = (HEADER_FILE_LEN + plaintext.len())`
-at `extract.rs:156-157` — the *header-inclusive* pre-#79 convention. The fixed
-`get_signed_bytes` and real firmware treat `size_signed` as *header-exclusive*
-(the body-signed length). This is harmless today: the helper's tests exercise the
-decryption path (`data_region` / `get_decrypted_body`), never the signed region,
-so the gauntlet stays green. It does **not** make any REQ NOT-STARTED — it is
-test-helper hygiene, to be corrected when `extract.rs` gets its fix pass. Tracked
-by #80 (low priority).
+**Blocker #80 — test-helper `size_signed` convention — RESOLVED.** The
+`#[cfg(test)]` helper `build_encrypted_header_body` now stamps `size_signed =
+plaintext.len()` (header-EXCLUSIVE, matching the fixed `get_signed_bytes` and
+real firmware — `body.rs:374-376`), replacing the pre-#79 header-inclusive
+convention. Closed with the #88 fix pass.
 
 ## Verification
 

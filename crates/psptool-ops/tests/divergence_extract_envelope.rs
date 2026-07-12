@@ -24,11 +24,12 @@
 //! (`crates/psptool-cli/src/cmds/extract.rs:127-129`), so the contract to
 //! match is: `-u` -> `get_signed_bytes()`, `-c` -> `to_decrypted_file_bytes()`.
 //!
-//! Both tests are `#[ignore]`d pending #88; run with `--ignored` to observe
-//! the pinned failure. The expected values are constructed from the upstream
-//! algorithm above (header slice + a plaintext constant traceable to
-//! `crates/psptool-fixtures/examples/build_fixtures.rs:352` + a caller-chosen
-//! `size_signed`) — never copied from the `psptool-ops` side (R-CHAR-3).
+//! Both tests are now regular `#[test]`s (the #88 envelope fix landed): they
+//! serve as permanent regression coverage. The expected values are constructed
+//! from the upstream algorithm above (header slice + a plaintext constant
+//! traceable to `crates/psptool-fixtures/examples/build_fixtures.rs:352` + a
+//! caller-chosen `size_signed`) — never copied from the `psptool-ops` side
+//! (R-CHAR-3).
 
 use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;
@@ -178,7 +179,6 @@ fn build_encrypted_signed_body(
 ///
 /// Tracking: #88.
 #[test]
-#[ignore = "divergence: extract_decompressed returns bare inflated body, not get_signed_bytes envelope; tracking #88"]
 fn divergence_decompress_envelope_matches_get_signed_bytes() {
     let size_signed: u32 = 10;
     let (body, _ss) = build_compressed_signed_body(size_signed);
@@ -214,7 +214,6 @@ fn divergence_decompress_envelope_matches_get_signed_bytes() {
 ///
 /// Tracking: #88.
 #[test]
-#[ignore = "divergence: extract_decrypted returns bare decrypted body, not to_decrypted_file_bytes envelope; tracking #88"]
 fn divergence_decrypt_envelope_matches_to_decrypted_file_bytes() {
     let plaintext = b"sixteen bytes !!"; // 16 bytes (one AES block)
     let entry_key = [0xA5u8; 16];
