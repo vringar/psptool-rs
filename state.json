@@ -698,12 +698,13 @@
       "display_id": 71,
       "title": "psptool-ops: replace.rs rewrite_size_field .expect can panic when zlib-recovered original_len exceeds u32 (R-CODE-2)",
       "description": "Steps to reproduce:\n1. \n\nExpected: \nActual: \n\nSee HATER.md (committed) for the full adversarial analysis + failure scenario. Found by the-hater (Fable) review of the session's production changes. replace.rs:~234 .expect() assumes body.len() <= u32::MAX. The #59 zlib-recovery (entry.rs:~558, body_len = zlib_hdr(0x100)+zlib_size where zlib_size is le_u32) can yield original_len > u32::MAX; growth-rejection bounds new_body by original_len, so a crafted >=4GiB compressed entry + replacement panics instead of returning a typed Err. Fix: u32::try_from -> typed ReplaceError, no expect. Contrived trigger but a real panic-on-malformed-input path.",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:33.824682364Z",
-      "updated_at": "2026-07-12T05:54:16.948738793Z",
+      "updated_at": "2026-07-12T05:54:22.867387720Z",
+      "closed_at": "2026-07-12T05:54:22.867386528Z",
       "labels": [
         "blocker",
         "bug"
@@ -3060,11 +3061,16 @@
       "agent_id": "tLiK",
       "agent_seq": 171,
       "timestamp": "2026-07-12T05:54:16.948738793Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 172,
+      "timestamp": "2026-07-12T05:54:22.867387720Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:54:16.948738793Z",
+    "timestamp": "2026-07-12T05:54:22.867387720Z",
     "agent_id": "tLiK",
-    "agent_seq": 171
+    "agent_seq": 172
   }
 }
