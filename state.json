@@ -1,6 +1,6 @@
 {
   "next_display_id": 81,
-  "next_comment_id": 95,
+  "next_comment_id": 96,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1562,7 +1562,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:20:26.367367418Z",
-      "updated_at": "2026-07-12T07:03:19.114426540Z",
+      "updated_at": "2026-07-12T07:24:43.259689459Z",
       "labels": [
         "blocker"
       ],
@@ -1575,6 +1575,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAE10SUg6iVQ94sJDb7UuocdGha2DV8WFqo0PT+/9tQna5rLumcedG8g+TwfBxP1hJCzwDA98JymU/w+P2vLrVCg=="
+        },
+        "a16c6379-fc95-4b76-9c44-80d16018d62d": {
+          "display_id": 95,
+          "author": "tLiK",
+          "content": "Result: FIXED in 17307e11. Dropped HeaderFile signature reversal in verify_signature (body.rs:395) and sign_entry (sign.rs:179); on-disk HeaderFile sig used PLAIN (big-endian I2OSP) per cert_tree.py:63 + crypto.py:247-258. PubkeyFile LE modulus/exponent (from_bytes_le) and ReversedSignature path untouched (crypto.py:386-409) — pubkey chain intact. Pin real_corpus_headerfile_verifies_under_verify_chain_of_trust un-ignored (#[test]): verify_chain_of_trust now = 2993 Verified, 26 BadSignature across the corpus (was 0). REQ-6 of body.md + REQ-8 of sign.md -> SHIPPED. Spillover #80 filed.",
+          "created_at": "2026-07-12T07:24:43.255063230Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAyeodyDSdl64yuI+dY64xp3PFmKhgGyPWDxp10BuwBs+xIHCzpaRC1a8N1P4pkBVDaycXGYb72UtON5+l+rsqAw=="
         },
         "a6143c15-c82a-4937-b455-001318bb1afb": {
           "display_id": 89,
@@ -3255,11 +3264,16 @@
       "agent_id": "tLiK",
       "agent_seq": 187,
       "timestamp": "2026-07-12T07:24:38.566682690Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 188,
+      "timestamp": "2026-07-12T07:24:43.259689459Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T07:24:38.566682690Z",
+    "timestamp": "2026-07-12T07:24:43.259689459Z",
     "agent_id": "tLiK",
-    "agent_seq": 187
+    "agent_seq": 188
   }
 }
