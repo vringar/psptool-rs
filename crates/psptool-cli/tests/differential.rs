@@ -131,15 +131,12 @@ const COMBO_MAGICS: &[&str] = &["2PSP", "2BHD"];
 /// silently passing.
 #[cfg(feature = "corpus")]
 const SKIP_LIST: &[(&str, &str)] = &[
-    // After the #40 compressed-entry fix (zlib-header sizing) this ROM no
-    // longer errors on the overrun; it now surfaces a distinct, previously
-    // masked divergence at directory @0x670000 entry 26 — our type-0x5c name
-    // "SPI_ROM_CONFIG" vs upstream "WMOS" (HeaderFile). Tracked separately.
-    (
-        "AORUS_X570_X57AOXT2.FCd",
-        "entry-26 type-0x5c classification divergence: ours SPI_ROM_CONFIG, \
-         reference WMOS/HeaderFile (crosslink issue #60)",
-    ),
+    // AORUS_X570_X57AOXT2.FCd (entry-26 type-0x5c) was skipped for a
+    // version-skew, not a bug: our type map has 0x5c=SPI_ROM_CONFIG (git
+    // master, file.py:149) while the old 3.4 oracle had 0x5c=WMOS. With the
+    // differential oracle now repinned to master (#61), both agree and this
+    // ROM passes — removed from the skip list (crosslink #60 closed).
+    //
     // The three multi-ROM blobs formerly listed here (ASUS_PRIME-X470-PRO,
     // ASUS_ROG-STRIX-X470-F-GAMING, H12SSW9.719) diverged only on cross-ROM
     // `files_by_offset` cache echoes (crosslink #41): every ROM-1 BIOS entry
