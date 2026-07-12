@@ -42,13 +42,28 @@
 //!   referenced — masking the real type and size of any *later* directory
 //!   record at the same offset. Our tool reads each directory record
 //!   faithfully (the records genuinely differ — verified against on-disk
-//!   bytes; see crosslink issue #40). Two accommodations follow: (a) when
+//!   bytes; see crosslink issue #40). Three accommodations follow: (a) when
 //!   upstream repeats an entry at consecutive positions within a directory
 //!   (`address[N] == address[N-1]`), position N is a dedup echo carrying no
 //!   independent information and is not compared; (b) a `size` mismatch is
 //!   tolerated when our own per-record value matches upstream's for that
 //!   offset in *some* directory — the signature of a cross-directory dedup
-//!   echo rather than a parser disagreement.
+//!   echo rather than a parser disagreement; (c) *across ROMs*, upstream's
+//!   `files_by_offset` cache is a single global dict keyed by the *16-MiB-
+//!   window rom-relative* file offset (`file.py:47-54`
+//!   `create_file_if_not_exists`, `entry.py:38-63` `file_offset()` is
+//!   rom-relative, `blob.py:32` the 16 MiB window). An upper-ROM entry whose
+//!   rom-relative offset collides with an earlier *lower-ROM* file therefore
+//!   echoes that lower file's `address`/`size`/`sectionType` — while our tool
+//!   resolves the fresh upper-ROM absolute address (verified correct — see
+//!   crosslink issue #41). Such a cross-ROM echo is not compared when our
+//!   absolute address masks down to the reference's page-0 value
+//!   (`re.address == oe.address & 0x00FF_FFFF` and strictly below it, i.e.
+//!   `oe.address - re.address` is a nonzero multiple of the 16-MiB window)
+//!   *and* that echoed `(address, size, sectionType)` triple exists as a real
+//!   file in some *other* directory (the cache seed). The seed check is the
+//!   safety discriminator: a genuine mis-parse has no such seed, so it stays
+//!   failing (e.g. #41 idx3 type `0x64` vs `0x70` is never masked).
 //!
 //! * **`address` of empty entries.** A zero-size entry (e.g. an APOB
 //!   destination record) has no bytes on flash; upstream normalises its
@@ -125,22 +140,15 @@ const SKIP_LIST: &[(&str, &str)] = &[
         "entry-26 type-0x5c classification divergence: ours SPI_ROM_CONFIG, \
          reference WMOS/HeaderFile (crosslink issue #60)",
     ),
-    // Multi-ROM blobs: the ROM-1 BIOS directory diverges — our tool applies
-    // the ROM-1 base to BIOS-region entry addresses where upstream does not,
-    // and one record (entry 3) is read as a different type. Multi-ROM
-    // address-base handling needs its own investigation.
-    (
-        "ASUS_PRIME-X470-PRO-ASUS-4804.CAP",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
-    ),
-    (
-        "ASUS_ROG-STRIX-X470-F-GAMING-ASUS-4804.CAP",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
-    ),
-    (
-        "H12SSW9.719",
-        "multi-ROM BIOS directory address-base divergence (crosslink issue #41)",
-    ),
+    // The three multi-ROM blobs formerly listed here (ASUS_PRIME-X470-PRO,
+    // ASUS_ROG-STRIX-X470-F-GAMING, H12SSW9.719) diverged only on cross-ROM
+    // `files_by_offset` cache echoes (crosslink #41): every ROM-1 BIOS entry
+    // upstream reported at a page-0 rom-relative address (idx 2/3) is a real
+    // ROM-0 file echoed by upstream's global cache, while our tool reads the
+    // fresh upper-ROM record. The cross-ROM cache-echo tolerance in
+    // `compare_structure` (with its cache-seed safety discriminator) now clears
+    // them, so they run as regular passing trials — see the module doc's
+    // "Entries sharing a flash offset" accommodation (c).
 ];
 
 fn main() {
@@ -464,6 +472,37 @@ fn compare_structure(
             // Position N is then a dedup echo of N-1 — skip it (see the
             // module doc's "entries sharing a flash offset" note).
             if n > 0 && re.address == ref_dir.entries[n - 1].address {
+                continue;
+            }
+            // Cross-ROM `files_by_offset` cache echo (upstream `file.py:47-54`
+            // `create_file_if_not_exists`). The cache is a single global dict
+            // keyed by the 16-MiB-window rom-relative offset (`entry.py:38-63`
+            // `file_offset()`, `blob.py:32`), so an upper-ROM entry whose
+            // rom-relative offset collides with an earlier lower-ROM file
+            // echoes that lower file's address/size/type. Our tool resolves the
+            // fresh upper-ROM absolute address (verified correct — crosslink
+            // #41). Skip such an echo iff ALL of:
+            //   (1) the addresses actually differ, AND
+            //   (2) reference is the page-0 rom-relative echo of our upper-ROM
+            //       absolute — `re.address == oe.address & 0x00FF_FFFF` and
+            //       strictly below it (so `oe.address - re.address` is a nonzero
+            //       multiple of the 16-MiB window), AND
+            //   (3) SAFETY: upstream's reported `(address, size, sectionType)`
+            //       triple exists as a real file in some *other* directory (the
+            //       cache seed). A genuine mis-parse has no seed, so it is not
+            //       masked (e.g. #41 idx3 type 0x64 vs 0x70 stays failing).
+            let cross_rom_echo = oe.address != re.address
+                && re.address == (oe.address & 0x00FF_FFFF)
+                && re.address < oe.address
+                && theirs.iter().any(|(other_addr, other_dir)| {
+                    *other_addr != *addr
+                        && other_dir.entries.iter().any(|seed| {
+                            seed.address == re.address
+                                && seed.size == re.size
+                                && seed.section_type == re.section_type
+                        })
+                });
+            if cross_rom_echo {
                 continue;
             }
             if let Some(reason) = entry_diff(oe, re) {
