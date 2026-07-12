@@ -14,6 +14,18 @@
 //! discovery rule is "first candidate that yields a parseable directory
 //! wins"; this module exposes the candidates and the parser separately so the
 //! caller can decide.
+//!
+//! ## REQ status (per `.design/psptool-core/fet.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (FET discovery scan) | SHIPPED | `scan_fet_candidates` at `fet.rs:299` per upstream `blob.py:126-127`; consumer `psptool-cli/src/load.rs:31`. |
+//! | REQ-2 (FET table decode) | SHIPPED | `Fet::parse_at` at `fet.rs:201` per upstream `fet.py:44-60`; consumer `psptool-cli/src/load.rs:20` and `directory.rs:597`. |
+//! | REQ-3 (sentinel classification) | SHIPPED | `FetSlot::classify` at `fet.rs:146` per upstream `fet.py:64`; consumer `directory.rs:600`. |
+//! | REQ-4 (ROM window selection) | SHIPPED | `detect_rom_layout` at `fet.rs:62` per upstream `blob.py:42-84` / `rom.py:14`; consumer `psptool-cli/src/load.rs:40`. |
+//! | REQ-5 (pointer slots drive traversal) | SHIPPED | `Pointer`/`pointers()` at `fet.rs:140/282` per upstream `fet.py:68-92`; consumer `walk_directories` (`directory.rs:597-621`) via `load.rs:57`. |
+//! | REQ-6 (combo expansion) | SHIPPED | combo walk arm at `directory.rs:625-652` per upstream `fet.py:78-127`; consumer `walk_directories` via `load.rs:57`. |
+//! | REQ-7 (AGESA version / dual_rom) | NOT-STARTED | blocked on #62: `rom.py:24-52` `_find_agesa_version` unimplemented; CLI emits the `AGESA_UNKNOWN` placeholder (`psptool-ops/src/list.rs:61`). |
 
 use crate::address::{Address, FlashOffset, RomSize};
 use crate::error::ParseError;

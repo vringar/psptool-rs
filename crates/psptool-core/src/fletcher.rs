@@ -19,6 +19,18 @@
 //! contract with a fallible return: odd-length input yields
 //! [`FletcherError::OddLength`] rather than a fabricated value (goal.md R-DEV-4:
 //! a Python exception maps to a Rust `Result::Err`, not a `panic!`).
+//!
+//! ## REQ status (per `.design/psptool-core/fletcher.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (seed 0xFFFF) | SHIPPED | seed `c0=c1=0xFFFF` at `fletcher.rs:60-61` per upstream `utils.py:287-288`; public library boundary `fletcher32` re-exported at `lib.rs:61`. |
+//! | REQ-2 (360-word carry fold) | SHIPPED | fold at `fletcher.rs:69-72` per upstream `utils.py:296-298`; boundary `lib.rs:61`. |
+//! | REQ-3 (double final fold) | SHIPPED | two folds at `fletcher.rs:75-78` per upstream `utils.py:300-304`; boundary `lib.rs:61`. |
+//! | REQ-4 (16-bit LE word iteration) | SHIPPED | `chunks_exact(2)` at `fletcher.rs:65-73` per upstream `utils.py:290-294`; boundary `lib.rs:61`. |
+//! | REQ-5 (output value) | SHIPPED | returns the 32-bit checksum at `fletcher.rs:79` per upstream `utils.py:306`; boundary `lib.rs:61`. |
+//! | REQ-6 (production writer recompute) | NOT-STARTED | blocked on #43: no production caller recomputes the checksum; writer is diff-and-patch (`writer.rs:15`). |
+//! | REQ-7 (reject odd-length input) | SHIPPED | odd-length guard at `fletcher.rs:56-58` per upstream `utils.py:291`; error `FletcherError` at `fletcher.rs:27-36`; boundary `lib.rs:61`. |
 
 use thiserror::Error;
 

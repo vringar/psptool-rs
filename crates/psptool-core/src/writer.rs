@@ -27,6 +27,16 @@
 //! used different alignment (see PSPReverse/PSPTool#77). The diff-and-patch
 //! model sidesteps that class of bugs entirely: alignment, padding, and any
 //! per-image quirks are inherited from the source bytes.
+//!
+//! ## REQ status (per `.design/psptool-core/writer.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (byte-exact identity) | SHIPPED | `BlobEditor::serialize` at `writer.rs:224` per upstream `utils.py:54-60`; consumer `psptool-cli/src/cmds/replace.rs:78`. |
+//! | REQ-2 (offset patch + splice) | SHIPPED | `patch` at `writer.rs:131` + splice at `writer.rs:227-232` per upstream `utils.py:62-68`; consumer `psptool-ops/src/replace.rs:171`, `sign.rs:178`. |
+//! | REQ-3 (bounds/overlap to typed err) | SHIPPED | bounds/overlap checks at `writer.rs:143-183` per upstream `utils.py:46-48/78/86`; consumer `psptool-ops/src/replace.rs:84`. |
+//! | REQ-4 (equal-length replace API) | NOT-STARTED | blocked on #64: `patch_source` (`writer.rs:194`) / `EntryEditor::set_body` (`writer.rs:249`) have only test consumers. |
+//! | REQ-5 (no 0x10-realign / no re-emit, PR#77) | SHIPPED | diff-and-patch model documented at `writer.rs:23-29` (PSPReverse/PSPTool#77 deviation); consumer `psptool-ops/src/replace.rs:180`, `psptool-cli/src/cmds/replace.rs:22-52`. |
 
 use std::collections::BTreeMap;
 

@@ -32,6 +32,17 @@
 //! the byte-exact roundtrip rule (`docs/firmware-layout.md` §8): the parser
 //! never copies, and the writer can patch through the original blob using the
 //! same windows.
+//!
+//! ## REQ status (per `.design/psptool-core/entry.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (16B PSP record) | SHIPPED | decode `PspEntry::parse` at `directory.rs:131`, wrapped by `EntryRecord` at `entry.rs:60-101`, per upstream `entry.py:72-132`; consumer `psptool-ops/src/list.rs:391`. |
+//! | REQ-2 (24B BIOS record) | SHIPPED | decode `BiosEntry::parse` at `directory.rs:183` (`destination` u64 @0x10) per upstream `entry.py:142-174`; consumer `psptool-ops/src/list.rs:392`. |
+//! | REQ-3 (address-mode `file_offset`) | SHIPPED | `resolve_body` at `entry.rs:473` via `resolve_with_entry` (`address.rs:248`) per upstream `entry.py:44-70`; consumer `psptool-ops/src/list.rs:366`. |
+//! | REQ-4 (soft-fuse no body) | SHIPPED | soft-fuse short-circuit at `entry.rs:485-490` per upstream `entry.py:40-42`; consumer `psptool-ops/src/replace.rs:143`. |
+//! | REQ-5 (type classification) | SHIPPED | `classify` at `entry.rs:524` per upstream `file.py:249-272`; consumer `psptool-ops/src/list.rs:405`. |
+//! | REQ-6 (compressed size recovery) | SHIPPED | zlib-length recovery in `resolve_body` per upstream `file.py:302-311`; consumer `parse_bios` (`entry.rs`) from `psptool-ops/src/list.rs:380` (blockers #40/#59 closed). |
 
 use crate::address::{Address, AddressMode, FlashOffset, ResolveContext, RomSize};
 use crate::directory::{BiosDirectory, BiosEntry, PspDirectory, PspEntry};

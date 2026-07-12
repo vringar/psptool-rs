@@ -13,6 +13,20 @@
 //! [`SourceBytes`] window over its on-disk record, so the byte-exact writer
 //! can patch a single entry without rebuilding the surrounding directory
 //! (`docs/firmware-layout.md` §8).
+//!
+//! ## REQ status (per `.design/psptool-core/directory.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (16B header parse) | SHIPPED | `DirectoryHeader::parse` at `directory.rs:68` per upstream `directory.py:128-135`; consumer `psptool-ops/src/list.rs:583`. |
+//! | REQ-2 (magic-family dispatch) | SHIPPED | `Directory::parse_at` at `directory.rs:310` per upstream `directory.py:111-117`; consumer `psptool-cli/src/cmds/list.rs:136`. |
+//! | REQ-3 (entry-table slice) | SHIPPED | family `parse_with_header` at `directory.rs:364/414/464` per upstream `directory.py:133/144-147`; consumer `entry.rs:402/442`. |
+//! | REQ-4 (address_mode extraction) | SHIPPED | `DirectoryHeader::address_mode` at `directory.rs:97` per upstream `directory.py:186-193`; consumer `psptool-ops/src/list.rs:583`. |
+//! | REQ-5 (checksum field parse) | SHIPPED | stored dword read at `directory.rs:79` per upstream `directory.py:135`; preserved through the diff-and-patch writer, pinned by `corpus_roundtrip`. |
+//! | REQ-6 (checksum verify / recompute) | NOT-STARTED | blocked on #43: no production verify/recompute path; writer is diff-and-patch (`writer.rs:15`). |
+//! | REQ-7 (combo reserved + secondaryAddresses) | SHIPPED | `ComboDirectory::parse_with_header` at `directory.rs:464` per upstream `directory.py:80-99`; consumer `psptool-ops/src/list.rs:533`. |
+//! | REQ-8 (Zen-generation id map) | SHIPPED | `PspGenerationId::zen_generation` at `id.rs:191` per upstream `directory.py:34-39`; consumer `psptool-ops/src/list.rs:536`. |
+//! | REQ-9 (FET to directory walk) | SHIPPED | `walk_directories` at `directory.rs:567` per upstream `directory.py:57-101`; consumer `psptool-cli/src/load.rs:57`. |
 
 use crate::address::{Address, AddressMode, FlashOffset, ResolveContext, RomSize};
 use crate::error::ParseError;

@@ -2,6 +2,19 @@
 //!
 //! See `docs/firmware-layout.md` §1.3 (ROM-physical address normalisation) and
 //! §2.2 (directory-scoped address-mode lookup table).
+//!
+//! ## REQ status (per `.design/psptool-core/address.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (pointer/offset/ROM-size vocabulary) | SHIPPED | `FlashOffset`/`Address`/`RomSize` at `address.rs:14/92/50` per upstream `entry.py:113`; consumer `fet.rs:72-77`, `directory.rs:138`. |
+//! | REQ-2 (`addr_mask = rom_size - 1`) | SHIPPED | `RomSize::addr_mask` at `address.rs:77` per upstream `rom.py:14` / `entry.py:56`; consumer `normalise_physical` (`address.rs:286`) from `directory.rs:608`. |
+//! | REQ-3 (entry-level `rsv0[31:30]`) | SHIPPED | `from_entry_rsv0` at `address.rs:270` per upstream `entry.py:132-134`; consumer `directory.rs:156`. |
+//! | REQ-4 (directory `additional_info` mode) | SHIPPED | `from_additional_info` at `address.rs:172` per upstream `directory.py:186-193`; consumer `directory.rs:98`. |
+//! | REQ-5 (address-mode resolution) | SHIPPED | `resolve`/`resolve_with_entry` at `address.rs:238/248` per upstream `entry.py:47-70`; consumer `directory.rs:608`, `entry.rs:503`. |
+//! | REQ-6 (ROM-origin shift) | SHIPPED | `ResolveContext::rom_origin` at `address.rs:206` (§1.1 capsule envelope); consumer `directory.rs:606`, `entry.rs:501` via `load.rs:22`. |
+//! | REQ-7 (FET sentinel set) | SHIPPED | `Address::is_fet_sentinel` at `address.rs:105` per upstream `fet.py:64` / `directory.py:108`; consumer `fet.rs:147`. |
+//! | REQ-8 (unified 32-bit PSP+BIOS width) | SHIPPED | shared `offset` @0x08 for `PspEntry`/`BiosEntry` at `directory.rs:138/190` per upstream `entry.py:136-144`; consumer `parse_bios` (`entry.rs`). |
 
 use core::fmt;
 
