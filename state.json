@@ -1,6 +1,6 @@
 {
   "next_display_id": 68,
-  "next_comment_id": 68,
+  "next_comment_id": 69,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -327,10 +327,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T00:02:23.576969198Z",
-      "updated_at": "2026-07-12T00:02:28.430102515Z",
+      "updated_at": "2026-07-12T00:03:01.604067754Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "911cda50-c286-46f0-8882-b791c50b4f0a": {
+          "display_id": 68,
+          "author": "tLiK",
+          "content": "Authored .design/psptool-core/address.md (277 lines, 8 REQs, all SHIPPED). Address-mode arithmetic + ROM-masking for crates/psptool-core/src/address.rs. Verified: lib 146 passed / roundtrip 54 passed (0 failed, 0 ignored). Confirmed both PSP 16B and BIOS 24B entries resolve via the same 32-bit Address + rsv0>>30 path (REQ-8); no 64-bit >>62 path exists in upstream (BIOS destination @self[16:24] is a load-target, not a flash-offset source). Commit 4fbea056.",
+          "created_at": "2026-07-12T00:03:01.599527709Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAmw4y0Ackm/+xoqVAnMzwcxtVR+IsTrhsKYgxhdkUX4pCyrnhLff/wkk7KLvFkHHtBob5KVyLfBqNr1vueKZtCA=="
+        }
+      }
     },
     "307dce04-e751-4448-9772-84e7a8cb63b2": {
       "uuid": "307dce04-e751-4448-9772-84e7a8cb63b2",
@@ -2411,11 +2422,16 @@
       "agent_id": "tLiK",
       "agent_seq": 117,
       "timestamp": "2026-07-12T00:02:35.935598698Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 118,
+      "timestamp": "2026-07-12T00:03:01.604067754Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:02:35.935598698Z",
+    "timestamp": "2026-07-12T00:03:01.604067754Z",
     "agent_id": "tLiK",
-    "agent_seq": 117
+    "agent_seq": 118
   }
 }
