@@ -1,6 +1,6 @@
 {
   "next_display_id": 77,
-  "next_comment_id": 86,
+  "next_comment_id": 87,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -426,7 +426,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:39.312940808Z",
-      "updated_at": "2026-07-12T05:28:22.193561224Z",
+      "updated_at": "2026-07-12T05:37:04.848916316Z",
       "labels": [
         "component:core"
       ],
@@ -439,6 +439,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+dfDH680zE86uhq697xRzJ0F98p6gAMwzqqBIXiZajuerGr9ciPxVcziG1ME/UBMBVYnaEsDSXKqOmTyZh+CAw=="
+        },
+        "575b7eb6-7fce-4dc7-9e1e-00948180b914": {
+          "display_id": 86,
+          "author": "tLiK",
+          "content": "Result (acto-fixer): #41 T1 differential-tolerance rule implemented in crates/psptool-cli/tests/differential.rs (commit 4e5d9d8d95e8). Cross-ROM files_by_offset cache-echo guard added to compare_structure with the 3-condition rule as specified (incl. the cache-seed safety discriminator).\n\nFINDING that supersedes the pre-trace hypothesis: ALL THREE committed multi-ROM blobs now pass the REAL differential comparison and were removed from SKIP_LIST (R-DEFER-3). The earlier reconciliation predicted #41 idx3 (H12SSW9 dir@0x1246000, ours PMU_CODE~0x64 @0x1249000 size 0x4990 vs reference BIOS_L2_PTR~0x70 @0x249000 size 0x400) was a GENUINE mis-location with no seed. Byte-level verification against the live oracle proves otherwise:\n  - The reference triple (0x249000 / 0x400 / type-0x70) has a REAL cache seed at ROM-0 dir @0x117000 idx13 (identical BIOS_L2_PTR~0x70 file). Condition (3) matches a bona-fide seed, not a spurious one.\n  - Upstream -E -j emits the CACHED File's type, not the directory-entry type — exactly as the T1 trace already proved for EPYC entry-11 (reference type 0x21 vs raw entry type 0x1b). So idx3's 0x64-vs-0x70 type difference is the identical echo signature, NOT a mis-parse.\nTherefore idx3 is a true cross-ROM cache echo; OUR output (fresh ROM-1 record) is correct. There is no remaining genuine mis-parse in #41.\n\nVERIFICATION (nix dev shell): committed differential 53 passed / 0 failed / 1 ignored (only AORUS #60, unrelated); clippy + fmt clean; local .local-corpus 2 EPYC (GENOAD8HM3, TURIND12M3) pass, 3 AM5 fail only on #60 (version-skew type-0x5c WMOS), unrelated. Every #41 pin is green -> closing.",
+          "created_at": "2026-07-12T05:37:04.844246008Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGNl98lU8NpMjKFPtO6ayzsTrMFb6FZMr7Qn5ldjHWyiawfi6y0eO/W6VVXnU1RaFCeXBf0m8c0HLEKiiL3/ECQ=="
         },
         "76184d2b-f15a-430f-9619-cae56997834b": {
           "display_id": 63,
@@ -2984,11 +2993,16 @@
       "agent_id": "tLiK",
       "agent_seq": 165,
       "timestamp": "2026-07-12T05:28:22.193561224Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 166,
+      "timestamp": "2026-07-12T05:37:04.848916316Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:28:22.193561224Z",
+    "timestamp": "2026-07-12T05:37:04.848916316Z",
     "agent_id": "tLiK",
-    "agent_seq": 165
+    "agent_seq": 166
   }
 }
