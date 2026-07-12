@@ -1,6 +1,6 @@
 {
   "next_display_id": 83,
-  "next_comment_id": 101,
+  "next_comment_id": 102,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1936,11 +1936,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:04:05.775568022Z",
-      "updated_at": "2026-07-12T08:04:36.015217958Z",
+      "updated_at": "2026-07-12T08:27:15.904323729Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "16617edb-6cef-48d2-9159-690aaec7b978": {
+          "display_id": 101,
+          "author": "tLiK",
+          "content": "Plan: body.rs get_decompressed_body (lines ~288-297) treats zlib_size as a LENGTH from the zlib magic (stream = plaintext[stream_start .. stream_start + zlib_size], bounds check zlib_size > plaintext.len()-stream_start). Upstream header_file.py:171 'zlib_decompress(output[:self.zlib_size])' + utils.py:245-252 make zlib_size an ABSOLUTE END OFFSET into the data region: compressed slice = output[zlib_start:zlib_size], result = output[:zlib_start] || decompress. Minimal edit: interpret zlib_size as an absolute end offset -> stream = plaintext[stream_start..zlib_size]; bounds check becomes zlib_size <= plaintext.len() AND zlib_size >= stream_start, keeping ZlibSizeOutOfRange for genuine out-of-range. Prefix prepend (plaintext[..stream_start]) is unchanged. No-prefix control (stream_start==0) is unaffected since plaintext[0..zlib_size]==whole stream.",
+          "created_at": "2026-07-12T08:27:15.899612771Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAKSJGOWTAK9kKVSbP01iEwiDVKkrb20VG3ZRS8rGRz8M4o8n53sHT/fr/437O2WQC8OSE6epPmrKouuDg5h5oAw=="
+        },
         "712c0844-f98a-4e66-a8e2-7ef162e84c5f": {
           "display_id": 97,
           "author": "tLiK",
@@ -3427,11 +3436,16 @@
       "agent_id": "tLiK",
       "agent_seq": 202,
       "timestamp": "2026-07-12T08:25:49.387633468Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 203,
+      "timestamp": "2026-07-12T08:27:15.904323729Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:25:49.387633468Z",
+    "timestamp": "2026-07-12T08:27:15.904323729Z",
     "agent_id": "tLiK",
-    "agent_seq": 202
+    "agent_seq": 203
   }
 }
