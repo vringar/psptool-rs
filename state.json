@@ -1,6 +1,6 @@
 {
   "next_display_id": 77,
-  "next_comment_id": 82,
+  "next_comment_id": 83,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -415,7 +415,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:39.312940808Z",
-      "updated_at": "2026-07-12T05:24:56.127438097Z",
+      "updated_at": "2026-07-12T05:25:18.234347045Z",
       "labels": [
         "component:core"
       ],
@@ -437,6 +437,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAi6v+HzRGAqBU7JMQabff2Cgsx7Edyl6pitKrcO/ZL1iMJsWVgpFQIPxfGhV3zQ6osBSlTEA2J8Me2jhDkdRDBA=="
+        },
+        "cf02b5a7-d544-4f7d-9c6d-2d231c356b85": {
+          "display_id": 82,
+          "author": "tLiK",
+          "content": "DIFFERENTIAL-TOLERANCE RULE SPEC (for a fixer/builder to implement; NOT implemented here).\n\nLOCATION: crates/psptool-cli/tests/differential.rs, fn compare_structure (lines 411-493), inside the per-entry loop at lines 460-490 -- add a guard BEFORE the entry_diff call at line 469 (alongside the existing consecutive-echo guard at 466). Also extend the module-doc 'Entries sharing a flash offset' note (lines 40-51) to cover the CROSS-ROM case.\n\nMECHANISM CITE: file.py:47-54 (create_file_if_not_exists reuses files_by_offset[entry.file_offset()]); entry.py:38-63 (file_offset() is ROM-RELATIVE); blob.py:32 (_MAX_PAGE_SIZE = 16 MiB window); rom.py addr_mask = rom_size-1. The cache key is the 16-MiB-window rom-relative offset and the dict is GLOBAL across ROMs, so an upper-ROM entry whose rom-relative offset collides with an earlier (lower-ROM) file echoes that lower file.\n\nRULE: treat entry N as a cross-ROM cache echo (skip its address/size/sectionType comparison) iff ALL hold:\n  (1) oe.address != re.address; AND\n  (2) re.address == oe.address & 0x00FF_FFFF  AND  re.address < oe.address\n      (equivalently: oe.address - re.address is a nonzero multiple of 0x0100_0000 and shares the 16-MiB-window offset) -- our value is the fresh upper-ROM absolute address, reference is the page-0 rom-relative echo; AND\n  (3) the reference's own projection ('theirs') contains, in SOME OTHER directory, an entry with address==re.address && size==re.size && sectionType==re.sectionType -- i.e. upstream's reported value is literally a real file living at that lower address elsewhere (the cache SEED).\n\nCondition (3) is the safety discriminator: a genuine mis-parse (e.g. #41 idx3 type0x64-vs-0x70) will NOT have upstream's reported triple existing as a real file elsewhere, so it is NOT masked -- those images correctly stay failing/SKIP_LISTed until their real bug is fixed. This rule tolerates ONLY true echoes.\n\nSCOPE: with this rule, GENOAD8HM3 and TURIND12M3 differential passes clean (single echo idx11 tolerated). It does NOT by itself clear the 3 committed multi-ROM SKIP_LIST images -- those have additional genuine divergences (#41 idx3).",
+          "created_at": "2026-07-12T05:25:18.229795866Z",
+          "kind": "decision",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAkrBGft9H6CBNJwItA2soEKno4TDRJm6sYFeaFErASyJDFh6TYO54l/rLJKvb0oKt3kkpy46qZCAWNep3+025Dw=="
         },
         "f6336b5f-e6d4-41c7-a706-e3fd781249dd": {
           "display_id": 81,
@@ -2924,11 +2933,16 @@
       "agent_id": "tLiK",
       "agent_seq": 161,
       "timestamp": "2026-07-12T05:24:56.127438097Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 162,
+      "timestamp": "2026-07-12T05:25:18.234347045Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:24:56.127438097Z",
+    "timestamp": "2026-07-12T05:25:18.234347045Z",
     "agent_id": "tLiK",
-    "agent_seq": 161
+    "agent_seq": 162
   }
 }
