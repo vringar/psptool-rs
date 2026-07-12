@@ -1,5 +1,5 @@
 {
-  "next_display_id": 84,
+  "next_display_id": 85,
   "next_comment_id": 104,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -57,6 +57,7 @@
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
     "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": 78,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
+    "b697b202-9540-459f-894e-a315ee5421c9": 84,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
     "baf95e0a-6573-4d87-9496-8706ff0a6371": 83,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
@@ -1688,6 +1689,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAk+FG3+RApo0E5/yS/dJIrFShK9JxNBwKbYv1ySHAg05wzIdLRcWvoBsWfIvtXqtMJz3oOtRpz+vHdNfZkkywAg=="
         }
       }
+    },
+    "b697b202-9540-459f-894e-a315ee5421c9": {
+      "uuid": "b697b202-9540-459f-894e-a315ee5421c9",
+      "display_id": 84,
+      "title": "Divergence: find_zlib_start (body.rs:486) scans whole plaintext, not plaintext[..zlib_size] as upstream zlib_find_header(output[:zlib_size])",
+      "description": "utils.py:218-234 zlib_find_header is called on s=output[:zlib_size] (header_file.py:171 zlib_decompress(output[:self.zlib_size])), so upstream never inspects bytes at or beyond zlib_size. body.rs:287 calls find_zlib_start(plaintext) on the FULL data region, only bounding to zlib_size AFTER locating the magic. A pathological entry with a zlib magic (0x78 ..) at an offset > zlib_size but < 0x500, and no magic within [0,zlib_size), makes the target locate the out-of-bounds magic and raise ZlibSizeOutOfRange, whereas upstream's zlib_find_header(output[:zlib_size]) returns -1 (no magic in the searched region). Low priority: only reachable on a crafted/corrupt entry. Failing pin: crates/psptool-core/tests/divergence_body_bounds.rs::find_zlib_start_ignores_magic_beyond_zlib_size.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T08:46:05.036101159Z",
+      "updated_at": "2026-07-12T08:46:05.036101159Z"
     },
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": {
       "uuid": "ba4c84df-86af-4f9e-89c3-9a87e00dce5d",
@@ -3509,11 +3521,16 @@
       "agent_id": "tLiK",
       "agent_seq": 209,
       "timestamp": "2026-07-12T08:45:58.604146910Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 210,
+      "timestamp": "2026-07-12T08:46:05.036101159Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:45:58.604146910Z",
+    "timestamp": "2026-07-12T08:46:05.036101159Z",
     "agent_id": "tLiK",
-    "agent_seq": 209
+    "agent_seq": 210
   }
 }
