@@ -1,6 +1,6 @@
 {
   "next_display_id": 83,
-  "next_comment_id": 99,
+  "next_comment_id": 100,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1237,7 +1237,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:03:47.016850544Z",
-      "updated_at": "2026-07-12T08:08:02.283568011Z",
+      "updated_at": "2026-07-12T08:22:33.978263932Z",
       "labels": [
         "blocker"
       ],
@@ -1250,6 +1250,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA5vtYW7T5fY49ZrILkI+zyvV+UnYsY5y75lBNQyVWZDd8wCt9K9HuarvC4wA4sFIHeZTtO4x4B/+qiQILFi2KAQ=="
+        },
+        "66d0a0ec-3e59-47e3-a2ac-630f92320a9b": {
+          "display_id": 99,
+          "author": "tLiK",
+          "content": "FIX APPLIED (not yet committed — see blocker below).\n\nbody.rs data_region now gates signature reservation on is_signed(), mirroring header_file.py:77-84 (else: signature_len=0) + :100. Pin test data_region_of_unsigned_headerfile_keeps_full_body PASSES under --ignored (was 256, now 0x200/512).\n\nGauntlet: cargo test -p psptool-core = 146 passed/0 failed/0 ignored; cargo test -p psptool-ops = all green incl. divergence_signature_byte_order (2 passed, 0 ignored — signed path NOT regressed); clippy --all-targets -D warnings = PASS; body.rs itself is rustfmt-clean.\n\nBLOCKER for close: cargo fmt --check fails ONLY on the critic-authored test file crates/psptool-core/tests/divergence_body_bounds.rs:57 (an over-long assert! present at HEAD, unrelated to this fix). The dispatch forbids me editing the test file and reserves #[ignore] handling to the orchestrator. Orchestrator: please (a) fmt the test file, (b) flip #[ignore]->#[test] on the pin per R-DEFER-3, then commit body.rs + test file and close #81. Fix is staged in the working tree, uncommitted.",
+          "created_at": "2026-07-12T08:22:33.973252379Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAlOx4X0fa0j3LEkM5m2b9FP859Jecw3yetkncgYUB6TZwBeyr73VVf83GkhOG/ieBZtLFQStkTpSrcQsbYGHAAA=="
         },
         "920add66-3854-4769-8176-40a34895ac6f": {
           "display_id": 96,
@@ -3393,11 +3402,16 @@
       "agent_id": "tLiK",
       "agent_seq": 199,
       "timestamp": "2026-07-12T08:08:02.283568011Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 200,
+      "timestamp": "2026-07-12T08:22:33.978263932Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:08:02.283568011Z",
+    "timestamp": "2026-07-12T08:22:33.978263932Z",
     "agent_id": "tLiK",
-    "agent_seq": 199
+    "agent_seq": 200
   }
 }
