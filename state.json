@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 74,
+  "next_comment_id": 75,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -913,7 +913,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-12T00:40:50.768092822Z",
+      "updated_at": "2026-07-12T03:50:22.246771048Z",
       "labels": [
         "blocker"
       ],
@@ -953,6 +953,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+K3wiLKy7Qgg7H7X0eci1cyGN+rkP5x0ro6YzIgb5isV0BYVCmgr/r8JOPh0+SgXeRqNQzjUxintQURAwTBXDg=="
+        },
+        "edad53d3-b406-4b99-85f1-3383a2dc9530": {
+          "display_id": 74,
+          "author": "tLiK",
+          "content": "Plan (fixer, minimal single-file #66): thread the parent directory source into replace.rs::apply as Option<&SourceBytes> (Some(&parent.source) from replace_psp_entry_body / replace_bios_entry_body; None from the entry-only replace_entry_body). Gated on a length change, after rewrite_size_field + body patch, recompute psptool_core::fletcher32 over the post-replace region dir[0x08..end-of-entry-table] (dir_source.as_bytes()[0x08..] with the 4-byte LE size field spliced to its new value — the only in-region mutation) and patch the 4-byte LE result at dir_base+0x04. Add ReplaceError::Checksum(#[from] FletcherError). Mirrors directory.py:203-205 (data=self[0x8:]; checksum.set_bytes(0,4,fletcher32(data))) called unconditionally via update_entry_fields (directory.py:241); the size field mutation is entry.py:109-110. Equal-length control stays valid because the recompute is gated on length change. Un-ignore the pin, remove stale #13 defer note.",
+          "created_at": "2026-07-12T03:50:22.242184510Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAHAOS2wZGw+td57Qneqb/nMRiGrynM1y/UFBidLG3dZ2gGEwn23XmmOCI5XWMkH5YZvqi0GMbst6SmxTgT1RWAg=="
         }
       }
     },
@@ -2544,11 +2553,16 @@
       "agent_id": "tLiK",
       "agent_seq": 128,
       "timestamp": "2026-07-12T00:40:50.768092822Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 129,
+      "timestamp": "2026-07-12T03:50:22.246771048Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:40:50.768092822Z",
+    "timestamp": "2026-07-12T03:50:22.246771048Z",
     "agent_id": "tLiK",
-    "agent_seq": 128
+    "agent_seq": 129
   }
 }
