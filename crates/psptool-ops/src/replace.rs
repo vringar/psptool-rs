@@ -40,6 +40,18 @@
 //!
 //! * Re-signing / chain-of-trust (#13).
 //! * CLI surface (#15).
+//!
+//! ## REQ status (per `.design/psptool-ops/replace.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 | SHIPPED | body-slot patch in `apply` at `replace.rs:208` (`editor.patch(entry.body.offset(), ...)`) per `__main__.py:248`; consumer `psptool-cli/src/cmds/replace.rs:28` |
+//! | REQ-2 | SHIPPED | `rewrite_size_field` at `replace.rs:217` writes exact `to_le_bytes` per `entry.py:108-110` (PR#77 deviation from `file.py:389`); consumer `psptool-cli/src/cmds/replace.rs:28` |
+//! | REQ-3 | SHIPPED | `apply` patches only `new_body.len()` bytes, shrink tail left verbatim `replace.rs:201-209`; consumer `psptool-cli/src/cmds/replace.rs:36` |
+//! | REQ-4 | SHIPPED | growth guard `ReplaceError::BodyTooLarge` at `replace.rs:177` (scope limit vs `file.py:385-389`); consumer `psptool-cli/src/cmds/replace.rs:35` |
+//! | REQ-5 | SHIPPED | soft-fuse guard `ReplaceError::SoftFuseChainEntry` at `replace.rs:172` per `directory.py:219`; consumer `psptool-cli/src/cmds/replace.rs:28` |
+//! | REQ-6 | SHIPPED | `replace_psp_entry_body` `replace.rs:116` / `replace_bios_entry_body` `replace.rs:131` per `__main__.py:240`; consumer `psptool-cli/src/cmds/replace.rs:28` and `:36` |
+//! | REQ-7 | SHIPPED | `recompute_directory_checksum` at `replace.rs:245` per `directory.py:203-205` (called via `directory.py:241`); consumer `psptool-cli/src/cmds/replace.rs:28` and `:36` |
 
 use psptool_core::directory::{BiosDirectory, PspDirectory};
 use psptool_core::entry::{Entry, EntryClass};
