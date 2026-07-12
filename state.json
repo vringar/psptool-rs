@@ -1,5 +1,5 @@
 {
-  "next_display_id": 75,
+  "next_display_id": 76,
   "next_comment_id": 79,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -41,6 +41,7 @@
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
+    "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": 75,
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
     "996f2729-3afa-46ec-9ef8-fab57cba7cd1": 17,
@@ -1131,6 +1132,16 @@
         "bc034fa5-f3ae-4faf-99a1-18d096bf29fd",
         "e9e8d58e-9b00-4f70-b337-7ab57b2da892"
       ]
+    },
+    "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": {
+      "uuid": "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065",
+      "display_id": 75,
+      "title": "Blocker for REQ-12 of .design/psptool-ops/list.md: ls ROM-summary AGESA column renders placeholder. list.rs:128 render_rom_table emits AGESA_UNKNOWN (const list.rs:61); upstream psptool.py:74 prints rom.agesa_version. Needs core AGESA-version parse wired into RomListing, then list.rs to render it. Text-only column; not gated by the differential JSON oracle.",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T04:39:41.050512685Z",
+      "updated_at": "2026-07-12T04:39:41.050512685Z"
     },
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": {
       "uuid": "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8",
@@ -2810,11 +2821,16 @@
       "agent_id": "tLiK",
       "agent_seq": 151,
       "timestamp": "2026-07-12T04:32:22.435660276Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 152,
+      "timestamp": "2026-07-12T04:39:41.050512685Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:32:22.435660276Z",
+    "timestamp": "2026-07-12T04:39:41.050512685Z",
     "agent_id": "tLiK",
-    "agent_seq": 151
+    "agent_seq": 152
   }
 }
