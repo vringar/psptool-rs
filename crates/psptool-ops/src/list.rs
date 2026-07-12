@@ -21,6 +21,24 @@
 //! expose yet (AGESA version, signature-verification result, sha-checksum
 //! result) are emitted as placeholder strings (e.g. `AGESA_UNKNOWN`). They
 //! are explicit follow-ups, not stubs.
+//!
+//! ## REQ status (per `.design/psptool-ops/list.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 | SHIPPED | `render_text` `list.rs:108` composes ROM/header/entry tables per `psptool.py:68`/`:79`/`:103`; consumer `psptool-cli/src/cmds/list.rs:45`/`:47` |
+//! | REQ-2 | SHIPPED | `list_json` `list.rs:80` emits directory objects per `psptool.py:208`; consumer `psptool-cli/src/cmds/list.rs:41` |
+//! | REQ-3 | SHIPPED | `entry_to_json` `list.rs:306` inserts `index`/`address`/`size`/`sectionType` per `psptool.py:246`; consumer `psptool-cli/src/cmds/list.rs:41` |
+//! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:218`/`:314` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:41` |
+//! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:359` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:47` |
+//! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:405` + `version_string` `list.rs:424` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:41` |
+//! | REQ-7 | SHIPPED | self-oracle (differential-tolerated key). `info_list` `list.rs:447` emits compressed/signed/encrypted/sha tokens per `psptool.py:114`; consumer `psptool-cli/src/cmds/list.rs:47` |
+//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:238` + `entry_to_json` `list.rs:330` per `psptool.py:104`/`:183`; consumer `psptool-cli/src/cmds/list.rs:45` |
+//! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:592` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:41` |
+//! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:536` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:47` |
+//! | REQ-11 | SHIPPED | `directory_generation` tertiary branch `list.rs:572` renders the `block[20:24]` id per `directory.py:89` printed `psptool.py:84` (#70); consumer `psptool-cli/src/cmds/list.rs:47` |
+//! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:128` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
+//! | REQ-13 | NOT-STARTED | blocked on #76 (sig/sha verify status); `info_list` `list.rs:460`/`:467` emit `SIG_UNKNOWN`/`SHA_UNKNOWN` where `psptool.py:117` renders verify outcomes |
 
 use md5::{Digest, Md5};
 use serde_json::{Value, json};
