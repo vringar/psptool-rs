@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 120,
+  "next_comment_id": 121,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1422,7 +1422,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:41:47.223476121Z",
-      "updated_at": "2026-07-12T09:55:13.173667867Z",
+      "updated_at": "2026-07-12T10:01:07.092701626Z",
       "labels": [
         "blocker"
       ],
@@ -1435,6 +1435,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA5pu/Aq86LzqkEFoJE2j9bPuBDId3JW9wgsZV0k6MBccGl9D/xhczp5qGB/OTVkTybRIxhrbIzuAIKkUNfpTaBQ=="
+        },
+        "208bf085-6c2d-4444-a86e-4ea3dbb2e4aa": {
+          "display_id": 120,
+          "author": "tLiK",
+          "content": "Plan (fixer): compose EXISTING core helpers in crates/psptool-ops/src/extract.rs only.\n\nextract_decompressed (-u, upstream __main__.py:172 -> get_signed_bytes header_file.py:162-164): replace the data_region+get_decompressed_body body (extract.rs:59-60) with header.get_signed_bytes(entry.body.as_bytes(), Some(Ikek::ZenPlus))? -> header(0x100) ++ decrypted-decompressed[..0x100+size_signed]. Signature unchanged.\n\nextract_decrypted (-c single, __main__.py:176 -> to_decrypted_file_bytes header_file.py:176-182): assemble inline: decrypted = get_decrypted_body(body,ikek)?; sig = signature_bytes(body)? (validate len first so header slice cannot panic, R-CODE-2); out = body[..0x100].to_vec(); out[0x18..0x1C].fill(0); out[0x20..0x30].fill(0); ++ decrypted ++ sig. signature_bytes returns empty for unsigned post-#83, so the 'if is_signed' is free.\n\n#80 (same file): build_encrypted_header_body helper size_signed HEADER_FILE_LEN+plaintext.len() -> plaintext.len() (header-EXCLUSIVE, #79 convention). Import psptool_core::entry::HEADER_FILE_LEN into production scope.",
+          "created_at": "2026-07-12T10:01:07.088054631Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIKQblxqktaMoG4yBsSYl49+oDDjCEHcNI9BlXiCUT2MX4yeIDAz+y5KpIRKifUo3vy6Nc0QHn+KFYOpd0lD9Bg=="
         },
         "bf09ff92-6407-49dd-92f4-e4bfbdfc1204": {
           "display_id": 117,
@@ -3929,11 +3938,16 @@
       "agent_id": "tLiK",
       "agent_seq": 243,
       "timestamp": "2026-07-12T09:55:13.173667867Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 244,
+      "timestamp": "2026-07-12T10:01:07.092701626Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:55:13.173667867Z",
+    "timestamp": "2026-07-12T10:01:07.092701626Z",
     "agent_id": "tLiK",
-    "agent_seq": 243
+    "agent_seq": 244
   }
 }
