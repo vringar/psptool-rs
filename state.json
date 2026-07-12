@@ -1,6 +1,6 @@
 {
   "next_display_id": 80,
-  "next_comment_id": 91,
+  "next_comment_id": 92,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1671,7 +1671,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:37:46.713946517Z",
-      "updated_at": "2026-07-12T06:38:14.130603151Z",
+      "updated_at": "2026-07-12T06:38:19.062691540Z",
       "labels": [
         "blocker"
       ],
@@ -1684,6 +1684,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA2CqXJw2U+I9MN/DkrN5154PcTjBAbTOGm3wohDJYFzEMz3ItTg/Qa0hYL3P4sGB9/6u65HdmBCMedmrBE5PLBg=="
+        },
+        "9693722c-55ae-4042-95df-cf2796c441b8": {
+          "display_id": 91,
+          "author": "tLiK",
+          "content": "Cross-linked with #78 (signature byte-order reversal); both must be fixed for real-firmware verify. Pin at crates/psptool-ops/tests/divergence_signature_byte_order.rs::real_corpus_headerfile_verifies_under_verify_chain_of_trust.",
+          "created_at": "2026-07-12T06:38:19.058180105Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAzbhTG55GjBAnmO8BVGAZqNlKPZJgIiq2t2FgTJyHr490soZ87MA6mjpooh66BEvCksGX2C5Wiw9Gv4vR4mjvAw=="
         }
       }
     },
@@ -3164,11 +3173,16 @@
       "agent_id": "tLiK",
       "agent_seq": 180,
       "timestamp": "2026-07-12T06:38:14.130603151Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 181,
+      "timestamp": "2026-07-12T06:38:19.062691540Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T06:38:14.130603151Z",
+    "timestamp": "2026-07-12T06:38:19.062691540Z",
     "agent_id": "tLiK",
-    "agent_seq": 180
+    "agent_seq": 181
   }
 }
