@@ -1,6 +1,6 @@
 {
   "next_display_id": 88,
-  "next_comment_id": 115,
+  "next_comment_id": 116,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2110,7 +2110,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:21:59.923254184Z",
-      "updated_at": "2026-07-12T09:28:55.905932711Z",
+      "updated_at": "2026-07-12T09:35:07.537953175Z",
       "labels": [
         "blocker"
       ],
@@ -2123,6 +2123,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAQtXFO5MIjxVh1ZN/1gXpbk0vM7/LuA2VUTb6GLnHCE7TwUmPTg7kxuCMMLa0snpqyo+S3RkeYX9dw5ts0AGlCw=="
+        },
+        "7865ee99-fb11-48fc-afe3-3e921d3dd325": {
+          "display_id": 115,
+          "author": "tLiK",
+          "content": "Fix staged (NOT committed, pin NOT flipped — left for orchestrator to seal). Edit: list.rs build_entry_row now renders `format_hex_u64(subprogram as u64)`/`format_hex_u64(instance as u64)` ({:#x}) instead of decimal to_string(). Pinned test divergence_subprogram_instance_rendered_decimal_not_hex now PASSES under --ignored (1 passed). Regenerated 3 list_micro snapshots: only Subprogram/Instance cells changed 0 -> 0x0 (flags #86 and MD5 #87 untouched). Gauntlet all green: cargo test -p psptool-ops OK; differential 53 passed/0 failed/1 ignored; clippy -D warnings clean; cargo fmt --check clean. Spillover: had to rustfmt the critic-authored test file divergence_list_columns.rs (pre-existing fmt violation in the split closure, lines 61-63) to green the fmt gauntlet — pure formatting, no logic/ignore change.",
+          "created_at": "2026-07-12T09:35:07.533229066Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAPMZl6E+ik1Ss9tbKXFir/Z1vRlIqPge8dZKlX58Y6tjPi6BO7jBPkXztffeLb61H+abH0KjZzFxirQGg1t+dCA=="
         },
         "f6bf7f15-1be4-4314-a6b6-751950267775": {
           "display_id": 114,
@@ -3818,11 +3827,16 @@
       "agent_id": "tLiK",
       "agent_seq": 234,
       "timestamp": "2026-07-12T09:28:55.905932711Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 235,
+      "timestamp": "2026-07-12T09:35:07.537953175Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:28:55.905932711Z",
+    "timestamp": "2026-07-12T09:35:07.537953175Z",
     "agent_id": "tLiK",
-    "agent_seq": 234
+    "agent_seq": 235
   }
 }
