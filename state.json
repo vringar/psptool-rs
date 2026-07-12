@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 73,
+  "next_comment_id": 74,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -913,7 +913,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-11T23:48:13.799827435Z",
-      "updated_at": "2026-07-11T23:55:48.808230358Z",
+      "updated_at": "2026-07-12T00:40:50.768092822Z",
       "labels": [
         "blocker"
       ],
@@ -926,6 +926,15 @@
           "kind": "blocker",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAYDdtTPSO4OOlXtGddTO96uS+h6uxKM+mioo+7t2344maKumayncwFBdn63w20Pi0C/JnEFOeoH/oVAGgVw0qCA=="
+        },
+        "5a782254-e18c-47ab-811c-fcae08521ca2": {
+          "display_id": 73,
+          "author": "tLiK",
+          "content": "PLAN (acto-fixer, re-dispatch): the prior BLOCKED(multi-file) is incorrect. The two family entry-points (replace_psp_entry_body/replace_bios_entry_body) ALREADY receive `parent`, so their PUBLIC signatures are unchanged; only the PRIVATE `apply` gains an Option<&SourceBytes> param. CLI is untouched. Production change is single-file: crates/psptool-ops/src/replace.rs. Plus un-ignore the pin test and flip replace.md REQ-7 to SHIPPED. Applying now.",
+          "created_at": "2026-07-12T00:40:50.763548759Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA6k4PgmCpw0UMzwslcMxLgH68P+3cxgbu7hguuFGXUllfeTQFHsV5tbBZ+a00Ux7f/o6e5S/yghLCwcuazcXlBw=="
         },
         "6614f5c7-16e3-44eb-a921-19de2af6a658": {
           "display_id": 65,
@@ -2530,11 +2539,16 @@
       "agent_id": "tLiK",
       "agent_seq": 127,
       "timestamp": "2026-07-12T00:20:03.307459576Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 128,
+      "timestamp": "2026-07-12T00:40:50.768092822Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:20:03.307459576Z",
+    "timestamp": "2026-07-12T00:40:50.768092822Z",
     "agent_id": "tLiK",
-    "agent_seq": 127
+    "agent_seq": 128
   }
 }
