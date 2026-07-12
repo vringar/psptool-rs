@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 123,
+  "next_comment_id": 124,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -270,12 +270,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:48.357942464Z",
-      "updated_at": "2026-07-12T10:31:07.734546321Z",
+      "updated_at": "2026-07-12T10:33:21.002054614Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "42505a4b-a3ab-41d0-b560-a83056f0e963": {
+          "display_id": 123,
+          "author": "tLiK",
+          "content": "Plan (acto-fixer): entry.rs resolve_body overrun trigger.\n\nEdit ONLY crates/psptool-core/src/entry.rs.\n\n- entry.rs:537 currently triggers zlib-recovery on `body_end > blob_end` where blob_end (entry.rs:517) is the WHOLE-FILE end. Upstream file.py:297 bounds the overrun by the ROM WINDOW (`parent_buffer.buffer_size >= entry.file_offset() + entry.size`), not the whole file.\n- Coordinate space: body_offset/body_end/blob_start/blob_end are absolute (whole-file). rom_origin.get() is the ROM's absolute start, rom_size.bytes() its length, so rom_origin.get()+rom_size.bytes() is the ROM window's absolute end — directly comparable to the absolute body_end.\n- Fix: introduce `rom_window_end = min(rom_origin.get()+rom_size.bytes(), blob_end)` (saturating_add; clamped to blob_end so a ROM window past the actual input never reads OOB) and change the :537 trigger to `body_end > rom_window_end`. blob_end retained for the error 'available' field and final slice fallback.\n- Single-ROM: rom_origin+rom_size == blob_end, so the bound is unchanged (no regression). Multi-ROM: an entry overrunning its 8 MiB ROM window (but not the 16 MiB file) now recovers to zlib_hdr+zlib_size=0x140, matching upstream.\n\nWHY upstream behaves this way: file.py comment 293-296 — components not on 16MB boundary use entry.offset to detect overflow of the PARENT (ROM) buffer; a compressed entry overrunning the ROM window is zlib-recovered, not sized to its raw uncompressed record size.",
+          "created_at": "2026-07-12T10:33:20.995391194Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAgAS1dusze40onPMHRSImzS59aTIMuPcTKjwolbuaXKi+b2cC7yzeAdKCBYdIWPIaZecWk0brUAoF97xtmvTHAw=="
+        },
         "abe75a8d-012c-4a55-99f3-c9cb4ac5356b": {
           "display_id": 122,
           "author": "tLiK",
@@ -3971,11 +3980,16 @@
       "agent_id": "tLiK",
       "agent_seq": 246,
       "timestamp": "2026-07-12T10:31:07.734546321Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 247,
+      "timestamp": "2026-07-12T10:33:21.002054614Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T10:31:07.734546321Z",
+    "timestamp": "2026-07-12T10:33:21.002054614Z",
     "agent_id": "tLiK",
-    "agent_seq": 246
+    "agent_seq": 247
   }
 }
