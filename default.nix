@@ -28,27 +28,32 @@ let
 
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 
-  # Reference Python PSPTool — the upstream tool this project re-implements,
-  # pinned to the PyPI 3.4 sdist. Consumed only by the corpus-gated
-  # differential integration test (issue #18): `psptool-cli/tests/
-  # differential.rs` shells out to `python3 -m psptool` via the
-  # `PSPTOOL_REFERENCE` env var the dev shell exports. Building it from the
-  # pinned nixpkgs keeps the reference reproducible without a separate clone
-  # or another submodule.
+  # Reference Python PSPTool — the upstream tool this project re-implements.
+  # Pinned to the canonical GitHub master (PSPReverse/PSPTool), NOT a PyPI
+  # release: the maintainers treat master as canonical and do not prioritise
+  # releases, so the 3.4 sdist lags master (e.g. the type-0x5c 'SPI_ROM_CONFIG'
+  # entry, file.py:149). The differential oracle must match our translation
+  # source, which is that same master (`/tmp/psptool-ref`). Resolves the
+  # version-skew (#61) that gated the multi-ROM AM5 corpus.
+  #
+  # Consumed only by the corpus-gated differential integration test (issue
+  # #18): `psptool-cli/tests/differential.rs` shells out to `python3 -m psptool`
+  # via the `PSPTOOL_REFERENCE` env var the dev shell exports.
   referencePsptool = pkgs.python3Packages.buildPythonPackage {
     pname = "psptool";
-    version = "3.4";
+    version = "3.4.0"; # master @ edae097 (2026-04-20, merge of PR #84)
     format = "pyproject";
-    src = pkgs.fetchPypi {
-      pname = "psptool";
-      version = "3.4";
-      hash = "sha256-/XEELA1A8nOsYbVIuRTEehyzcHSy1acn3yDh8Ckr9YM=";
+    src = pkgs.fetchFromGitHub {
+      owner = "PSPReverse";
+      repo = "PSPTool";
+      rev = "edae097857e94b35d5203e644c177a3e1a3d444b";
+      hash = "sha256-mEhjPehbG1MTtAjV0yAb2WQw5FtcT+bxs+tCzJTquA4=";
     };
     nativeBuildInputs = with pkgs.python3Packages; [ hatchling hatch-vcs ];
     propagatedBuildInputs = with pkgs.python3Packages; [ cryptography prettytable ];
-    # hatch-vcs derives the version from VCS metadata, which is absent in the
-    # sdist build sandbox — pin it explicitly so the build does not fail.
-    env.HATCH_VCS_PRETEND_VERSION = "3.4";
+    # hatch-vcs derives the version from VCS metadata, absent in the fetched
+    # source tree — pin it explicitly (PEP 440) so the build does not fail.
+    env.HATCH_VCS_PRETEND_VERSION = "3.4.0";
     doCheck = false;
     pythonImportsCheck = [ "psptool" ];
   };
