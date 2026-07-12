@@ -1,6 +1,6 @@
 {
   "next_display_id": 83,
-  "next_comment_id": 97,
+  "next_comment_id": 98,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1908,10 +1908,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:04:05.775568022Z",
-      "updated_at": "2026-07-12T08:04:10.567198727Z",
+      "updated_at": "2026-07-12T08:04:36.015217958Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "712c0844-f98a-4e66-a8e2-7ef162e84c5f": {
+          "display_id": 97,
+          "author": "tLiK",
+          "content": "Failing test: crates/psptool-core/tests/divergence_body_bounds.rs::get_decompressed_body_zlib_size_is_absolute_offset_not_length. Live upstream oracle (zlib_decompress(output[:zlib_size]) over 0x55*16 || zlib(b'hello, psptool-rs')) returns prefix+payload; Rust computes plaintext[16..57] over a 41-byte buffer -> ZlibSizeOutOfRange. No-prefix control passes.",
+          "created_at": "2026-07-12T08:04:36.010550315Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAsUKXxiR9eKnPLWaG96BJdaYXWJsmRtwqfC3ru0vjbvIrBHn+0uKA37k5bO1AMOL8h83ridFFgFu7XeOE3DYCAQ=="
+        }
+      }
     },
     "d434f175-a545-41e6-9748-d52c77e1eb5d": {
       "uuid": "d434f175-a545-41e6-9748-d52c77e1eb5d",
@@ -3363,11 +3374,16 @@
       "agent_id": "tLiK",
       "agent_seq": 197,
       "timestamp": "2026-07-12T08:04:31.162479641Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 198,
+      "timestamp": "2026-07-12T08:04:36.015217958Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:04:31.162479641Z",
+    "timestamp": "2026-07-12T08:04:36.015217958Z",
     "agent_id": "tLiK",
-    "agent_seq": 197
+    "agent_seq": 198
   }
 }
