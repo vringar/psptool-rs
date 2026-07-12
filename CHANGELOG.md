@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: find_zlib_start (body.rs:486) scans whole plaintext, not plaintext[..zlib_size] as upstream zlib_find_header(output[:zlib_size]) (#84)
 - Divergence: HeaderEntry::signature_bytes (body.rs:222) ignores is_signed — returns last signature_len bytes for an unsigned HeaderFile (#83)
 - Divergence: body.rs get_decompressed_body treats zlib_size as length-from-magic, not absolute end offset (over-reads with pre-magic prefix) vs utils.py:245-252 / header_file.py:171 (#82)
 - Divergence: body.rs data_region ignores is_signed (drops signature_len bytes for unsigned HeaderFiles) vs header_file.py:83-84,100 (#81)
