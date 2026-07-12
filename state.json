@@ -1932,11 +1932,12 @@
       "uuid": "cdc4c578-ed06-4ff6-8395-41a3b3561c31",
       "display_id": 82,
       "title": "Divergence: body.rs get_decompressed_body treats zlib_size as length-from-magic, not absolute end offset (over-reads with pre-magic prefix) vs utils.py:245-252 / header_file.py:171",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:04:05.775568022Z",
-      "updated_at": "2026-07-12T08:35:15.879712711Z",
+      "updated_at": "2026-07-12T08:35:20.703099566Z",
+      "closed_at": "2026-07-12T08:35:20.703098234Z",
       "labels": [
         "blocker"
       ],
@@ -3455,11 +3456,16 @@
       "agent_id": "tLiK",
       "agent_seq": 204,
       "timestamp": "2026-07-12T08:35:15.879712711Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 205,
+      "timestamp": "2026-07-12T08:35:20.703099566Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:35:15.879712711Z",
+    "timestamp": "2026-07-12T08:35:20.703099566Z",
     "agent_id": "tLiK",
-    "agent_seq": 204
+    "agent_seq": 205
   }
 }
