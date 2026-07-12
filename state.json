@@ -1770,11 +1770,12 @@
       "display_id": 83,
       "title": "Divergence: HeaderEntry::signature_bytes (body.rs:222) ignores is_signed — returns last signature_len bytes for an unsigned HeaderFile",
       "description": "Spillover of #81 into the sibling method. header_file.py:77-84 sets signature_len=0 for an unsigned file (never materializes self.signature); the observable signature is empty (to_decrypted_file_bytes header_file.py:181: b'' when not is_signed). body.rs:227 calls signature_len() UNCONDITIONALLY (no is_signed gate), so for an unsigned file (signed_raw==0, signature_type==0) it returns body[end-0x100..end] instead of empty. This also contradicts the #81 data_region fix (body.rs:200) which now gates sig_len on is_signed, so for the same unsigned entry data_region and signature_bytes OVERLAP on the last 0x100 bytes. Not currently production-reachable (sign.rs:123 and verify.rs:256 both gate on is_signed before the call; extract.rs calls only data_region), but signature_bytes is a pub library API. Failing pin: crates/psptool-core/tests/divergence_body_bounds.rs::signature_bytes_of_unsigned_headerfile_is_empty.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:45:46.244990490Z",
-      "updated_at": "2026-07-12T08:54:59.717914072Z",
+      "updated_at": "2026-07-12T08:56:13.258422530Z",
+      "closed_at": "2026-07-12T08:56:13.258418753Z",
       "labels": [
         "blocker"
       ],
@@ -3603,11 +3604,16 @@
       "agent_id": "tLiK",
       "agent_seq": 216,
       "timestamp": "2026-07-12T08:54:59.717914072Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 217,
+      "timestamp": "2026-07-12T08:56:13.258422530Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:54:59.717914072Z",
+    "timestamp": "2026-07-12T08:56:13.258422530Z",
     "agent_id": "tLiK",
-    "agent_seq": 216
+    "agent_seq": 217
   }
 }
