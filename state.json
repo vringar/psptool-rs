@@ -1699,11 +1699,12 @@
       "display_id": 84,
       "title": "Divergence: find_zlib_start (body.rs:486) scans whole plaintext, not plaintext[..zlib_size] as upstream zlib_find_header(output[:zlib_size])",
       "description": "utils.py:218-234 zlib_find_header is called on s=output[:zlib_size] (header_file.py:171 zlib_decompress(output[:self.zlib_size])), so upstream never inspects bytes at or beyond zlib_size. body.rs:287 calls find_zlib_start(plaintext) on the FULL data region, only bounding to zlib_size AFTER locating the magic. A pathological entry with a zlib magic (0x78 ..) at an offset > zlib_size but < 0x500, and no magic within [0,zlib_size), makes the target locate the out-of-bounds magic and raise ZlibSizeOutOfRange, whereas upstream's zlib_find_header(output[:zlib_size]) returns -1 (no magic in the searched region). Low priority: only reachable on a crafted/corrupt entry. Failing pin: crates/psptool-core/tests/divergence_body_bounds.rs::find_zlib_start_ignores_magic_beyond_zlib_size.",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:46:05.036101159Z",
-      "updated_at": "2026-07-12T08:57:35.209494057Z",
+      "updated_at": "2026-07-12T09:12:01.184675296Z",
+      "closed_at": "2026-07-12T09:12:01.184673763Z",
       "labels": [
         "blocker"
       ],
@@ -3637,11 +3638,16 @@
       "agent_id": "tLiK",
       "agent_seq": 219,
       "timestamp": "2026-07-12T08:57:35.209494057Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 220,
+      "timestamp": "2026-07-12T09:12:01.184675296Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:57:35.209494057Z",
+    "timestamp": "2026-07-12T09:12:01.184675296Z",
     "agent_id": "tLiK",
-    "agent_seq": 219
+    "agent_seq": 220
   }
 }
