@@ -21,6 +21,20 @@
 //!   `psptool-ops` workflow.
 //! * Recomputing fletcher / sha checksums elsewhere in the directory: this
 //!   module only writes the entry's own trailing signature region.
+//!
+//! ## REQ status (per `.design/psptool-ops/sign.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (signed-region computation) | SHIPPED | `sign.rs:143` (`header.get_signed_bytes(body_bytes, ikek)?`) delegates to `HeaderEntry::get_signed_bytes` (`header(0x100) || plaintext[..size_signed]`) per upstream `header_file.py:162-164`, `cert_tree.py:113`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
+//! | REQ-2 (PSS params per signature_type) | SHIPPED | `sign.rs:151-167`: type 0 → `SigningKey::<Sha256>` (salt 32), type 2 → `SigningKey::<Sha384>` (salt 48) per upstream `crypto.py:189-203`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
+//! | REQ-3 (fresh valid PSS signature) | SHIPPED | `sign.rs:155-163` (`sign_with_rng`), `sign_entry` seeds `thread_rng` at `sign.rs:100` per upstream `crypto.py:302-307`, `cert_tree.py:113`; verified by `verify::tests::sign_then_verify_round_trip_via_blob_editor`. |
+//! | REQ-4 (key-size / type validation) | SHIPPED | `sign.rs:121-138`: `UnsupportedSignatureType`, `KeySizeMismatch` (`sign.rs:135`) per upstream `crypto.py:265`, `cert_tree.py:111-112`; verified by `sign_entry_rejects_wrong_key_size`. |
+//! | REQ-5 (reject non-signed entries) | SHIPPED | `sign.rs:121` (`NotSignedEntry`) + `sign.rs:124` (`NotSignedFlag`) per upstream `__main__.py:254-257`, `header_file.py:124-129`; consumer `psptool-cli/src/cmds/sign.rs:16-18`; verified by `sign_entry_rejects_plain_entry`. |
+//! | REQ-6 (signature-region locality) | SHIPPED | `sign.rs` `editor.patch(FlashOffset(sig_start), ..)` writes only the trailing `sig_len` bytes per upstream `cert_tree.py:117`; verified by `sign_entry_patches_only_signature_region`. |
+//! | REQ-7 (bounds-safe trailing region) | SHIPPED | `sign.rs:145+` uses `HeaderEntry::signature_bytes` (rom_size-normalised, `BodyTooSmall` on overflow) per upstream `header_file.py:82,66-69`; verified by `sign_entry_rejects_rom_size_larger_than_body`. |
+//! | REQ-8 (on-disk byte-order / upstream verify fidelity) | SHIPPED | The signature is written **plain** (big-endian I2OSP), NOT reversed, matching upstream's plain HeaderFile `Signature` (`cert_tree.py:63,98`); the reversed `ReversedSignature` (`crypto.py:386-409`) is PubkeyFile-only. Corpus-proven by `tests/divergence_signature_byte_order.rs` (2993 real signatures verify plain + full-length; reversed/short controls fail). Closes #78. |
+//! | REQ-9 (CLI `sign` subcommand consumer) | SHIPPED | `psptool-cli/src/cmds/sign.rs:13-32` parses the entry, loads a PKCS#8 PEM key, drives `sign_entry` through a `BlobEditor`, writes the ROM; dispatched from `main.rs:127` per upstream `__main__.py:238-262`. Boundary CLI surface (R-DEFER-1). |
 
 use rsa::RsaPrivateKey;
 use rsa::pss::SigningKey;

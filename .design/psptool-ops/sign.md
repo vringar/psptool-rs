@@ -87,11 +87,13 @@ serialised ROM verifies.
   (`header_file.py:66-69`).
 - REQ-8: **Re-signed output verifies under upstream / real firmware (on-disk byte-order
   fidelity).** A re-signed HeaderFile entry, when read back by the reference PSPTool or
-  the AMD bootrom, must verify. The on-disk signature is stored byte-reversed vs. the
-  wire RSA-PSS encoding for PubkeyFiles (`docs/firmware-layout.md` §7.1,
-  `ReversedSignature` `crypto.py:386-409`); `sign_entry` applies the same reversal to
-  HeaderFile signatures. This must be cross-validated against a real signed corpus
-  entry.
+  the AMD bootrom, must verify. A HeaderFile signature is stored **plain** (big-endian
+  I2OSP, the wire RSA-PSS encoding) — matching upstream's plain HeaderFile `Signature`
+  (`cert_tree.py:63`, verified plain at `cert_tree.py:98`); `sign_entry` writes it plain
+  and does **not** reverse it. The byte-reversed `ReversedSignature` convention
+  (`docs/firmware-layout.md` §7.1, `crypto.py:386-409`) is PubkeyFile-only and is not
+  applied here. This must be cross-validated against a real signed corpus entry (#78,
+  now closed).
 - REQ-9: **CLI `sign` subcommand production consumer.** The tool exposes re-signing:
   the `sign` subcommand parses the target entry, loads a PKCS#8 PEM private key, drives
   `sign_entry` through a [`BlobEditor`], and writes the serialised ROM to `--outfile`.
