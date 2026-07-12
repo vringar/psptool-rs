@@ -753,9 +753,13 @@ pub fn walk_directories(
 /// entry points at. Mirrors upstream `directory.py:86-99`: read 32 bytes,
 /// take the real L2 directory offset from `block[16:20]`
 /// (`actual_tertiary_offset = int.from_bytes(directory_body[16:20], 'little')`,
-/// `directory.py:88`), then apply the ROM `addr_mask` exactly as upstream
-/// `from_offset` does (`rom_offset &= fet.rom.addr_mask`, `directory.py:105`)
-/// via [`AddressMode::PhysicalX86`] resolution. The generation id at
+/// `directory.py:88`), then apply the ROM `addr_mask` with a PLAIN mask exactly
+/// as upstream `from_offset` does (`rom_offset &= fet.rom.addr_mask`,
+/// `directory.py:105`) — NO `> 0xFF00_0000` 16 MiB-window override (that lives
+/// only on the entry-body mode-0 path, `entry.py:50-60`, and would wrongly mask
+/// a `> 0xFF00_0000` tertiary block value with `& 0x00FF_FFFF` in a >16 MiB
+/// ROM). The `rom_origin` capsule-envelope shift (§1.1) is preserved, matching
+/// the ROM-relative read upstream performs through `fet.rom`. The generation id at
 /// `block[20:24]` is not needed to resolve the target — upstream only prints a
 /// warning when it is unknown and still recurses (`directory.py:91-92`), so an
 /// unknown generation does not gate this walk. Returns `None` when the block
@@ -778,12 +782,13 @@ fn tertiary_actual_offset(
         block[local + 18],
         block[local + 19],
     ]));
-    let ctx = ResolveContext {
-        rom_size,
-        directory_base: FlashOffset(0),
-        rom_origin,
-    };
-    AddressMode::PhysicalX86.resolve(actual, ctx).ok()
+    // Upstream `from_offset` masks the tertiary target with a PLAIN `addr_mask`
+    // (`directory.py:105`, `rom_offset &= fet.rom.addr_mask`) — no `entry.py`
+    // mode-0 `> 0xFF00_0000` window override. Widening `u32 -> u64` mirrors
+    // Python's unbounded `int` (R-CODE-5: no truncation). `rom_origin` adds the
+    // capsule-envelope shift (§1.1), matching the read through `fet.rom`.
+    let rom_flash = (actual.0 as u64) & rom_size.addr_mask();
+    Some(FlashOffset(rom_origin.0.wrapping_add(rom_flash)))
 }
 
 fn local_offset(

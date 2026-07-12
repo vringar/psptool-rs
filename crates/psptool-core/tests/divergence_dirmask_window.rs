@@ -153,7 +153,6 @@ const MIB: usize = 1024 * 1024;
 ///
 /// Tracking: #68
 #[test]
-#[ignore = "divergence: tertiary dir-offset masking uses PhysicalX86 window override instead of plain addr_mask (directory.py:105); tracking #68"]
 fn divergence_tertiary_physical_style_block_val_32mib_plain_addr_mask() {
     let dirs = walk(32 * MIB, RomSize::MIB_32, 0xFF05_0000, 0x0105_0000);
     assert_l2_surfaced(&dirs, 0x0105_0000);
