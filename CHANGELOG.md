@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Differential divergence: AORUS_X570 entry 26 type 0x5c named SPI_ROM_CONFIG vs upstream WMOS (HeaderFile) (#60)
 - Divergence: list.rs ls text renders Subprogram/Instance as decimal, upstream psptool.py:174-175 uses hex() (#85)
 - Divergence: find_zlib_start (body.rs:486) scans whole plaintext, not plaintext[..zlib_size] as upstream zlib_find_header(output[:zlib_size]) (#84)
 - Divergence: HeaderEntry::signature_bytes (body.rs:222) ignores is_signed — returns last signature_len bytes for an unsigned HeaderFile (#83)
