@@ -2606,11 +2606,12 @@
       "uuid": "e9dc2315-17b2-4030-abc0-3685a51ca70e",
       "display_id": 80,
       "title": "Spillover: extract.rs:156-157 build_encrypted_header_body stamps header-inclusive size_signed (stale convention)",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-07-12T07:23:04.785365464Z",
-      "updated_at": "2026-07-12T07:23:39.553782499Z",
+      "updated_at": "2026-07-12T14:15:48.141097942Z",
+      "closed_at": "2026-07-12T14:15:48.141093894Z",
       "labels": [
         "blocker"
       ],
@@ -4093,11 +4094,16 @@
       "agent_id": "tLiK",
       "agent_seq": 257,
       "timestamp": "2026-07-12T14:15:42.967188611Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 258,
+      "timestamp": "2026-07-12T14:15:48.141097942Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T14:15:42.967188611Z",
+    "timestamp": "2026-07-12T14:15:48.141097942Z",
     "agent_id": "tLiK",
-    "agent_seq": 257
+    "agent_seq": 258
   }
 }
