@@ -1,5 +1,5 @@
 {
-  "next_display_id": 78,
+  "next_display_id": 79,
   "next_comment_id": 89,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -54,6 +54,7 @@
     "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": 63,
     "a6322983-624f-4612-bcad-795481ee0f8d": 61,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
+    "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": 78,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
@@ -1538,6 +1539,16 @@
       "created_by": "tLiK",
       "created_at": "2026-05-10T14:25:00.925271528Z",
       "updated_at": "2026-05-10T14:25:33.064674871Z"
+    },
+    "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": {
+      "uuid": "ab6eb2e6-0890-4a93-8d75-8954a4c84d61",
+      "display_id": 78,
+      "title": "Blocker for REQ-8 of sign: needs real-corpus/upstream cross-validation of re-signed HeaderFile output. sign_entry reverses the on-disk signature bytes (sign.rs:174-175, per firmware-layout §7.1 PubkeyFile convention) and target verify (body.rs:393) reverses to match — internally self-consistent (synthetic sign->verify roundtrip verify.rs:360). But upstream HeaderFile verifies via a PLAIN non-reversed Signature (cert_tree.py:63 wraps hf.signature as Signature, not ReversedSignature), so a re-signed HeaderFile may not verify under upstream PSPTool. No psptool-ops test re-signs a real corpus entry and checks it verifies under the reference tool.",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T06:20:26.367367418Z",
+      "updated_at": "2026-07-12T06:20:26.367367418Z"
     },
     "b65b2085-2121-4add-945d-707d3c375c64": {
       "uuid": "b65b2085-2121-4add-945d-707d3c375c64",
@@ -3066,11 +3077,16 @@
       "agent_id": "tLiK",
       "agent_seq": 172,
       "timestamp": "2026-07-12T05:54:22.867387720Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 173,
+      "timestamp": "2026-07-12T06:20:26.367367418Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:54:22.867387720Z",
+    "timestamp": "2026-07-12T06:20:26.367367418Z",
     "agent_id": "tLiK",
-    "agent_seq": 172
+    "agent_seq": 173
   }
 }
