@@ -1,6 +1,6 @@
 {
   "next_display_id": 81,
-  "next_comment_id": 94,
+  "next_comment_id": 95,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1685,7 +1685,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:37:46.713946517Z",
-      "updated_at": "2026-07-12T06:38:19.062691540Z",
+      "updated_at": "2026-07-12T07:24:38.566682690Z",
       "labels": [
         "blocker"
       ],
@@ -1698,6 +1698,15 @@
           "kind": "observation",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA2CqXJw2U+I9MN/DkrN5154PcTjBAbTOGm3wohDJYFzEMz3ItTg/Qa0hYL3P4sGB9/6u65HdmBCMedmrBE5PLBg=="
+        },
+        "712cd3f3-27b2-4c91-b309-7d7f12e00ec4": {
+          "display_id": 94,
+          "author": "tLiK",
+          "content": "Result: FIXED in 17307e11. get_signed_bytes now emits header(0x100) || plaintext[..size_signed] (total 0x100+size_signed) per header_file.py:162-164; size_signed read raw/header-exclusive (entry.rs:177). REQ-5 of body.md -> SHIPPED (consumers sign.rs:143->cli sign.rs:21, body.rs:388 verify_signature->verify.rs:264->cli verify.rs:14). Corpus control asserts short_len_plain_ok==false, prod_plain_ok==true.",
+          "created_at": "2026-07-12T07:24:38.562047115Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA/SWoPLOjZOx5NEU01piJRge/2NwZvcNYxZxSEpqEVhYxCmL8T1P75dYPGUiRbe3YK8/twBbEtAyYAJoSnbzMAg=="
         },
         "9693722c-55ae-4042-95df-cf2796c441b8": {
           "display_id": 91,
@@ -3241,11 +3250,16 @@
       "agent_id": "tLiK",
       "agent_seq": 186,
       "timestamp": "2026-07-12T07:23:39.553782499Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 187,
+      "timestamp": "2026-07-12T07:24:38.566682690Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T07:23:39.553782499Z",
+    "timestamp": "2026-07-12T07:24:38.566682690Z",
     "agent_id": "tLiK",
-    "agent_seq": 186
+    "agent_seq": 187
   }
 }
