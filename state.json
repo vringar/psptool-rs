@@ -1,5 +1,5 @@
 {
-  "next_display_id": 68,
+  "next_display_id": 69,
   "next_comment_id": 69,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -63,6 +63,7 @@
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": 52,
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
+    "e91fb96d-6532-4b2f-b117-a86283030074": 68,
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
@@ -1674,6 +1675,16 @@
       "created_at": "2026-05-10T05:01:16.547627264Z",
       "updated_at": "2026-05-10T05:01:30.477622685Z"
     },
+    "e91fb96d-6532-4b2f-b117-a86283030074": {
+      "uuid": "e91fb96d-6532-4b2f-b117-a86283030074",
+      "display_id": 68,
+      "title": "Divergence: directory.rs::tertiary_actual_offset masks L2 target with PhysicalX86 window override instead of plain addr_mask (directory.py:105)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T00:13:05.384779722Z",
+      "updated_at": "2026-07-12T00:13:05.384779722Z"
+    },
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": {
       "uuid": "e9e8d58e-9b00-4f70-b337-7ab57b2da892",
       "display_id": 9,
@@ -2433,11 +2444,16 @@
       "agent_id": "tLiK",
       "agent_seq": 119,
       "timestamp": "2026-07-12T00:03:06.434475857Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 120,
+      "timestamp": "2026-07-12T00:13:05.384779722Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:03:06.434475857Z",
+    "timestamp": "2026-07-12T00:13:05.384779722Z",
     "agent_id": "tLiK",
-    "agent_seq": 119
+    "agent_seq": 120
   }
 }
