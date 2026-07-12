@@ -1690,11 +1690,12 @@
       "uuid": "bddcb556-0ffa-485a-95fa-a61221162ed9",
       "display_id": 79,
       "title": "Divergence: psptool-core HeaderEntry::get_signed_bytes signs 0x100 too few bytes vs upstream (body.rs:333-349 vs header_file.py:162-164)",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:37:46.713946517Z",
-      "updated_at": "2026-07-12T07:24:38.566682690Z",
+      "updated_at": "2026-07-12T07:24:48.080122076Z",
+      "closed_at": "2026-07-12T07:24:48.080117918Z",
       "labels": [
         "blocker"
       ],
@@ -3269,11 +3270,16 @@
       "agent_id": "tLiK",
       "agent_seq": 188,
       "timestamp": "2026-07-12T07:24:43.259689459Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 189,
+      "timestamp": "2026-07-12T07:24:48.080122076Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T07:24:43.259689459Z",
+    "timestamp": "2026-07-12T07:24:48.080122076Z",
     "agent_id": "tLiK",
-    "agent_seq": 188
+    "agent_seq": 189
   }
 }
