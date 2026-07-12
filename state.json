@@ -1,6 +1,6 @@
 {
   "next_display_id": 75,
-  "next_comment_id": 77,
+  "next_comment_id": 78,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": 72,
@@ -1224,11 +1224,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:19.328416860Z",
-      "updated_at": "2026-07-12T04:24:28.890635730Z",
+      "updated_at": "2026-07-12T04:30:24.378387758Z",
       "labels": [
         "blocker",
         "bug"
-      ]
+      ],
+      "comments": {
+        "a5e9fd4b-fe4e-42d2-bf55-2d549c2076b1": {
+          "display_id": 77,
+          "author": "tLiK",
+          "content": "Failing test committed at crates/psptool-ops/tests/divergence_tertiary_generation.rs — divergence_tertiary_0x48_directory_carries_generation and _0x4a_ (both #[ignore] tracking #70) render list_default over a synthetic L1 $PSP -> 0x48/0x4A tertiary block (block[20:24]=0xBC0D0300 Zen 4/5) -> L2 $PL2 chain and assert the $PL2's ls Generation cell shows 'Zen4Or5'. Current code renders a BLANK cell (verified: $PL2 @0x50000 row Generation column empty). Passing control control_combo_reached_directory_carries_generation proves the render machinery + that 0xBC0D0300 -> Zen4Or5 is the correct expected label (not tautological). Upstream oracle: directory.py:88-98 threads zen_generation into create_directories_if_not_exist; psptool.py:84 prints directory.zen_generation. Fix location: directory.rs tertiary_actual_offset (782-806) must also surface block[20:24]; walk_directories tertiary branches (~680/~727) must attach it as provenance/generation; list.rs directory_generation (531-567) must read it for tertiary-reached dirs.",
+          "created_at": "2026-07-12T04:30:24.373674682Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAD0bH62WdOe4xpYDzw8Sn2HU6sDQcE8aKHrM3Ta4kdFbY4syxmvtlAS+mJu5mU8yj+XgJ0Qn5k2/qBKTsYpMmCg=="
+        }
+      }
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -2780,11 +2791,16 @@
       "agent_id": "tLiK",
       "agent_seq": 149,
       "timestamp": "2026-07-12T04:25:22.442114381Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 150,
+      "timestamp": "2026-07-12T04:30:24.378387758Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:25:22.442114381Z",
+    "timestamp": "2026-07-12T04:30:24.378387758Z",
     "agent_id": "tLiK",
-    "agent_seq": 149
+    "agent_seq": 150
   }
 }
