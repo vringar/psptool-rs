@@ -224,9 +224,18 @@ impl HeaderEntry {
             return Err(BodyError::Truncated(body.len()));
         }
         let end = self.effective_end(body)?;
-        let sig_len = self
-            .signature_len()
-            .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?;
+        // Upstream materializes a signature only for signed files: an unsigned
+        // HeaderFile has `signature_len = 0` (`header_file.py:83-84`) and the
+        // only site that yields a signature value returns `b''` for it
+        // (`header_file.py:181`: `signature = ... if self.is_signed else b''`).
+        // Mirror the `if self.is_signed` gate — the exact sibling of the #81
+        // `data_region` fix above.
+        let sig_len = if self.is_signed() {
+            self.signature_len()
+                .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?
+        } else {
+            0
+        };
         let needed = HEADER_FILE_LEN
             .checked_add(sig_len)
             .ok_or(BodyError::UnsupportedSignatureType(self.signature_type))?;

@@ -121,9 +121,8 @@ fn data_region_of_unsigned_headerfile_keeps_full_body() {
 /// Expected value derived from upstream (`header_file.py:83-84`): an unsigned
 /// file has `signature_len == 0`, so `signature_bytes` must be empty.
 ///
-/// Tracking: #83
+/// Tracking: #83 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: signature_bytes ignores is_signed, returns last 0x100 bytes for an unsigned HeaderFile; tracking #83"]
 fn signature_bytes_of_unsigned_headerfile_is_empty() {
     // Same unsigned fixture as the data_region pin above: signed_raw == 0,
     // signature_type == 0, rom_size == 0x300 (header 0x100 + 0x200 data, NO
@@ -163,7 +162,7 @@ fn signature_bytes_of_unsigned_headerfile_is_empty() {
     // Guard against the specific wrong region: the last 0x100 bytes (0xBB) are
     // data-region bytes upstream, and must NOT surface as a signature.
     assert!(
-        !sig.iter().any(|&b| b == 0xBB),
+        !sig.contains(&0xBB),
         "trailing 0xBB bytes belong to the data region, not the signature"
     );
 }
