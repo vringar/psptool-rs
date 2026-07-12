@@ -144,3 +144,17 @@ design = ".design/psptool-core/body.md"
 # verify-against-real-corpus test (divergence_signature_byte_order.rs) — the
 # oracle that was missing and exposed #78/#79.
 parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-ops/src/extract.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/__main__.py",
+  "/tmp/psptool-ref/psptool/file.py",
+  "/tmp/psptool-ref/psptool/header_file.py",
+]
+design = ".design/psptool-ops/extract.md"
+# extract_raw/decompressed/decrypted delegate to the (already-audited) core
+# body.rs ops; the extract path is not exercised by roundtrip (no mutation) or
+# the ls differential (read-only), so the psptool-ops crate suite (extract::tests)
+# is its oracle, like sign.rs.
+parity_ops = []
