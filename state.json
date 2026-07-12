@@ -1,6 +1,6 @@
 {
   "next_display_id": 80,
-  "next_comment_id": 90,
+  "next_comment_id": 91,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1671,10 +1671,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:37:46.713946517Z",
-      "updated_at": "2026-07-12T06:37:51.495967223Z",
+      "updated_at": "2026-07-12T06:38:14.130603151Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "6c44a05f-7f04-4a4f-9a17-4bfd01b637f1": {
+          "display_id": 90,
+          "author": "tLiK",
+          "content": "Oracle (reference PSPTool over vendor/test-corpus): a real signed HeaderFile verifies over signed region = header + get_decrypted_decompressed_body() truncated to len(header)+size_signed = 0x100+size_signed (header_file.py:162-164 file_bytes[:len(self.header)+self.size_signed]). Target HeaderEntry::get_signed_bytes (body.rs:333-349) truncates the TOTAL to size_signed (header 0x100 + plaintext[..size_signed-0x100]), signing 0x100 FEWER bytes. The Rust size_signed doc (entry.rs:126) and synthetic build (entry.rs:657, size_signed=0x110) treat the field as header-inclusive, which is why the synthetic sign->verify roundtrip is self-consistent but real firmware fails. Consumed by BOTH verify_signature (body.rs:388) and sign_entry (sign.rs:141). Failing pin: crates/psptool-ops/tests/divergence_signature_byte_order.rs (control asserts prod_len_plain_ok==false). Fix: truncate to 0x100 + size_signed. NOTE: this falsifies REQ-1 'SHIPPED' in .design/psptool-ops/sign.md.",
+          "created_at": "2026-07-12T06:38:14.126106915Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA2CqXJw2U+I9MN/DkrN5154PcTjBAbTOGm3wohDJYFzEMz3ItTg/Qa0hYL3P4sGB9/6u65HdmBCMedmrBE5PLBg=="
+        }
+      }
     },
     "c3c8670f-9fe0-4508-8196-90362d7f2528": {
       "uuid": "c3c8670f-9fe0-4508-8196-90362d7f2528",
@@ -3148,11 +3159,16 @@
       "agent_id": "tLiK",
       "agent_seq": 179,
       "timestamp": "2026-07-12T06:37:59.173447955Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 180,
+      "timestamp": "2026-07-12T06:38:14.130603151Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T06:37:59.173447955Z",
+    "timestamp": "2026-07-12T06:38:14.130603151Z",
     "agent_id": "tLiK",
-    "agent_seq": 179
+    "agent_seq": 180
   }
 }
