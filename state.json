@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 72,
+  "next_comment_id": 73,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -358,11 +358,20 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:39.312940808Z",
-      "updated_at": "2026-07-11T23:33:39.536312109Z",
+      "updated_at": "2026-07-12T00:20:03.307459576Z",
       "labels": [
         "component:core"
       ],
       "comments": {
+        "4d16d244-3b27-4b6c-a568-733cac1698e2": {
+          "display_id": 72,
+          "author": "tLiK",
+          "content": "ADDENDUM to reconciliation: the #68 fixer noted the EPYC entry-11 diff satisfies 0x13c8000 & 0x00FFFFFF = 0x3c8000 EXACTLY — i.e. reference = ours with the mode-0 >16MiB window mask applied. Two competing theories now for the same diff: (T1, #52 critic) upstream files_by_offset cross-ROM CACHE ECHO, ours correct; (T2, #68 fixer) entry-body mode-0 WINDOW — reference masks, we do not, ours buggy. Discriminator: T2 predicts MANY upper-ROM entries differ (all with raw>0xFF000000), but the #52 critic verified ONLY idx11 differs (idx0-10,12-15 match) — which favors T1 (cache echo), since a systematic window bug would hit siblings too. The 0x00FFFFFF coincidence is consistent with T1 (the echoed lower-ROM dir happens to sit at the window-masked offset). RESOLUTION for the #41 pass: build a fixture isolating an upper-ROM entry with raw>0xFF000000 that is NOT a cross-ROM collision; if ours matches reference there, T1 confirmed (tolerate entry-11 as cache echo); if it diverges, T2 (real window bug, fix in the entry-body resolve path). Do not code-change until this discriminator is run.",
+          "created_at": "2026-07-12T00:20:03.302863653Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+dfDH680zE86uhq697xRzJ0F98p6gAMwzqqBIXiZajuerGr9ciPxVcziG1ME/UBMBVYnaEsDSXKqOmTyZh+CAw=="
+        },
         "76184d2b-f15a-430f-9619-cae56997834b": {
           "display_id": 63,
           "author": "tLiK",
@@ -2516,11 +2525,16 @@
       "agent_id": "tLiK",
       "agent_seq": 126,
       "timestamp": "2026-07-12T00:18:59.298312563Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 127,
+      "timestamp": "2026-07-12T00:20:03.307459576Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:18:59.298312563Z",
+    "timestamp": "2026-07-12T00:20:03.307459576Z",
     "agent_id": "tLiK",
-    "agent_seq": 126
+    "agent_seq": 127
   }
 }
