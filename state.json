@@ -1558,11 +1558,12 @@
       "uuid": "ab6eb2e6-0890-4a93-8d75-8954a4c84d61",
       "display_id": 78,
       "title": "Blocker for REQ-8 of sign: needs real-corpus/upstream cross-validation of re-signed HeaderFile output. sign_entry reverses the on-disk signature bytes (sign.rs:174-175, per firmware-layout §7.1 PubkeyFile convention) and target verify (body.rs:393) reverses to match — internally self-consistent (synthetic sign->verify roundtrip verify.rs:360). But upstream HeaderFile verifies via a PLAIN non-reversed Signature (cert_tree.py:63 wraps hf.signature as Signature, not ReversedSignature), so a re-signed HeaderFile may not verify under upstream PSPTool. No psptool-ops test re-signs a real corpus entry and checks it verifies under the reference tool.",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T06:20:26.367367418Z",
-      "updated_at": "2026-07-12T07:24:43.259689459Z",
+      "updated_at": "2026-07-12T07:24:52.934308895Z",
+      "closed_at": "2026-07-12T07:24:52.934305298Z",
       "labels": [
         "blocker"
       ],
@@ -3275,11 +3276,16 @@
       "agent_id": "tLiK",
       "agent_seq": 189,
       "timestamp": "2026-07-12T07:24:48.080122076Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 190,
+      "timestamp": "2026-07-12T07:24:52.934308895Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T07:24:48.080122076Z",
+    "timestamp": "2026-07-12T07:24:52.934308895Z",
     "agent_id": "tLiK",
-    "agent_seq": 189
+    "agent_seq": 190
   }
 }
