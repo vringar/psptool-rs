@@ -552,6 +552,21 @@ pub enum DirectoryProvenance {
         parent_offset: FlashOffset,
         index: usize,
     },
+    /// The directory was reached through a tertiary (0x48/0x4A) double
+    /// indirection block owned by entry `index` of the parent directory at
+    /// `parent_offset` (§3.3, the Zen 4+ double reference). The block's
+    /// `[20:24]` PSP generation id is carried so the `ls` Generation column can
+    /// label the reached directory exactly as the combo path does — upstream
+    /// stamps it into the created directory's `zen_generation`
+    /// (`directory.py:89`/`94`/`98`/`124`) and prints it in the Generation
+    /// column (`psptool.py:84`). Carrying the raw id (not the resolved label)
+    /// means an unknown generation still surfaces the directory, matching
+    /// upstream's warn-and-recurse behaviour (`directory.py:91-92`).
+    Tertiary {
+        parent_offset: FlashOffset,
+        index: usize,
+        generation: PspGenerationId,
+    },
 }
 
 /// A parsed [`Directory`] together with the link that led to it.
@@ -675,40 +690,57 @@ pub fn walk_directories(
                         directory_base: dir_base,
                         rom_origin,
                     };
-                    let target = if entry.entry_type.is_secondary_directory_pointer() {
-                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx)
+                    let (target, provenance) = if entry.entry_type.is_secondary_directory_pointer()
+                    {
+                        let target = dir_mode.resolve_with_entry(
+                            entry.entry_address_mode(),
+                            entry.offset,
+                            ctx,
+                        );
+                        (
+                            target,
+                            DirectoryProvenance::L2Pointer {
+                                parent_offset,
+                                index: idx,
+                            },
+                        )
                     } else if entry.entry_type.is_tertiary_directory_pointer() {
                         // Tertiary (0x48/0x4A) double-indirection (Zen 4+,
                         // directory.py:85-99): the entry points at a 32-byte
                         // block whose [16:20] holds the REAL L2 directory
-                        // offset. Resolve the block location like a secondary
-                        // pointer (upstream entry.file_offset()), then follow
-                        // block[16:20] under the ROM addr_mask.
+                        // offset and whose [20:24] holds the PSP generation id
+                        // upstream stamps into the created directory
+                        // (directory.py:89/94/98). Resolve the block location
+                        // like a secondary pointer (upstream
+                        // entry.file_offset()), then follow block[16:20] under
+                        // the ROM addr_mask and carry block[20:24].
                         let block_at = dir_mode.resolve_with_entry(
                             entry.entry_address_mode(),
                             entry.offset,
                             ctx,
                         );
                         match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
-                            Some(o) => o,
+                            Some((target, generation)) => (
+                                target,
+                                DirectoryProvenance::Tertiary {
+                                    parent_offset,
+                                    index: idx,
+                                    generation,
+                                },
+                            ),
                             None => continue,
                         }
                     } else {
                         continue;
                     };
-                    if let Ok(child) = Directory::parse_at(blob, target) {
-                        let provenance = DirectoryProvenance::L2Pointer {
-                            parent_offset,
-                            index: idx,
-                        };
-                        if visit(&mut out, &mut visited, child.clone(), provenance.clone())
+                    if let Ok(child) = Directory::parse_at(blob, target)
+                        && visit(&mut out, &mut visited, child.clone(), provenance.clone())
                             .is_some()
-                        {
-                            work.push(DirectoryRef {
-                                directory: child,
-                                provenance,
-                            });
-                        }
+                    {
+                        work.push(DirectoryRef {
+                            directory: child,
+                            provenance,
+                        });
                     }
                 }
             }
@@ -722,36 +754,51 @@ pub fn walk_directories(
                         directory_base: dir_base,
                         rom_origin,
                     };
-                    let target = if entry.entry_type.is_secondary_directory_pointer() {
-                        dir_mode.resolve_with_entry(entry.entry_address_mode(), entry.offset, ctx)
+                    let (target, provenance) = if entry.entry_type.is_secondary_directory_pointer()
+                    {
+                        let target = dir_mode.resolve_with_entry(
+                            entry.entry_address_mode(),
+                            entry.offset,
+                            ctx,
+                        );
+                        (
+                            target,
+                            DirectoryProvenance::L2Pointer {
+                                parent_offset,
+                                index: idx,
+                            },
+                        )
                     } else if entry.entry_type.is_tertiary_directory_pointer() {
                         // Tertiary (0x48/0x4A) double-indirection, uniform with
-                        // the PSP branch above (directory.py:85-99).
+                        // the PSP branch above (directory.py:85-99): carry
+                        // block[20:24] as the generation id.
                         let block_at = dir_mode.resolve_with_entry(
                             entry.entry_address_mode(),
                             entry.offset,
                             ctx,
                         );
                         match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
-                            Some(o) => o,
+                            Some((target, generation)) => (
+                                target,
+                                DirectoryProvenance::Tertiary {
+                                    parent_offset,
+                                    index: idx,
+                                    generation,
+                                },
+                            ),
                             None => continue,
                         }
                     } else {
                         continue;
                     };
-                    if let Ok(child) = Directory::parse_at(blob, target) {
-                        let provenance = DirectoryProvenance::L2Pointer {
-                            parent_offset,
-                            index: idx,
-                        };
-                        if visit(&mut out, &mut visited, child.clone(), provenance.clone())
+                    if let Ok(child) = Directory::parse_at(blob, target)
+                        && visit(&mut out, &mut visited, child.clone(), provenance.clone())
                             .is_some()
-                        {
-                            work.push(DirectoryRef {
-                                directory: child,
-                                provenance,
-                            });
-                        }
+                    {
+                        work.push(DirectoryRef {
+                            directory: child,
+                            provenance,
+                        });
                     }
                 }
             }
@@ -773,28 +820,46 @@ pub fn walk_directories(
 /// only on the entry-body mode-0 path, `entry.py:50-60`, and would wrongly mask
 /// a `> 0xFF00_0000` tertiary block value with `& 0x00FF_FFFF` in a >16 MiB
 /// ROM). The `rom_origin` capsule-envelope shift (§1.1) is preserved, matching
-/// the ROM-relative read upstream performs through `fet.rom`. The generation id at
-/// `block[20:24]` is not needed to resolve the target — upstream only prints a
-/// warning when it is unknown and still recurses (`directory.py:91-92`), so an
-/// unknown generation does not gate this walk. Returns `None` when the block
-/// is out of bounds (the pointer is skipped, matching the surrounding
-/// bad-offset handling).
+/// the ROM-relative read upstream performs through `fet.rom`. Returns the
+/// resolved L2 offset together with the PSP generation id read from
+/// `block[20:24]` as a little-endian u32 (upstream
+/// `zen_generation_id = hex(int.from_bytes(directory_body[20:24], 'little'))`,
+/// `directory.py:94`). The generation id is not needed to *resolve* the target
+/// — upstream only prints a warning when it is unknown and still recurses
+/// (`directory.py:91-92`), so an unknown generation does not gate this walk —
+/// but it IS threaded into the created directory's `zen_generation`
+/// (`directory.py:98`/`124`) and printed in the `ls` Generation column
+/// (`psptool.py:84`), so it is carried out for the caller to attach as
+/// [`DirectoryProvenance::Tertiary`]. Returns `None` when the block is out of
+/// bounds (the pointer is skipped, matching the surrounding bad-offset
+/// handling).
 fn tertiary_actual_offset(
     blob: &SourceBytes,
     block_at: FlashOffset,
     rom_size: RomSize,
     rom_origin: FlashOffset,
-) -> Option<FlashOffset> {
+) -> Option<(FlashOffset, PspGenerationId)> {
     const TERTIARY_BLOCK_SIZE: usize = 32;
     let local = local_offset(blob, block_at, "tertiary block", TERTIARY_BLOCK_SIZE).ok()?;
     let block = blob.as_bytes();
     // `local_offset` guarantees `local + TERTIARY_BLOCK_SIZE <= blob.len()`,
-    // so bytes `[local + 16 ..= local + 19]` are in bounds.
+    // so bytes `[local + 16 ..= local + 23]` are in bounds.
     let actual = Address(u32::from_le_bytes([
         block[local + 16],
         block[local + 17],
         block[local + 18],
         block[local + 19],
+    ]));
+    // block[20:24] as a little-endian u32 — the PSP generation id upstream
+    // reads at `directory.py:94` (`int.from_bytes(directory_body[20:24],
+    // 'little')`). `PspGenerationId::zen_generation` keys off the high three
+    // bytes (`block[21:24]`), exactly upstream's `directory_body[21:24]` match
+    // at `directory.py:89-90`.
+    let generation = PspGenerationId(u32::from_le_bytes([
+        block[local + 20],
+        block[local + 21],
+        block[local + 22],
+        block[local + 23],
     ]));
     // Upstream `from_offset` masks the tertiary target with a PLAIN `addr_mask`
     // (`directory.py:105`, `rom_offset &= fet.rom.addr_mask`) — no `entry.py`
@@ -802,7 +867,10 @@ fn tertiary_actual_offset(
     // Python's unbounded `int` (R-CODE-5: no truncation). `rom_origin` adds the
     // capsule-envelope shift (§1.1), matching the read through `fet.rom`.
     let rom_flash = (actual.0 as u64) & rom_size.addr_mask();
-    Some(FlashOffset(rom_origin.0.wrapping_add(rom_flash)))
+    Some((
+        FlashOffset(rom_origin.0.wrapping_add(rom_flash)),
+        generation,
+    ))
 }
 
 fn local_offset(

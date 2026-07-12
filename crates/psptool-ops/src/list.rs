@@ -526,8 +526,11 @@ fn magic_string(bytes: &[u8; 4]) -> String {
 /// * Combo directories: list every distinct Zen generation across all combo
 ///   entries, comma-separated (e.g. `"Zen2, Zen3"`).
 /// * `$PSP`/`$BHD` directories: when reached via a combo entry, inherit
-///   that combo entry's generation. Otherwise empty (matches the reference
-///   tool's `Directory.zen_generation`).
+///   that combo entry's generation; when reached via a tertiary (0x48/0x4A)
+///   double-indirection block, inherit that block's `[20:24]` generation id
+///   (upstream `directory.py:89`/`94`/`98` threads it into the created
+///   directory's `zen_generation`, printed at `psptool.py:84`). Otherwise
+///   empty (matches the reference tool's `Directory.zen_generation`).
 fn directory_generation(dir_ref: &DirectoryRef, rom: &RomListing<'_>) -> String {
     match &dir_ref.directory {
         Directory::Combo(c) => {
@@ -542,27 +545,36 @@ fn directory_generation(dir_ref: &DirectoryRef, rom: &RomListing<'_>) -> String 
             }
             gens.join(", ")
         }
-        Directory::Psp(_) | Directory::Bios(_) => {
-            let DirectoryProvenance::ComboEntry {
+        Directory::Psp(_) | Directory::Bios(_) => match &dir_ref.provenance {
+            DirectoryProvenance::ComboEntry {
                 combo_offset,
                 index,
-            } = &dir_ref.provenance
-            else {
-                return String::new();
-            };
-            for d in rom.directories {
-                if let Directory::Combo(c) = &d.directory
-                    && c.source.offset() == *combo_offset
-                    && let Some(g) = c
-                        .entries
-                        .get(*index)
-                        .and_then(|e| e.psp_generation.zen_generation())
-                {
-                    return zen_label(g).to_string();
+            } => {
+                for d in rom.directories {
+                    if let Directory::Combo(c) = &d.directory
+                        && c.source.offset() == *combo_offset
+                        && let Some(g) = c
+                            .entries
+                            .get(*index)
+                            .and_then(|e| e.psp_generation.zen_generation())
+                    {
+                        return zen_label(g).to_string();
+                    }
                 }
+                String::new()
             }
-            String::new()
-        }
+            // Tertiary (0x48/0x4A) double-indirection: the generation id was
+            // read from the block's `[20:24]` and carried on the provenance,
+            // mirroring the combo path — upstream `directory.py:89`/`94` reads
+            // it and `directory.py:98`/`124` stamps it into the created
+            // directory's `zen_generation` (printed at `psptool.py:84`). An
+            // unknown id renders empty, exactly as the combo arm above.
+            DirectoryProvenance::Tertiary { generation, .. } => generation
+                .zen_generation()
+                .map(|g| zen_label(g).to_string())
+                .unwrap_or_default(),
+            _ => String::new(),
+        },
     }
 }
 

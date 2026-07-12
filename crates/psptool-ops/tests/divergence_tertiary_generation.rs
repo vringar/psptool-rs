@@ -195,7 +195,6 @@ fn control_combo_reached_directory_carries_generation() {
 ///
 /// Tracking: #70
 #[test]
-#[ignore = "divergence: tertiary-reached dir drops block[20:24] Zen generation label; tracking #70"]
 fn divergence_tertiary_0x48_directory_carries_generation() {
     let out = render(build_tertiary_chain(0x48, ZEN45_GEN_ID));
 
@@ -223,7 +222,6 @@ fn divergence_tertiary_0x48_directory_carries_generation() {
 ///
 /// Tracking: #70
 #[test]
-#[ignore = "divergence: tertiary-reached dir drops block[20:24] Zen generation label; tracking #70"]
 fn divergence_tertiary_0x4a_directory_carries_generation() {
     let out = render(build_tertiary_chain(0x4A, ZEN45_GEN_ID));
     assert!(

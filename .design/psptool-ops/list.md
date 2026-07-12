@@ -109,8 +109,9 @@ below so no SHIPPED claim over-reaches its actual oracle.
   — `control_combo_reached_directory_carries_generation` passes, proving the
   render path stamps `Zen4Or5` for a combo-reached directory.
 - AC-4 (REQ-11): the same suite's
-  `divergence_tertiary_0x48_directory_carries_generation` and `_0x4a_` are
-  `#[ignore]` and fail when un-ignored — the committed pin for blocker #70.
+  `divergence_tertiary_0x48_directory_carries_generation` and `_0x4a_` are now
+  `#[test]` (un-ignored) and PASS — the tertiary-reached `$PL2` renders
+  `Zen4Or5` from the block's `[20:24]` id, closing blocker #70.
 - AC-5 (REQ-12, REQ-13): open — no green test exists; the placeholder strings
   `AGESA_UNKNOWN` / `SIG_UNKNOWN` / `SHA_UNKNOWN` are emitted verbatim.
 
@@ -128,7 +129,7 @@ below so no SHIPPED claim over-reaches its actual oracle.
 | REQ-8 (verbose extension columns) | SHIPPED | `build_entry_row` verbose branch `list.rs:238-259` (`flags`/`MD5`/`size_signed`/`size_full`/`size_packed`/`load_addr`, `body_md5_hex` `list.rs:496-506`) and `entry_to_json` verbose branch `list.rs:330-343` (`md5`/`flags`/`sizes`/`load_addr`); mirror `verbose_fields` + HeaderFile block (`psptool.py:104`/`:183-189`/`:260-266`). Consumer: `psptool-cli/src/cmds/list.rs:45` (`list_verbose`) / `:41` (`list_json` with `args.verbose`). Verification: `list_micro` `list_verbose_psp_micro`/`list_json_verbose_psp_micro`. |
 | REQ-9 (secondary-directory resolution) | SHIPPED | `secondary_addresses` `list.rs:580-607` resolves secondary-directory-pointer entries through the directory address mode (`collect_secondary_psp`/`_bios` `list.rs:609-635`); mirrors `directory.secondary_directory_offsets` (`directory.py:156-163`), printed `psptool.py:86`/`:212`. Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `list_micro` `fet_pointer_addresses_are_byte_stable`; differential combo-drop keys on it. |
 | REQ-10 (generation, combo-reached) | SHIPPED | `directory_generation` `list.rs:531-567`: combo branch (`:533-544`) joins distinct `zen_label`s; PSP/BIOS branch resolves `DirectoryProvenance::ComboEntry` back to the combo entry's generation (`:545-564`, `zen_label` `list.rs:569-577`); mirrors `directory.zen_generation` (`psptool.py:84`) combo threading (`directory.py:57-63`). Consumer: `psptool-cli/src/cmds/list.rs:47`. Verification: `divergence_tertiary_generation.rs::control_combo_reached_directory_carries_generation` (passes — renders `Zen4Or5`). |
-| REQ-11 (generation, tertiary-reached `$PL2`) | NOT-STARTED | open blocker #70. `directory_generation` `list.rs:545-552` returns `String::new()` for any non-`ComboEntry` provenance — tertiary-reached dirs carry `DirectoryProvenance::L2Pointer` (`directory.rs:551-554`), so their `block[20:24]` Zen ID (`directory.py:86-98`) is dropped and the `Generation` cell is blank vs the reference. Fix spans core `directory.rs` (surface `block[20:24]`) + this unit. Pinned by `divergence_tertiary_generation.rs::divergence_tertiary_0x48/0x4a_directory_carries_generation` (`#[ignore]`, tracking #70). |
+| REQ-11 (generation, tertiary-reached `$PL2`) | SHIPPED | `directory_generation` `list.rs:545-580` handles `DirectoryProvenance::Tertiary { generation, .. }` by rendering `generation.zen_generation()` via `zen_label` (`list.rs:571-576`); the id is read from `block[20:24]` in core `tertiary_actual_offset` (`directory.rs:864-869`) and attached to the walk result at `directory.rs:727-731`/`788-792` — mirrors upstream `directory.py:89`/`94`/`98`/`124` (block[20:24] → created dir's `zen_generation`) printed at `psptool.py:84`. Consumer: `psptool-cli/src/cmds/list.rs:47` (`list_default`). Verification: `divergence_tertiary_generation.rs::divergence_tertiary_0x48/0x4a_directory_carries_generation` (both now `#[test]`, pass — render `Zen4Or5`) + control still green. |
 | REQ-12 (AGESA version) | NOT-STARTED | open blocker #75. `render_rom_table` `list.rs:128` emits the `AGESA_UNKNOWN` placeholder (const `list.rs:61`) where `psptool.py:74` prints `rom.agesa_version`; the core parse for the AGESA string is not exposed on `RomListing`. Text-only column, not gated by the differential JSON oracle. |
 | REQ-13 (sig/sha verify result) | NOT-STARTED | open blocker #76. `info_list` `list.rs:460`/`:467`/`:471` emits `SIG_UNKNOWN`/`SHA_UNKNOWN` placeholders (consts `list.rs:62-63`) where `psptool.py:117-140` renders `verified`/`veri-failed(..)`/`sha256_ok`/`sha256_inconsistent`. `psptool-ops`'s `verify.rs` holds the signature machinery but is not wired into `info_list`. `info` is a differential-tolerated key, so this is not gated by the differential. |
 
@@ -164,13 +165,13 @@ as an explicit failure rather than an opaque missing-`address`. The BIOS
 the `Generation` column value is computed. For a combo directory it enumerates
 each combo entry's `psp_generation.zen_generation()`; for a `$PSP`/`$BHD`
 directory it back-resolves a `DirectoryProvenance::ComboEntry`
-(`directory.rs:545-548`) to the combo entry's generation. The gap is structural:
-tertiary-reached (`0x48`/`0x4A`) directories arrive as
-`DirectoryProvenance::L2Pointer` (`directory.rs:551-554`), which the function does
-not handle, so their generation is blank (REQ-11 / #70). The fix requires core
-`directory.rs` to thread `block[20:24]` into a provenance variant this function
-can read — the same routing wall #66 hit for `replace.rs`, which is why list.rs is
-being routed now.
+(`directory.rs:545-548`) to the combo entry's generation. Tertiary-reached
+(`0x48`/`0x4A`) directories arrive as `DirectoryProvenance::Tertiary { generation
+}` (`directory.rs:555-570`) — core `tertiary_actual_offset` reads the block's
+`[20:24]` PSP-ID (`directory.rs:864-869`, upstream `directory.py:89`/`94`) and the
+walk attaches it (`directory.rs:727-731`/`788-792`), so the function renders the
+same `zen_label` the combo path does (REQ-11 / #70, closed). This is the same
+routing wall #66 hit for `replace.rs`, which is why list.rs was routed.
 
 **Address-mode reuse.** Secondary-pointer resolution builds a `ResolveContext`
 from `rom_size`/`directory_base`/`rom_origin` (`list.rs:583-588`) and defers to the
@@ -217,11 +218,11 @@ not a pass).
   ignored**. Self-oracle snapshots of `list_default`/`list_verbose`/`list_json`
   over PSP, BHD, and empty-directory micro-fixtures; the pin for the text-table
   and JSON-shape REQs the differential does not read (REQ-1, REQ-6, REQ-7, REQ-8).
-- `cargo test -p psptool-ops --test divergence_tertiary_generation` — **1 passed,
-  2 ignored**. `control_combo_reached_directory_carries_generation` passes
-  (REQ-10). `divergence_tertiary_0x48/0x4a_directory_carries_generation` are
-  `#[ignore]` and fail when un-ignored — the committed pin for REQ-11 / blocker
-  #70 (per goal.md R-DEFER-3, they move to `#[test]` only when the fix lands).
+- `cargo test -p psptool-ops --test divergence_tertiary_generation` — **3 passed,
+  0 ignored**. `control_combo_reached_directory_carries_generation` passes
+  (REQ-10). `divergence_tertiary_0x48/0x4a_directory_carries_generation` now pass
+  (REQ-11 fix landed — per goal.md R-DEFER-3 they moved from `#[ignore]` to
+  `#[test]` when the fix landed, and now serve as permanent regression coverage).
 - `cargo test -p psptool-ops --lib` — 50 passed, 0 failed, 0 ignored (the crate's
   own suite is green; `list.rs` itself carries no in-file unit tests — its oracles
   are the integration suites above).
