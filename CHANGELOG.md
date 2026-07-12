@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- psptool-core: multi-ROM blob directory parsing diverges from reference (BIOS entry base + entry 3 type) (#41)
 - Blocker for REQ-6 of psptool-core/fletcher: no production consumer recomputes fletcher32 — writer.rs is diff-and-patch only (writer.rs:15) and never calls psptool_core::fletcher32; a mutation path that recomputes the directory checksum and writes it LE into header [0x04..0x08] does not exist (#43)
 - Divergence: psptool-ops replace leaves directory fletcher32 stale; upstream recomputes (directory.py:241) (#66)
 - Divergence: directory.rs::tertiary_actual_offset masks L2 target with PhysicalX86 window override instead of plain addr_mask (directory.py:105) (#68)
