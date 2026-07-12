@@ -1,5 +1,5 @@
 {
-  "next_display_id": 74,
+  "next_display_id": 75,
   "next_comment_id": 77,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -16,6 +16,7 @@
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
+    "40caf313-88c8-4453-9818-6ade46d69119": 74,
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
@@ -521,6 +522,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvhUGBamJGSYGUcKsCxlXq8AojdSvWY+iAsubBeCK8XJDVZptV4h9dhrFyrp5EP/2f5AKNT7KrYXlMMSjNbfRBA=="
         }
       }
+    },
+    "40caf313-88c8-4453-9818-6ade46d69119": {
+      "uuid": "40caf313-88c8-4453-9818-6ade46d69119",
+      "display_id": 74,
+      "title": "psptool-core: secondary (0x40/0x49/0x70) pointer offsets skip the plain from_offset addr_mask that #68 applied to tertiary (asymmetry)",
+      "description": "Current state: \n\nDesired state: \n\nReason: \n\nSee HATER.md (committed) for the full adversarial analysis + failure scenario. Found by the-hater (Fable) review of the session's production changes. MINOR. directory.rs:665 secondary-pointer branch does not apply the plain rom_size.addr_mask() that upstream from_offset (directory.py:105) applies to ALL directory offsets; the #68 fix masked the tertiary target but enshrined the asymmetry. The address.rs critic (adc0646) analyzed this as non-pinnable (upstream file.py:251 asserts-crashes before the secondary walk in the divergent case) — tracked for consistency, likely a no-op cleanup.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T04:25:17.616633603Z",
+      "updated_at": "2026-07-12T04:25:17.616633603Z"
     },
     "4438c167-6f65-469f-9ff4-a0773b7edddf": {
       "uuid": "4438c167-6f65-469f-9ff4-a0773b7edddf",
@@ -2754,11 +2767,16 @@
       "agent_id": "tLiK",
       "agent_seq": 147,
       "timestamp": "2026-07-12T04:25:12.804643719Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 148,
+      "timestamp": "2026-07-12T04:25:17.616633603Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:25:12.804643719Z",
+    "timestamp": "2026-07-12T04:25:17.616633603Z",
     "agent_id": "tLiK",
-    "agent_seq": 147
+    "agent_seq": 148
   }
 }
