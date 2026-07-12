@@ -1,5 +1,5 @@
 {
-  "next_display_id": 80,
+  "next_display_id": 81,
   "next_comment_id": 93,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -75,6 +75,7 @@
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
     "e91fb96d-6532-4b2f-b117-a86283030074": 68,
+    "e9dc2315-17b2-4030-abc0-3685a51ca70e": 80,
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
@@ -2118,6 +2119,16 @@
         }
       }
     },
+    "e9dc2315-17b2-4030-abc0-3685a51ca70e": {
+      "uuid": "e9dc2315-17b2-4030-abc0-3685a51ca70e",
+      "display_id": 80,
+      "title": "Spillover: extract.rs:156-157 build_encrypted_header_body stamps header-inclusive size_signed (stale convention)",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T07:23:04.785365464Z",
+      "updated_at": "2026-07-12T07:23:04.785365464Z"
+    },
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": {
       "uuid": "e9e8d58e-9b00-4f70-b337-7ab57b2da892",
       "display_id": 9,
@@ -3192,11 +3203,16 @@
       "agent_id": "tLiK",
       "agent_seq": 182,
       "timestamp": "2026-07-12T07:03:19.114426540Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 183,
+      "timestamp": "2026-07-12T07:23:04.785365464Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T07:03:19.114426540Z",
+    "timestamp": "2026-07-12T07:23:04.785365464Z",
     "agent_id": "tLiK",
-    "agent_seq": 182
+    "agent_seq": 183
   }
 }
