@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Translation unit: psptool-core/fletcher.rs (#42)
 
 ### Fixed
+- psptool-ops: replace.rs rewrite_size_field .expect can panic when zlib-recovered original_len exceeds u32 (R-CODE-2) (#71)
 - psptool-core: #51 tertiary walk discards block[20:24] Zen generation id (ls Generation column diverges) (#70)
 - psptool-core: entry address-mode divergence on upper-half (>16MB) directories — SP5 EPYC (#52)
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
