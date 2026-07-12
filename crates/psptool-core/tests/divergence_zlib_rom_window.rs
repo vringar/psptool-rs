@@ -179,9 +179,8 @@ fn control_rom_window_equals_blob_recovers() {
 /// Expected body length is derived from the upstream ROM-window recovery rule
 /// (`file.py:303-311`), NOT from our parser (R-CHAR-3).
 ///
-/// Tracking: #72
+/// Tracking: #72 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: zlib-recovery overrun uses whole-file blob_end, not the ROM window rom_origin+rom_size; tracking #72"]
 fn divergence_rom_window_smaller_than_blob() {
     let entry = parse_first_bios(build(TWO_ROM_BLOB), RomSize::MIB_8).unwrap_or_else(|e| {
         panic!(

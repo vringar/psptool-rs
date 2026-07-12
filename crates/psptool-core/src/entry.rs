@@ -516,6 +516,20 @@ fn resolve_body(
     let blob_start = blob.offset().get();
     let blob_end = blob_start.saturating_add(blob.len() as u64);
     let body_end = body_offset.get().saturating_add(size);
+    // Upstream (`file.py:297`) bounds the overrun against the ROM WINDOW
+    // (`parent_buffer.buffer_size >= entry.file_offset() + entry.size`), not the
+    // whole input file: `file.py:293-296` uses the *unmasked* entry offset to
+    // detect entries that would overflow the containing ROM buffer. On a
+    // multi-ROM / capsule image the whole-file end lies past the ROM window, so
+    // an entry overrunning its ROM window (but not the whole file) must still be
+    // recovered. `rom_origin` is the ROM's absolute start and `rom_size` its
+    // length, so `rom_origin + rom_size` is the ROM window's absolute end,
+    // directly comparable to the absolute `body_end`. Clamp it down to `blob_end`
+    // so a ROM window extending past the actual input bytes never reads OOB.
+    let rom_window_end = rom_origin
+        .get()
+        .saturating_add(rom_size.bytes())
+        .min(blob_end);
     // An entry starting before the input window is always unrecoverable.
     if body_offset.get() < blob_start {
         return Err(ParseError::Truncated {
@@ -534,7 +548,7 @@ fn resolve_body(
     // `zlib_size = le_u32(blob[offset+0x14:+4])` (`file.py:302-311`,
     // `utils.zlib_find_header` at `utils.py:218-234`). A non-compressed overrun
     // is still rejected, matching upstream's `file.py:316-318` warning + drop.
-    let body_len = if body_end > blob_end {
+    let body_len = if body_end > rom_window_end {
         let overrun = || ParseError::Truncated {
             what: "entry body",
             offset: body_offset,
