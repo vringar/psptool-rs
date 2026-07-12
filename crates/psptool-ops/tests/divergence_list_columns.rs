@@ -61,9 +61,8 @@ fn verbose_entry_cells() -> std::collections::HashMap<String, String> {
     };
     let table = list_verbose(&rom);
 
-    let split = |line: &str| -> Vec<String> {
-        line.split('|').map(|c| c.trim().to_string()).collect()
-    };
+    let split =
+        |line: &str| -> Vec<String> { line.split('|').map(|c| c.trim().to_string()).collect() };
 
     let header = table
         .lines()
@@ -93,9 +92,8 @@ fn verbose_entry_cells() -> std::collections::HashMap<String, String> {
 /// Upstream `psptool.py:175` — `hex(file.entry.instance)`
 /// For this fixture both bytes are 0, so upstream renders `"0x0"`; `list.rs`
 /// renders `"0"`.
-/// Tracking: #85
+/// Tracking: #85 (fixed — pin now live)
 #[test]
-#[ignore = "divergence: Subprogram/Instance rendered decimal, upstream hex() (psptool.py:174-175); tracking #85"]
 fn divergence_subprogram_instance_rendered_decimal_not_hex() {
     let cells = verbose_entry_cells();
     // Upstream `hex(0)` == "0x0" (psptool.py:174/:175).
