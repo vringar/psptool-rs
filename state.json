@@ -2106,11 +2106,12 @@
       "uuid": "cf133cc6-457d-4b4c-8000-bd9958a02990",
       "display_id": 85,
       "title": "Divergence: list.rs ls text renders Subprogram/Instance as decimal, upstream psptool.py:174-175 uses hex()",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:21:59.923254184Z",
-      "updated_at": "2026-07-12T09:35:07.537953175Z",
+      "updated_at": "2026-07-12T09:36:23.542739012Z",
+      "closed_at": "2026-07-12T09:36:23.542737599Z",
       "labels": [
         "blocker"
       ],
@@ -3832,11 +3833,16 @@
       "agent_id": "tLiK",
       "agent_seq": 235,
       "timestamp": "2026-07-12T09:35:07.537953175Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 236,
+      "timestamp": "2026-07-12T09:36:23.542739012Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:35:07.537953175Z",
+    "timestamp": "2026-07-12T09:36:23.542739012Z",
     "agent_id": "tLiK",
-    "agent_seq": 235
+    "agent_seq": 236
   }
 }
