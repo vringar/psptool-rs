@@ -67,6 +67,12 @@ TARGET_CRATE_EXACT = ()
 # translation of any Python upstream, so it is not route-gated.
 EXCLUDED_CRATES = ("psptool-fixtures",)
 
+# Test-only scaffolding files that live under a target crate's src/ but are
+# `#![cfg(test)]` fixture builders with no upstream Python counterpart (same
+# rationale as EXCLUDED_CRATES). Excluded by basename so correcting a test
+# fixture doesn't require routing a non-translation-unit.
+EXCLUDED_FILE_BASENAMES = ("tests_support.rs",)
+
 # File extensions to gate (e.g. ".rs" for Rust, ".py" for Python target).
 TARGET_EXTENSION = ".rs"
 
@@ -194,6 +200,8 @@ def is_gated_path(rel_path):
     if parts and parts[0] == "crates":
         parts = parts[1:]
     if len(parts) < 3:
+        return False
+    if parts[-1] in EXCLUDED_FILE_BASENAMES:
         return False
     crate = parts[0]
     if crate in EXCLUDED_CRATES:
