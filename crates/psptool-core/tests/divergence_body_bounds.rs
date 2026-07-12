@@ -80,6 +80,94 @@ fn data_region_of_unsigned_headerfile_keeps_full_body() {
     );
 }
 
+/// Divergence: `HeaderEntry::signature_bytes` (`body.rs:222`) calls
+/// `signature_len()` **unconditionally**, without consulting `is_signed()`.
+/// This is the exact sibling of the #81 defect that was fixed in
+/// `data_region` (`body.rs:200`, which now gates `sig_len` on `is_signed()`),
+/// but left un-fixed here.
+///
+/// Upstream only materializes a signature for a signed file, and gives an
+/// unsigned file `signature_len == 0`:
+///
+///   `header_file.py:77-84`:
+///     ```
+///     if self.is_signed:
+///         if self.signature_type == 0x0: self.signature_len = 0x100
+///         elif self.signature_type == 0x2: self.signature_len = 0x200
+///         self.signature = NestedBuffer(self, self.signature_len,
+///                                       self.rom_size - self.signature_len)
+///     else:
+///         self.signature_len = 0        # and self.signature is never created
+///     ```
+///   `header_file.py:181` (the only site that materializes a signature value):
+///     `signature = self.signature.get_bytes() if self.is_signed else b''`
+///
+/// So for an UNSIGNED HeaderFile the observable trailing signature is **empty**
+/// (`b''`, `signature_len == 0`). The target instead returns the last
+/// `signature_len(signature_type)` bytes of the (rom-size-bounded) body — for
+/// `signature_type == 0` that is the last `0x100` bytes.
+///
+/// Worse, this now contradicts the #81 `data_region` fix on the *same* unsigned
+/// entry: `data_region` returns `body[0x100 .. rom_size]` (full, sig_len == 0)
+/// while `signature_bytes` returns `body[rom_size - 0x100 .. rom_size]` — the
+/// two OVERLAP on the last 0x100 bytes, which upstream never does.
+///
+/// Not currently reached for unsigned files by the two in-tree callers
+/// (`sign.rs:123` and `verify.rs:256` both gate on `is_signed()` first;
+/// `extract.rs:59` calls only `data_region`), but `signature_bytes` is a `pub`
+/// library API surface (a downstream Rust consumer can call it directly), so
+/// the divergence is observable at the public boundary.
+///
+/// Expected value derived from upstream (`header_file.py:83-84`): an unsigned
+/// file has `signature_len == 0`, so `signature_bytes` must be empty.
+///
+/// Tracking: #83
+#[test]
+#[ignore = "divergence: signature_bytes ignores is_signed, returns last 0x100 bytes for an unsigned HeaderFile; tracking #83"]
+fn signature_bytes_of_unsigned_headerfile_is_empty() {
+    // Same unsigned fixture as the data_region pin above: signed_raw == 0,
+    // signature_type == 0, rom_size == 0x300 (header 0x100 + 0x200 data, NO
+    // signature region). The last 0x100 body bytes are 0xBB — they belong to
+    // the DATA region upstream, not to any signature.
+    let mut h = [0u8; HEADER_FILE_LEN];
+    h[0x10..0x14].copy_from_slice(b"$PS1");
+    // 0x30 (is_signed) left zero => unsigned.
+    h[0x34..0x38].copy_from_slice(&0u32.to_le_bytes()); // signature_type == 0
+    h[0x6C..0x70].copy_from_slice(&0x300u32.to_le_bytes()); // rom_size
+
+    let mut blob = Vec::new();
+    blob.extend_from_slice(&h);
+    blob.extend(std::iter::repeat_n(0xAAu8, 0x100));
+    blob.extend(std::iter::repeat_n(0xBBu8, 0x100)); // upstream: part of DATA region
+
+    let src = SourceBytes::from_blob(blob);
+    let entry = HeaderEntry::parse(&src).expect("header parses");
+    assert!(
+        !entry.is_signed(),
+        "fixture must be unsigned to exercise the bug"
+    );
+
+    // Upstream: signature_len == 0 for an unsigned file (header_file.py:83-84),
+    // so the trailing signature region is EMPTY.
+    let sig = entry
+        .signature_bytes(src.as_bytes())
+        .expect("unsigned signature region is a valid (empty) slice");
+    assert_eq!(
+        sig.len(),
+        0,
+        "unsigned HeaderFile has signature_len == 0 (header_file.py:83-84); \
+         got {} bytes — target is treating the tail of the DATA region as a \
+         signature",
+        sig.len()
+    );
+    // Guard against the specific wrong region: the last 0x100 bytes (0xBB) are
+    // data-region bytes upstream, and must NOT surface as a signature.
+    assert!(
+        !sig.iter().any(|&b| b == 0xBB),
+        "trailing 0xBB bytes belong to the data region, not the signature"
+    );
+}
+
 /// Divergence: `HeaderEntry::get_decompressed_body` (`body.rs:275`) reads
 /// `plaintext[stream_start .. stream_start + zlib_size]` — i.e. it treats
 /// `zlib_size` as a length measured FROM the zlib magic. Upstream measures
@@ -151,6 +239,75 @@ fn get_decompressed_body_zlib_size_is_absolute_offset_not_length() {
         out, expected,
         "get_decompressed_body must mirror upstream zlib_decompress(output[:zlib_size]): \
          prefix + decompressed payload"
+    );
+}
+
+/// Divergence: `find_zlib_start` (`body.rs:486`) scans the *whole* `plaintext`
+/// (bounded only by the 0x500 window), whereas upstream searches only
+/// `output[:zlib_size]`:
+///
+///   `header_file.py:171`:
+///     `return zlib_decompress(output[:self.zlib_size])`
+///   `utils.py:245` (`zlib_decompress`):
+///     `zlib_start = zlib_find_header(s)`    where `s == output[:zlib_size]`
+///   `utils.py:218-234` (`zlib_find_header`):
+///     `s = s[:0x500]; for magic in ZLIB_TYPES: ... s.find(magic) ...`
+///
+/// Upstream therefore NEVER inspects a byte at or beyond `zlib_size`. The
+/// target's `get_decompressed_body` (`body.rs:287`) calls
+/// `find_zlib_start(plaintext)` on the *entire* data region and only bounds to
+/// `zlib_size` AFTER locating a magic (`body.rs:296-304`). A pathological entry
+/// with a zlib magic at an offset `> zlib_size` (but within the 0x500 window)
+/// and NO magic within `[0, zlib_size)` diverges: the target locates the
+/// out-of-bounds magic and (because `zlib_size < stream_start`) raises
+/// `ZlibSizeOutOfRange`, whereas upstream's `zlib_find_header(output[:zlib_size])`
+/// returns -1 — there is no zlib magic in the region it actually searches.
+///
+/// Expected value derived from upstream: `output[:zlib_size]` here is 0x40
+/// bytes of 0x00, so `zlib_find_header(output[:zlib_size])` finds NO magic. The
+/// target must reach the same conclusion (no magic within `[0, zlib_size)`),
+/// surfaced in its own error taxonomy as `ZlibMagicMissing` — and must NOT
+/// locate the magic that lives at offset 0x50 (past `zlib_size`). The current
+/// `ZlibSizeOutOfRange` is direct evidence the scan over-read past `zlib_size`.
+///
+/// Tracking: #84
+#[test]
+#[ignore = "divergence: find_zlib_start scans whole plaintext, not plaintext[..zlib_size]; tracking #84"]
+fn find_zlib_start_ignores_magic_beyond_zlib_size() {
+    // Data region: 0x50 non-magic bytes, then a zlib magic (0x78 0xDA) at
+    // offset 0x50. zlib_size == 0x40, so upstream searches only output[:0x40]
+    // (all 0x00 — no magic). The magic at 0x50 is strictly past zlib_size.
+    let mut plaintext = vec![0x00u8; 0x50];
+    plaintext.extend_from_slice(&[0x78, 0xDA, 0x01, 0x02]); // fake magic past zlib_size
+    let zlib_size: u32 = 0x40;
+
+    // Sanity: no zlib magic byte appears within the region upstream searches
+    // (output[:zlib_size]); the only 0x78 sits at 0x50, past zlib_size.
+    assert!(
+        !plaintext[..zlib_size as usize].contains(&0x78),
+        "the region upstream searches (output[:zlib_size]) must be magic-free"
+    );
+
+    let mut h = [0u8; HEADER_FILE_LEN];
+    h[0x10..0x14].copy_from_slice(b"$PS1");
+    h[0x48..0x4C].copy_from_slice(&1u32.to_le_bytes()); // is_compressed == 1
+    h[0x54..0x58].copy_from_slice(&zlib_size.to_le_bytes());
+    let src = SourceBytes::from_blob(h.to_vec());
+    let entry = HeaderEntry::parse(&src).expect("header parses");
+    assert!(entry.is_compressed);
+
+    let err = entry
+        .get_decompressed_body(&plaintext)
+        .expect_err("no zlib magic within output[:zlib_size], so decompression cannot succeed");
+    // Upstream searches output[:zlib_size] and finds NO magic. The target must
+    // agree — it must NOT locate the magic at 0x50 (past zlib_size). A
+    // `ZlibSizeOutOfRange` is proof the scan looked past zlib_size and found
+    // the out-of-bounds magic; the upstream-faithful outcome is "no magic in
+    // the searched region" (`ZlibMagicMissing`).
+    assert!(
+        matches!(err, BodyError::ZlibMagicMissing { .. }),
+        "expected ZlibMagicMissing (no magic within output[:zlib_size]); got {err:?} — \
+         the scan located a magic beyond zlib_size, which upstream never inspects"
     );
 }
 
