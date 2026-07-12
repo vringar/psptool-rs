@@ -4,17 +4,31 @@
 //! Three functions take a parsed [`Entry`] and return owned bytes. No I/O —
 //! the filesystem write happens in the CLI layer (`psptool-cli`, #15).
 //!
-//! Mapping to PSPTool's `File` hierarchy:
+//! Mapping to PSPTool's `File` hierarchy (the accessor each op currently
+//! ports — note the reference tool's single-file `-X -u`/`-c` path wraps these
+//! in an envelope, see REQ-7 / #88):
 //!
-//! | This module               | PSPTool method                          |
-//! | ------------------------- | --------------------------------------- |
-//! | [`extract_raw`]           | `File.get_bytes()`                      |
-//! | [`extract_decompressed`]  | `HeaderFile.get_decompressed_body()`    |
-//! | [`extract_decrypted`]     | `HeaderFile.get_decrypted()`            |
+//! | This module               | PSPTool accessor                                         |
+//! | ------------------------- | -------------------------------------------------------- |
+//! | [`extract_raw`]           | `File.get_bytes()` (`__main__.py:180`)                   |
+//! | [`extract_decompressed`]  | zlib-inflate step of `get_decrypted_decompressed_body` (`header_file.py:169-174`) |
+//! | [`extract_decrypted`]     | `HeaderFile.get_decrypted_body()` (`header_file.py:184-190`) |
 //!
 //! Decompression / decryption are only meaningful for entries that carry a
 //! [`HeaderEntry`] — i.e. [`EntryClass::Header`] or [`EntryClass::KeyStore`].
 //! Other classes produce [`ExtractError::NotHeaderEntry`].
+//!
+//! ## REQ status (per `.design/psptool-ops/extract.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:41` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:137`/`:171`. |
+//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:57` (`data_region` + `get_decompressed_body`, `NotCompressed` guard) per upstream inflate step (`header_file.py:169-174`); consumer `cmds/extract.rs:127`/`:162`. Bare inflated body only — the `-u` envelope is REQ-7. |
+//! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs:77` (`get_decrypted_body`, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:184-190`); consumer `cmds/extract.rs:129`/`:164`. Bare decrypted body only — the `-c` envelope is REQ-7. |
+//! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:58`/`:78` (`entry.class.header().ok_or(NotHeaderEntry)?`) per upstream `type(file) is HeaderFile` (`__main__.py:193`,`:195`); Header/KeyStore only. |
+//! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:22` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
+//! | REQ-6 (CLI `extract` consumer) | SHIPPED | `cmds/extract.rs` binds all three ops (`:127`/`:129`/`:137`/`:162`/`:164`/`:171`), dispatched `main.rs:82` (`-X`) / `:125` (`Command::Extract`). Boundary CLI surface (R-DEFER-1). |
+//! | REQ-7 (`-u`/`-c` envelope parity) | NOT-STARTED | Blocker #88. Extract ops return the BARE body; upstream single-file `-u` returns `get_signed_bytes()` and `-c` returns `to_decrypted_file_bytes()` (`__main__.py:172`/`:176`, `header_file.py:162-164`/`:176-182`). Not caught by any suite (`parity_ops=[]`). |
 
 use psptool_core::{BodyError, Entry, Ikek};
 use thiserror::Error;

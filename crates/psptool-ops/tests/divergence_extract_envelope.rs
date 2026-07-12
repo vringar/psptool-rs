@@ -6,23 +6,16 @@
 //! (`/tmp/psptool-ref/psptool/__main__.py:167-180`) wraps those bytes in a
 //! header-prefixed (and, for `-u`, `size_signed`-truncated) envelope:
 //!
-//!   * `-X -u` (`__main__.py:169-172`):
-//!       `output = file.get_signed_bytes()`
-//!     `get_signed_bytes` (`header_file.py:162-164`):
-//!       `file_bytes = self.header.get_bytes() + self.get_decrypted_decompressed_body()`
-//!       `return file_bytes[:len(self.header) + self.size_signed]`
-//!     => header(0x100) ++ decrypted-decompressed-body, truncated to
-//!        `0x100 + size_signed`.
+//! `-X -u` (`__main__.py:169-172`) is `output = file.get_signed_bytes()`
+//! (`get_signed_bytes`, `header_file.py:162-164`): the `0x100` header
+//! concatenated with `get_decrypted_decompressed_body()`, truncated to
+//! `0x100 + size_signed`.
 //!
-//!   * single-file `-X -c` (`__main__.py:173-176`):
-//!       `output = file.to_decrypted_file_bytes()`
-//!     `to_decrypted_file_bytes` (`header_file.py:176-182`):
-//!       `header = bytearray(self.header.get_bytes())`
-//!       `header[0x18:0x1c] = bytes(4)`   # clear is_encrypted
-//!       `header[0x20:0x30] = bytes(0x10)`# clear IV
-//!       `signature = self.signature.get_bytes() if self.is_signed else b''`
-//!       `return bytes(header) + self.get_decrypted_body() + signature`
-//!     => header(enc-flag+IV cleared) ++ decrypted-body ++ signature.
+//! Single-file `-X -c` (`__main__.py:173-176`) is `output =
+//! file.to_decrypted_file_bytes()` (`to_decrypted_file_bytes`,
+//! `header_file.py:176-182`): a copy of the `0x100` header with `[0x18:0x1c]`
+//! (is_encrypted) and `[0x20:0x30]` (IV) cleared, then `get_decrypted_body()`,
+//! then `signature` when `is_signed`.
 //!
 //! Upstream inconsistency captured for the eventual fixer: the MULTI-file
 //! path uses a DIFFERENT `-c` accessor — `file.get_decrypted_body()`
