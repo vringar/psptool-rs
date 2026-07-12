@@ -1,5 +1,5 @@
 {
-  "next_display_id": 73,
+  "next_display_id": 74,
   "next_comment_id": 77,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -54,6 +54,7 @@
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": 18,
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
+    "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
@@ -1467,6 +1468,18 @@
         "58ab16e7-59ab-4168-b6e1-d1708dc511e5"
       ]
     },
+    "c3c8670f-9fe0-4508-8196-90362d7f2528": {
+      "uuid": "c3c8670f-9fe0-4508-8196-90362d7f2528",
+      "display_id": 73,
+      "title": "psptool-ops: replace updates size+checksum only in the given parent directory, not every referencing directory (multi-ref divergence)",
+      "description": "Steps to reproduce:\n1. \n\nExpected: \nActual: \n\nSee HATER.md (committed) for the full adversarial analysis + failure scenario. Found by the-hater (Fable) review of the session's production changes. replace.rs:128-153 updates only the passed parent; upstream file.py:385-393 updates size+checksum in EVERY directory referencing the entry. For entries referenced by multiple dirs (multi-ROM), sibling records/checksums go stale. #41-multi-ROM family. Also: two family-API replaces in the SAME directory currently PatchError-overlap on the checksum field, and recompute_directory_checksum rebuilds from pristine dir_source (not editor post-patch state) so sequential same-dir replaces compose wrong. Upstream's live-buffer recompute handles all this. No production consumer does multi-replace-per-editor yet.",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T04:25:03.136035400Z",
+      "updated_at": "2026-07-12T04:25:03.136035400Z"
+    },
     "ca40b6c9-0483-40ff-accd-e46128d5e601": {
       "uuid": "ca40b6c9-0483-40ff-accd-e46128d5e601",
       "display_id": 3,
@@ -2722,11 +2735,16 @@
       "agent_id": "tLiK",
       "agent_seq": 144,
       "timestamp": "2026-07-12T04:24:58.161729306Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 145,
+      "timestamp": "2026-07-12T04:25:03.136035400Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T04:24:58.161729306Z",
+    "timestamp": "2026-07-12T04:25:03.136035400Z",
     "agent_id": "tLiK",
-    "agent_seq": 144
+    "agent_seq": 145
   }
 }
