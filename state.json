@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 117,
+  "next_comment_id": 118,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1422,10 +1422,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:41:47.223476121Z",
-      "updated_at": "2026-07-12T09:41:52.083442447Z",
+      "updated_at": "2026-07-12T09:42:26.230810779Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "bf09ff92-6407-49dd-92f4-e4bfbdfc1204": {
+          "display_id": 117,
+          "author": "tLiK",
+          "content": "Gap: upstream '-X -u' single/multi returns file.get_signed_bytes() (__main__.py:172,194) = header(0x100) ++ get_decrypted_decompressed_body()[:0x100+size_signed] (header_file.py:162-164) — decrypt-THEN-decompress, header-prefixed, truncated to size_signed. Rust extract_decompressed (extract.rs:57-62) returns only zlib_inflate(data_region) via get_decompressed_body (body.rs:304): NO header prefix, NO size_signed truncation, NO decrypt-first for encrypted+compressed entries. Likewise upstream '-X -c' SINGLE returns file.to_decrypted_file_bytes() (__main__.py:176) = header(enc-flags cleared) ++ get_decrypted_body() ++ signature (header_file.py:176-182); Rust extract_decrypted (extract.rs:77-81) returns only get_decrypted_body() (body.rs:267). Core get_signed_bytes already exists (body.rs:377, used by sign.rs) — the gap is the extract path uses the wrong primitive. Not caught by any suite (parity_ops=[]; extract not in ls/ls_json differential). Fix during extract.rs read->write->verify pass.",
+          "created_at": "2026-07-12T09:42:26.225913390Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA1UqmvTXSL3OHbkqRt8iLsBRZW070DC8fA9AGGqlNEDKMWvuKqJYwPQuCaKSCrNyQnbboaFs6FEbexHU0mgdCCQ=="
+        }
+      }
     },
     "9b196228-1911-43b8-9662-c9d1dde70cda": {
       "uuid": "9b196228-1911-43b8-9662-c9d1dde70cda",
@@ -3885,11 +3896,16 @@
       "agent_id": "tLiK",
       "agent_seq": 240,
       "timestamp": "2026-07-12T09:41:59.702102832Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 241,
+      "timestamp": "2026-07-12T09:42:26.230810779Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:41:59.702102832Z",
+    "timestamp": "2026-07-12T09:42:26.230810779Z",
     "agent_id": "tLiK",
-    "agent_seq": 240
+    "agent_seq": 241
   }
 }
