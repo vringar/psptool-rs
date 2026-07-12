@@ -1,6 +1,6 @@
 {
   "next_display_id": 85,
-  "next_comment_id": 108,
+  "next_comment_id": 109,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1774,7 +1774,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:45:46.244990490Z",
-      "updated_at": "2026-07-12T08:56:13.258422530Z",
+      "updated_at": "2026-07-12T08:56:18.140916637Z",
       "closed_at": "2026-07-12T08:56:13.258418753Z",
       "labels": [
         "blocker"
@@ -1788,6 +1788,15 @@
           "kind": "note",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIWJrAuotIdR1D8cxTWBlVHAwNGbqQhiHLwRciu1aDco3gIsxyNV8f1rtTxOw/3XE3hP62UyGnERBwGZafXu1Bg=="
+        },
+        "646e9219-c4d5-43c8-bf28-584d6d07b0ee": {
+          "display_id": 108,
+          "author": "tLiK",
+          "content": "Fixed in the body.rs commit above. signature_bytes now returns an empty slice for unsigned HeaderFiles, mirroring the #81 is_signed gate. Pin live; real-corpus verify unchanged (2993 Verified / 26 BadSignature); clippy + fmt clean.",
+          "created_at": "2026-07-12T08:56:18.136076538Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABALXAoghZJbnlSPQKvf0KO7IeYtDKOMfcmjrohgxCTFr3X0ImmzKcmLuMP53HNO9W4NVL2ifD5dBZ/LHSog0PpAA=="
         },
         "d6cfd841-b4f3-4f27-bba1-c364af6e67ce": {
           "display_id": 106,
@@ -3609,11 +3618,16 @@
       "agent_id": "tLiK",
       "agent_seq": 217,
       "timestamp": "2026-07-12T08:56:13.258422530Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 218,
+      "timestamp": "2026-07-12T08:56:18.140916637Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:56:13.258422530Z",
+    "timestamp": "2026-07-12T08:56:18.140916637Z",
     "agent_id": "tLiK",
-    "agent_seq": 217
+    "agent_seq": 218
   }
 }
