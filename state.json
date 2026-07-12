@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 125,
+  "next_comment_id": 126,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -270,13 +270,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:24:48.357942464Z",
-      "updated_at": "2026-07-12T10:36:18.391649745Z",
+      "updated_at": "2026-07-12T10:36:23.156491710Z",
       "closed_at": "2026-07-12T10:36:18.391648072Z",
       "labels": [
         "blocker",
         "bug"
       ],
       "comments": {
+        "3b587313-4b16-4332-a384-f8dd0703ec57": {
+          "display_id": 125,
+          "author": "tLiK",
+          "content": "Fixed in the entry.rs commit above. Overrun bound changed from whole-file blob_end to min(rom_origin + rom_size, blob_end), mirroring upstream file.py:297 ROM-window semantics. Pin live; corpus roundtrip 54 + differential 53 green; single-ROM images unaffected (rom_origin+rom_size == blob_end there).",
+          "created_at": "2026-07-12T10:36:23.151877367Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAFr9KqXObjXmFHFTuf1ATIG8K/3WWWYp2KWeWnFofeSsbXML0N7S37v4XHGe4FsB+PFP68PHwMkanvy4pMZXcBQ=="
+        },
         "41b63204-1a96-4eb6-8c04-b0ce6322d4fe": {
           "display_id": 124,
           "author": "tLiK",
@@ -4005,11 +4014,16 @@
       "agent_id": "tLiK",
       "agent_seq": 249,
       "timestamp": "2026-07-12T10:36:18.391649745Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 250,
+      "timestamp": "2026-07-12T10:36:23.156491710Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T10:36:18.391649745Z",
+    "timestamp": "2026-07-12T10:36:23.156491710Z",
     "agent_id": "tLiK",
-    "agent_seq": 249
+    "agent_seq": 250
   }
 }
