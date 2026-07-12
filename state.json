@@ -422,11 +422,12 @@
       "display_id": 41,
       "title": "psptool-core: multi-ROM blob directory parsing diverges from reference (BIOS entry base + entry 3 type)",
       "description": "Found by the issue #18 differential test vs reference Python PSPTool.\n\nAll three multi-ROM corpus blobs (ASUS_PRIME-X470-PRO-ASUS-4804.CAP, ASUS_ROG-STRIX-X470-F-GAMING-ASUS-4804.CAP, H12SSW9.719) diverge from the reference inside the ROM-1 BIOS directory.\n\nExample: H12SSW9.719 $BHD directory @0x1246000:\n- idx 2 BIOS entry: ours addr 0x1db0000, reference 0xdb0000 (differ by exactly 0x1000000, the ROM-1 base). PMU_* entries idx 4-15 in the SAME directory agree on absolute addresses, so the reference is mixing address bases or we add the ROM base where we should not.\n- idx 3: ours PMU_CODE~0x64 @0x1249000 size 0x4990; reference BIOS_#41_PTR~0x70 @0x249000 size 0x400 -- a different record entirely (different type 0x64 vs 0x70). One side mis-locates the record.\n\nAll three ROMs are on the differential test SKIP_LIST. Investigate multi-ROM BIOS directory parsing: the per-ROM address base applied to BIOS-region entries, and the entry-3 record mis-read.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-05-21T22:17:39.312940808Z",
-      "updated_at": "2026-07-12T05:37:04.848916316Z",
+      "updated_at": "2026-07-12T05:37:12.959428031Z",
+      "closed_at": "2026-07-12T05:37:12.959426588Z",
       "labels": [
         "component:core"
       ],
@@ -2998,11 +2999,16 @@
       "agent_id": "tLiK",
       "agent_seq": 166,
       "timestamp": "2026-07-12T05:37:04.848916316Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 167,
+      "timestamp": "2026-07-12T05:37:12.959428031Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:37:04.848916316Z",
+    "timestamp": "2026-07-12T05:37:12.959428031Z",
     "agent_id": "tLiK",
-    "agent_seq": 166
+    "agent_seq": 167
   }
 }
