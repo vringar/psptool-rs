@@ -1,6 +1,6 @@
 {
   "next_display_id": 69,
-  "next_comment_id": 69,
+  "next_comment_id": 70,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0e3dee61-386f-471e-9b70-03d7531271c2": 43,
@@ -1687,10 +1687,21 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T00:13:05.384779722Z",
-      "updated_at": "2026-07-12T00:13:10.340361657Z",
+      "updated_at": "2026-07-12T00:14:09.237551461Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "a7147228-7155-4c7a-9197-98a103b2afe8": {
+          "display_id": 69,
+          "author": "tLiK",
+          "content": "Failing test at crates/psptool-core/tests/divergence_dirmask_window.rs:divergence_tertiary_physical_style_block_val_32mib_plain_addr_mask demonstrates the divergence (run with --include-ignored). Upstream from_offset (directory.py:105) plain-masks the tertiary block[16:20] value: 0xFF050000 & 0x01FFFFFF = 0x1050000 -> parses $PL2 there (live-oracle verified on both /tmp/psptool-ref HEAD and PSPTOOL_REFERENCE 3.4 with a byte-identical fixture; no #61 skew). Target directory.rs::tertiary_actual_offset routes the value through AddressMode::PhysicalX86.resolve, whose >16MiB window override (address.rs normalise_physical) yields 0x50000 -> BadMagic -> L2 silently missed. Fix site: directory.rs:tertiary_actual_offset (use plain rom_size.addr_mask(), not PhysicalX86 resolution). Two passing controls (flash-style value in 32MiB; physical-style value in 16MiB) localise the divergence to the mask flavour. Not corpus-reachable today (54/54 roundtrip green), hence #[ignore]-pinned.",
+          "created_at": "2026-07-12T00:14:09.226950893Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA49GHlE3kwSWONz518E54k5g7IExZHiyeKkcdil1b/ftKHxc5s5Ny5nHv2rQnzKQLE9aQQzyEDoUs7UfbkfxaBA=="
+        }
+      }
     },
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": {
       "uuid": "e9e8d58e-9b00-4f70-b337-7ab57b2da892",
@@ -2466,11 +2477,16 @@
       "agent_id": "tLiK",
       "agent_seq": 122,
       "timestamp": "2026-07-12T00:13:17.815347988Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 123,
+      "timestamp": "2026-07-12T00:14:09.237551461Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T00:13:17.815347988Z",
+    "timestamp": "2026-07-12T00:14:09.237551461Z",
     "agent_id": "tLiK",
-    "agent_seq": 122
+    "agent_seq": 123
   }
 }
