@@ -1233,11 +1233,12 @@
       "uuid": "7d3e8bf4-fc86-456e-9ee3-434b2180f648",
       "display_id": 81,
       "title": "Divergence: body.rs data_region ignores is_signed (drops signature_len bytes for unsigned HeaderFiles) vs header_file.py:83-84,100",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T08:03:47.016850544Z",
-      "updated_at": "2026-07-12T08:22:33.978263932Z",
+      "updated_at": "2026-07-12T08:25:44.575949362Z",
+      "closed_at": "2026-07-12T08:25:44.575947919Z",
       "labels": [
         "blocker"
       ],
@@ -3407,11 +3408,16 @@
       "agent_id": "tLiK",
       "agent_seq": 200,
       "timestamp": "2026-07-12T08:22:33.978263932Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 201,
+      "timestamp": "2026-07-12T08:25:44.575949362Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T08:22:33.978263932Z",
+    "timestamp": "2026-07-12T08:25:44.575949362Z",
     "agent_id": "tLiK",
-    "agent_seq": 200
+    "agent_seq": 201
   }
 }
