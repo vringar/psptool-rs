@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 121,
+  "next_comment_id": 122,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1422,7 +1422,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:41:47.223476121Z",
-      "updated_at": "2026-07-12T10:01:07.092701626Z",
+      "updated_at": "2026-07-12T10:05:31.037757885Z",
       "labels": [
         "blocker"
       ],
@@ -1444,6 +1444,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAIKQblxqktaMoG4yBsSYl49+oDDjCEHcNI9BlXiCUT2MX4yeIDAz+y5KpIRKifUo3vy6Nc0QHn+KFYOpd0lD9Bg=="
+        },
+        "4a6dfe1a-fd77-417a-be9c-fa5079b404ca": {
+          "display_id": 121,
+          "author": "tLiK",
+          "content": "Result (fixer): REVERTED — fix scope exceeds single-file/dispatch model; needs orchestrator re-dispatch (likely acto-builder).\n\nThe specified compose (extract_decompressed -> get_signed_bytes; extract_decrypted -> to_decrypted_file_bytes inline) DOES make BOTH pinned tests PASS under --ignored. But it breaks 5 pre-existing in-file unit tests in extract.rs, and 2 of those cannot be made green within extract.rs alone:\n\n1. SignedRegionOutOfRange(281,17): the committed header_compressed fixture stamps size_signed=281 (header-INCLUSIVE, stale pre-#79 convention, build_fixtures.rs:362) while get_signed_bytes treats size_signed as header-EXCLUSIVE; decompressed body is only 17 bytes. Requires regenerating the .bin in crate psptool-fixtures (another file) OR rewriting the unit test to synthesize a body.\n\n2. NotCompressed gate lost (REQ-2/REQ-4): get_signed_bytes tolerates non-compressed input; upstream keeps the 'not compressed' guard in the CLI (__main__.py:170), NOT in get_signed_bytes. extract_decompressed_errors_when_header_not_compressed and _works_on_keystore_class assert NotCompressed. Preserving that end-to-end needs the gate moved into cmds/extract.rs (CLI, forbidden by dispatch).\n\n3/4. extract_decrypted round-trip + wrong-ikek tests assert the BARE plaintext; trivially updatable to the envelope (in-file), but bundled with 1/2 above.\n\nPer R-FIX-3/R-FIX-6 the working tree was reverted to HEAD (baseline green: cargo test -p psptool-ops --lib extract = 14 passed). #80 helper hygiene fix (size_signed header-exclusive) is independent and correct but reverted alongside since dispatch bundled it.\n\nRecommendation: re-dispatch as acto-builder with a manifest covering extract.rs + cmds/extract.rs (NotCompressed/NotEncrypted single-file guards) + psptool-fixtures header_compressed regeneration + the in-file test rewrites + REQ-2/3/7 table. The KeyStore multi-file nuance stays separate as noted.",
+          "created_at": "2026-07-12T10:05:31.032991814Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWZxiOIxPH/262RQ1ZJwiQBvFSbC85rO28OVwnmycQD7TwNabo8dXRzFpbfunBaiyNmKcz6ztmWssi7m76rmVBA=="
         },
         "bf09ff92-6407-49dd-92f4-e4bfbdfc1204": {
           "display_id": 117,
@@ -3943,11 +3952,16 @@
       "agent_id": "tLiK",
       "agent_seq": 244,
       "timestamp": "2026-07-12T10:01:07.092701626Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 245,
+      "timestamp": "2026-07-12T10:05:31.037757885Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T10:01:07.092701626Z",
+    "timestamp": "2026-07-12T10:05:31.037757885Z",
     "agent_id": "tLiK",
-    "agent_seq": 244
+    "agent_seq": 245
   }
 }
