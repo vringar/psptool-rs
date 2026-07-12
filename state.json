@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 118,
+  "next_comment_id": 119,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1422,11 +1422,20 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:41:47.223476121Z",
-      "updated_at": "2026-07-12T09:42:26.230810779Z",
+      "updated_at": "2026-07-12T09:53:17.353609718Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "14574d43-97af-4274-88d9-8d4276d23edb": {
+          "display_id": 118,
+          "author": "tLiK",
+          "content": "Failing tests pinning the #88 divergence landed at crates/psptool-ops/tests/divergence_extract_envelope.rs:\n\n- divergence_decompress_envelope_matches_get_signed_bytes (single-file -X -u): asserts extract_decompressed == upstream get_signed_bytes() = header(0x100) ++ decrypted-decompressed-body[..0x100+size_signed] (__main__.py:172, header_file.py:162-164). FAILS under --ignored: target returns bare 17-byte inflated body, expected header-prefixed + size_signed-truncated envelope.\n- divergence_decrypt_envelope_matches_to_decrypted_file_bytes (single-file -X -c): asserts extract_decrypted == upstream to_decrypted_file_bytes() = header(is_encrypted+IV cleared) ++ decrypted-body ++ signature (__main__.py:176, header_file.py:176-182). FAILS under --ignored: target returns bare decrypted body only.\n\nBoth #[ignore]d with tracking #88; run 'cargo test -p psptool-ops --test divergence_extract_envelope -- --ignored' to observe the pinned failures. Fixer must target the SINGLE-file contract (-u -> get_signed_bytes, -c -> to_decrypted_file_bytes); note upstream's own single-vs-multi -c inconsistency (multi uses get_decrypted_body(), __main__.py:195-196,218-219).",
+          "created_at": "2026-07-12T09:53:17.348894924Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA5pu/Aq86LzqkEFoJE2j9bPuBDId3JW9wgsZV0k6MBccGl9D/xhczp5qGB/OTVkTybRIxhrbIzuAIKkUNfpTaBQ=="
+        },
         "bf09ff92-6407-49dd-92f4-e4bfbdfc1204": {
           "display_id": 117,
           "author": "tLiK",
@@ -3901,11 +3910,16 @@
       "agent_id": "tLiK",
       "agent_seq": 241,
       "timestamp": "2026-07-12T09:42:26.230810779Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 242,
+      "timestamp": "2026-07-12T09:53:17.353609718Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:42:26.230810779Z",
+    "timestamp": "2026-07-12T09:53:17.353609718Z",
     "agent_id": "tLiK",
-    "agent_seq": 241
+    "agent_seq": 242
   }
 }
