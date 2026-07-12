@@ -1,5 +1,5 @@
 {
-  "next_display_id": 77,
+  "next_display_id": 78,
   "next_comment_id": 87,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -59,6 +59,7 @@
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
     "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
+    "ca74b297-d703-4ae4-b2b2-0769a8ebc969": 77,
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
     "d434f175-a545-41e6-9748-d52c77e1eb5d": 54,
@@ -1688,6 +1689,18 @@
         }
       }
     },
+    "ca74b297-d703-4ae4-b2b2-0769a8ebc969": {
+      "uuid": "ca74b297-d703-4ae4-b2b2-0769a8ebc969",
+      "display_id": 77,
+      "title": "harden #41 cross-ROM echo tolerance: condition (3) value-match could theoretically mask a coincidental-duplicate mis-parse",
+      "description": "Current state: \n\nDesired state: \n\nReason: \n\nNon-manifesting hardening note from the #41 tolerance verification (differential.rs cross_rom_echo guard, ~477-507). Condition (3) matches the cache seed by (address,size,sectionType) VALUE-equality in some other directory. The TRUE mechanism is upstream files_by_offset OBJECT identity (File.references links the seed dir to the echoing dir) + the exact 0x1000000-window-multiple address relationship. In theory a genuine over-add mis-parse whose coincidental page-0 triple happens to duplicate elsewhere could be tolerated. Verified NOT to manifest on the current corpus (all 7 tolerated entries are object-identity echoes; no untolerated failures; no coincidental masking). Optional hardening: tighten condition (3) to also require the seed be in a LOWER ROM (re.address < 16MiB window boundary / owner in ROM0) and/or that oe.address-re.address be exactly rom_origin, reducing coincidence surface. Low priority — defensive only.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-07-12T05:45:33.734337293Z",
+      "updated_at": "2026-07-12T05:45:33.734337293Z"
+    },
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": {
       "uuid": "cb8782f5-edb1-4629-9143-2a8e565fe0f6",
       "display_id": 38,
@@ -3004,11 +3017,16 @@
       "agent_id": "tLiK",
       "agent_seq": 167,
       "timestamp": "2026-07-12T05:37:12.959428031Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 168,
+      "timestamp": "2026-07-12T05:45:33.734337293Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T05:37:12.959428031Z",
+    "timestamp": "2026-07-12T05:45:33.734337293Z",
     "agent_id": "tLiK",
-    "agent_seq": 167
+    "agent_seq": 168
   }
 }
