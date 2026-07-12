@@ -1,6 +1,6 @@
 {
   "next_display_id": 89,
-  "next_comment_id": 119,
+  "next_comment_id": 120,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1422,7 +1422,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T09:41:47.223476121Z",
-      "updated_at": "2026-07-12T09:53:17.353609718Z",
+      "updated_at": "2026-07-12T09:55:13.173667867Z",
       "labels": [
         "blocker"
       ],
@@ -1444,6 +1444,15 @@
           "kind": "note",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA1UqmvTXSL3OHbkqRt8iLsBRZW070DC8fA9AGGqlNEDKMWvuKqJYwPQuCaKSCrNyQnbboaFs6FEbexHU0mgdCCQ=="
+        },
+        "d87ecac1-0fec-4c17-9911-d21d074e8162": {
+          "display_id": 119,
+          "author": "tLiK",
+          "content": "REQ-4 class-gate imprecision found during audit (fold into #88 envelope work):\n\nextract.rs REQ-4 claims the class gate 'Mirrors upstream type(file) is HeaderFile guards (__main__.py:193,195)'. It does NOT exactly: entry.class.header() returns Some for BOTH Header AND KeyStore, but upstream 'type(file) is HeaderFile' is an EXACT identity check that is FALSE for KeyStoreFile (key_store_file.py:23 'class KeyStoreFile(HeaderFile)' is a subclass).\n\nConsequences the fixer must handle:\n- Multi-file -u/-c (__main__.py:193-196): a COMPRESSED or ENCRYPTED KeyStore falls to the else branch -> get_bytes() (raw) upstream, but target extract_decompressed/extract_decrypted succeed and return the inflated/decrypted body. (For NON-compressed/NON-encrypted KeyStore the target's cmds/extract.rs:162-164 unwrap_or_else(|_| extract_raw) masks it, so it only diverges for compressed/encrypted KeyStore.)\n- Single-file -u (__main__.py:172): upstream calls file.get_signed_bytes(); for a KeyStore this is KeyStoreFile.get_signed_bytes() = header.get_bytes() ++ key_store.get_bytes() (key_store_file.py:50) -- DIFFERENT from HeaderFile.get_signed_bytes() (header_file.py:162-164). The #88 fix must special-case the KeyStore subtype, not reuse the HeaderFile envelope.\n\nNot separately pinned (entangled with the #88 envelope + needs a compressed/encrypted KeyStore fixture + CLI multi-file path outside the extract.rs unit route); recorded here so the envelope fix covers the KeyStore subtype.",
+          "created_at": "2026-07-12T09:55:13.168997207Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAItcWpfiBx8TGpTgJrE4vUZVtPngkAKzL1n4vjafFzwKY8wTq9++nmrH3bFqoI5SfbmiXl5q/5vEhJwBw+LZjAQ=="
         }
       }
     },
@@ -3915,11 +3924,16 @@
       "agent_id": "tLiK",
       "agent_seq": 242,
       "timestamp": "2026-07-12T09:53:17.353609718Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 243,
+      "timestamp": "2026-07-12T09:55:13.173667867Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-07-12T09:53:17.353609718Z",
+    "timestamp": "2026-07-12T09:55:13.173667867Z",
     "agent_id": "tLiK",
-    "agent_seq": 242
+    "agent_seq": 243
   }
 }
