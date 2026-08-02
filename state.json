@@ -204,10 +204,6 @@
       "agent_id": "tLiK",
       "claimed_at": "2026-07-12T09:22:12.212422390Z"
     },
-    "87": {
-      "agent_id": "tLiK",
-      "claimed_at": "2026-07-12T09:22:49.065838812Z"
-    },
     "88": {
       "agent_id": "tLiK",
       "claimed_at": "2026-07-12T09:41:59.702102832Z"
@@ -4112,11 +4108,16 @@
       "agent_id": "tLiK",
       "agent_seq": 261,
       "timestamp": "2026-08-02T10:11:40.231657587Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 262,
+      "timestamp": "2026-08-02T10:11:45.402532587Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-08-02T10:11:40.231657587Z",
+    "timestamp": "2026-08-02T10:11:45.402532587Z",
     "agent_id": "tLiK",
-    "agent_seq": 261
+    "agent_seq": 262
   }
 }
