@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: list.rs ls verbose 'MD5' column is full 32-char lowercase, upstream psptool.py:180 renders md5()[:4].upper() (4-char uppercase) (#87)
+- Divergence: list.rs ls verbose 'flags' column populated (0x..), upstream psptool.py:179 renders it empty ('') (#86)
 - Spillover: extract.rs:156-157 build_encrypted_header_body stamps header-inclusive size_signed (stale convention) (#80)
 - Blocker for REQ-7 of extract.md: -u/-c single-file output must match upstream get_signed_bytes/to_decrypted_file_bytes envelope (#88)
 - Differential divergence: AORUS_X570 entry 26 type 0x5c named SPI_ROM_CONFIG vs upstream WMOS (HeaderFile) (#60)
