@@ -23,7 +23,9 @@
 //! Out of scope (deferred to issues #8 / #9):
 //!
 //! * Actually decompressing or decrypting a [`HeaderEntry`] body.
-//! * Parsing the `$KDB` body inside a [`EntryClass::KeyStore`].
+//! * Parsing the `$KDB` body inside a [`EntryClass::KeyStore`] into a
+//!   structure (only its certifying keys are read, by `body.rs`'s
+//!   `CertifyingKeys`).
 //! * Following [`EntryClass::TertiaryDirectoryPointer`] indirection records.
 //! * Writer-side mutation.
 //!
@@ -52,6 +54,9 @@ use crate::source::SourceBytes;
 
 /// Length of the PSP "blob header" prefixed to signed-entry bodies (§4).
 pub const HEADER_FILE_LEN: usize = 0x100;
+
+/// Header offset of the content checksum (sha256 or sha384, mutually exclusive).
+const CHECKSUM_OFFSET: usize = 0xd0;
 
 /// Length of the fixed `PubkeyFile` header (§7.1).
 pub const PUBKEY_HEADER_LEN: usize = 0x40;
@@ -236,6 +241,23 @@ impl HeaderEntry {
         (self.bitfield & 0b10) != 0
     }
 
+    /// The 32-byte sha256 content checksum, stored at header offset `0xd0`
+    /// (`header_file.py:46`: `NestedBuffer(self, 0x20, 0xd0)`). Only meaningful
+    /// when [`Self::has_sha256_checksum`]. Shares its offset with the sha384
+    /// field: the two are mutually exclusive.
+    #[inline]
+    pub fn sha256_checksum(&self) -> &[u8] {
+        &self.source.as_bytes()[CHECKSUM_OFFSET..CHECKSUM_OFFSET + 0x20]
+    }
+
+    /// The 48-byte sha384 content checksum, stored at header offset `0xd0`
+    /// (`header_file.py:47`: `NestedBuffer(self, 0x30, 0xd0)`). Only meaningful
+    /// when [`Self::has_sha384_checksum`].
+    #[inline]
+    pub fn sha384_checksum(&self) -> &[u8] {
+        &self.source.as_bytes()[CHECKSUM_OFFSET..CHECKSUM_OFFSET + 0x30]
+    }
+
     /// Trailing RSA-signature length in bytes, when the header is signed.
     /// Returns `None` for unsupported `signature_type` values.
     #[inline]
@@ -326,7 +348,7 @@ pub enum EntryClass {
     /// Body is a `PubkeyFile` (§7.1).
     Pubkey(PubkeyEntry),
     /// Body is a `KeyStoreFile` (§7.2). The leading PSP header is parsed; the
-    /// embedded `$KDB` body is deferred to a later issue.
+    /// embedded `$KDB` keys are read by `body::CertifyingKeys::from_blob`.
     KeyStore(HeaderEntry),
     /// BIOS directory entry type `0x66`. Compressed-microcode handling is
     /// deferred to #8; classification is exposed so callers can branch on it.
@@ -584,8 +606,10 @@ fn resolve_body(
 /// Mirror of upstream `utils.zlib_find_header` (`utils.py:218-234`): scan the
 /// first `0x500` bytes of `s` for a zlib magic and return its offset within
 /// `s`, checking the common `0x100` location first to avoid false positives.
-/// Returns `None` when no magic is found.
-fn zlib_find_header(s: &[u8]) -> Option<usize> {
+/// Returns `None` when no magic is found. Also the magic search of the decode
+/// ladder's `_decrypted_decompressed_body` port (`body.rs`), which feeds it
+/// `output[:zlib_size]` exactly as `utils.py:245` does.
+pub(crate) fn zlib_find_header(s: &[u8]) -> Option<usize> {
     // `utils.py:210-214` — the four documented zlib magic byte pairs.
     const ZLIB_MAGICS: [[u8; 2]; 4] = [
         [0x78, 0xDA], // best compression

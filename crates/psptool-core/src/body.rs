@@ -18,9 +18,27 @@
 //! | [`HeaderEntry::get_signed_bytes`]     | `get_signed_bytes`                          |
 //! | [`HeaderEntry::verify_signature`]     | `HeaderFile.verify_signature`               |
 //! | [`PubkeyEntry::rsa_public_key`]       | `PubkeyFile.get_public_key`                 |
+//! | [`Entry::decode_verification`]        | `HeaderFile.decode_verification`            |
+//! | [`DecodeVerification`]                | `decode_verified` / `decode_verification_method` / `plaintext_identity_ok` |
+//! | [`CertifyingKeys::from_blob`]         | `CertificateTree.from_blob` (pubkeys by id) |
 //!
 //! The `body` argument is always the entry's full body slice
 //! (`[header(0x100) | data | signature]`). Nothing here mutates it.
+//!
+//! ## Decode verification
+//!
+//! [`Entry::decode_verification`] ports the tiered `(verified, basis)` ladder
+//! of `HeaderFile._verify_decode` (PSPTool `header_file.py:198-243`, introduced
+//! by the decode-verified commit `241629b` on top of master `edae097`). It
+//! answers whether the decrypted/decompressed body is positively confirmed:
+//! a signature spanning the whole body, a signature plus a matching header
+//! checksum, a standalone checksum, or an untransformed unsigned body. The
+//! signature rung resolves certifying keys through [`CertifyingKeys`], the
+//! port of the `CertificateTree` key map (`cert_tree.py:255-406`): every
+//! `PubkeyFile` key plus every key of every `KeyStoreFile` `$KDB` store
+//! (`key_store_file.py:140-253`). The governing requirement is
+//! `.design/psptool-ops/list.md` REQ-13/REQ-14 (its production consumer is the
+//! `ls` renderer in `psptool-ops/src/list.rs`).
 //!
 //! ## REQ status (per `.design/psptool-core/body.md`)
 //!
@@ -38,14 +56,25 @@ use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecrypt, BlockDecryptMut, KeyInit, KeyIvInit, block_padding::NoPadding};
 use flate2::read::ZlibDecoder;
+use flate2::{Decompress, FlushDecompress, Status};
 use rsa::pss::{Signature as PssSignature, VerifyingKey as PssVerifyingKey};
 use rsa::signature::Verifier;
+use rsa::traits::PublicKeyParts;
 use rsa::{BigUint, RsaPublicKey};
-use sha2::{Sha256, Sha384};
+use sha2::{Digest, Sha256, Sha384};
+use std::collections::HashMap;
+use std::fmt;
 use std::io::Read as _;
 use thiserror::Error;
 
-use crate::entry::{HEADER_FILE_LEN, HeaderEntry, PUBKEY_HEADER_LEN, PubkeyEntry};
+use crate::directory::{Directory, walk_directories};
+use crate::entry::{
+    Entry, EntryClass, HEADER_FILE_LEN, HeaderEntry, PUBKEY_HEADER_LEN, PubkeyEntry,
+    zlib_find_header,
+};
+use crate::fet::{detect_rom_layout, scan_fet_candidates};
+use crate::magic::KDB_MAGIC;
+use crate::source::SourceBytes;
 
 /// AES-128-CBC decryptor type alias used throughout this module.
 type Aes128CbcDec = cbc::Decryptor<Aes128>;
@@ -367,6 +396,47 @@ impl HeaderEntry {
         }
     }
 
+    /// Best-effort decode mirroring upstream `_decrypted_decompressed_body`
+    /// (`header_file.py:172-186`). Unlike [`Self::get_decrypted_decompressed_body`]
+    /// a failed zlib stream does not discard the body.
+    ///
+    /// Returns `(bytes, decompress_ok)`. `decompress_ok` is `false` only when the
+    /// entry is compressed and its zlib stream fails to inflate; `bytes` is then
+    /// the still-compressed decrypted data region (upstream returns `output`, not
+    /// the `zlib_size`-truncated slice, `header_file.py:185`). A missing zlib
+    /// magic is not a failure: upstream `zlib_decompress` returns its input
+    /// unchanged then (`utils.py:254`), so `decompress_ok` stays `true`.
+    ///
+    /// The magic search is upstream's per-magic priority order
+    /// ([`zlib_find_header`], `utils.py:218-234`) and the inflate is strict
+    /// ([`zlib_decompress_strict`]), so a truncated stream is a failure exactly
+    /// as `zlib.decompress` raises on it.
+    fn decode_best_effort(&self, file: &[u8], ikek: Ikek) -> Result<(Vec<u8>, bool), BodyError> {
+        let output = if self.is_encrypted {
+            self.get_decrypted_body(file, ikek)?
+        } else {
+            self.data_region(file)?.to_vec()
+        };
+        if !self.is_compressed {
+            return Ok((output, true));
+        }
+        // `header_file.py:181`: `zlib_decompress(output[:self.zlib_size])`.
+        let stream = &output[..(self.zlib_size as usize).min(output.len())];
+        let Some(start) = zlib_find_header(stream) else {
+            // `utils.py:254`: no magic → the (truncated) input, unchanged.
+            return Ok((stream.to_vec(), true));
+        };
+        match zlib_decompress_strict(&stream[start..]) {
+            Some(inflated) => {
+                // `utils.py:248-252`: `uncompressed + decompressed`.
+                let mut out = stream[..start].to_vec();
+                out.extend_from_slice(&inflated);
+                Ok((out, true))
+            }
+            None => Ok((output, false)),
+        }
+    }
+
     /// Bytes covered by the RSA signature: `header(0x100) ||
     /// decrypted_decompressed_body`, truncated to `0x100 + size_signed`
     /// (`header_file.py:162-164`: `file_bytes[:len(self.header) +
@@ -407,12 +477,19 @@ impl HeaderEntry {
         pubkey: &PubkeyEntry,
         ikek: Option<Ikek>,
     ) -> Result<(), VerifyError> {
-        // Cross-check signature_type (sig length) against the declared modulus
-        // width BEFORE building the RSA key — otherwise a mismatch would be
-        // reported as InvalidPublicKey, which doesn't match the error taxonomy.
-        // PSPTool conflates signature_type with hash + modulus width:
-        //   signature_type = 0 → 2048-bit modulus → SHA-256
-        //   signature_type = 2 → 4096-bit modulus → SHA-384
+        self.check_key_width(pubkey)?;
+        // Signed region (decrypted, decompressed if applicable, header + body).
+        let signed = self.get_signed_bytes(body, ikek)?;
+        self.verify_signed_region(body, &signed, pubkey)
+    }
+
+    /// Cross-check `signature_type` (sig length) against the declared modulus
+    /// width BEFORE building the RSA key — otherwise a mismatch would be
+    /// reported as InvalidPublicKey, which doesn't match the error taxonomy.
+    /// PSPTool conflates signature_type with hash + modulus width:
+    ///   signature_type = 0 → 2048-bit modulus → SHA-256
+    ///   signature_type = 2 → 4096-bit modulus → SHA-384
+    fn check_key_width(&self, pubkey: &PubkeyEntry) -> Result<(), VerifyError> {
         let needed = match self.signature_type {
             0 => 2048,
             2 => 4096,
@@ -429,10 +506,16 @@ impl HeaderEntry {
                 needed,
             });
         }
+        Ok(())
+    }
 
-        // Signed region (decrypted, decompressed if applicable, header + body).
-        let signed = self.get_signed_bytes(body, ikek)?;
-
+    /// RSA-PSS verification of `signed` against this entry's trailing signature.
+    fn verify_signed_region(
+        &self,
+        body: &[u8],
+        signed: &[u8],
+        pubkey: &PubkeyEntry,
+    ) -> Result<(), VerifyError> {
         // Trailing signature — used PLAIN (standard big-endian I2OSP). A
         // HeaderFile signature is a plain `Signature` (`cert_tree.py:63`), NOT
         // the reversed PubkeyFile convention (`crypto.py:386-409`).
@@ -441,9 +524,11 @@ impl HeaderEntry {
         let public_key = pubkey.rsa_public_key()?;
 
         match self.signature_type {
-            0 => verify_pss::<Sha256>(&public_key, &signed, signature),
-            2 => verify_pss::<Sha384>(&public_key, &signed, signature),
-            _ => unreachable!("checked above"),
+            0 => verify_pss::<Sha256>(&public_key, signed, signature),
+            2 => verify_pss::<Sha384>(&public_key, signed, signature),
+            other => Err(VerifyError::Body(BodyError::UnsupportedSignatureType(
+                other,
+            ))),
         }
     }
 }
@@ -504,6 +589,554 @@ impl PubkeyEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Decode verification — `HeaderFile._verify_decode` (header_file.py:191-276)
+// ---------------------------------------------------------------------------
+
+/// Outcome of the certificate-tree signature check `SignedEntity.is_verified()`
+/// (`cert_tree.py:72-95`) for a signed HeaderFile / KeyStoreFile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SignatureCheck {
+    /// At least one certifying key verifies the signature (`verified_once`,
+    /// `cert_tree.py:84-95`).
+    Verified,
+    /// Certifying keys exist but none verifies (`cert_tree.py:90-91`).
+    Failed,
+    /// No key with the entry's certifying id is known: upstream raises
+    /// `NoCertifyingKey` (`cert_tree.py:79-80`).
+    NoCertifyingKey,
+    /// The check could not run: a candidate key's crypto material is not an
+    /// RSA-2048/4096 key (upstream `_make_public_key` raises,
+    /// `cert_tree.py:204-208`), or the signed region / signature could not be
+    /// cut from the file. Upstream's unexpected-exception path
+    /// (`header_file.py:210-217`).
+    Error,
+}
+
+/// Outcome of the stored content checksum check `verify_sha256` /
+/// `verify_sha384` (`header_file.py:112-128`) over the checksummed bytes.
+/// sha256 wins when both bits are set, as in `psptool.py:131-140`
+/// (`if … elif`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ChecksumCheck {
+    /// `has_sha256_checksum`; `ok` = the stored 32 bytes match.
+    Sha256 { ok: bool },
+    /// `has_sha384_checksum`; `ok` = the stored 48 bytes match.
+    Sha384 { ok: bool },
+}
+
+/// Basis of a decode verdict: the `decode_verification_method()` label set
+/// (`header_file.py:259-265`) plus [`DecodeBasis::DecodeError`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum DecodeBasis {
+    /// `signature`: verified, and `size_signed` spans the whole decoded body
+    /// (`header_file.py:225-226`).
+    Signature,
+    /// `signature+sha256`: verified signature, partial span, matching sha256
+    /// (`header_file.py:227-228`).
+    SignatureSha256,
+    /// `signature+sha384` (`header_file.py:229-230`).
+    SignatureSha384,
+    /// `sha256`: unsigned, matching stored sha256 (`header_file.py:234-235`).
+    Sha256,
+    /// `sha384`: unsigned, matching stored sha384 (`header_file.py:236-237`).
+    Sha384,
+    /// `plain`: unsigned, unencrypted, uncompressed (`header_file.py:241-242`).
+    Plain,
+    /// `signature-failed` (`header_file.py:218-219`).
+    SignatureFailed,
+    /// `signature-unresolved`: no certifying key (`header_file.py:206-209`).
+    SignatureUnresolved,
+    /// `signature-error` (`header_file.py:210-217`).
+    SignatureError,
+    /// `signature-partial`: verified, but the tail past `size_signed` is
+    /// unauthenticated (`header_file.py:231`).
+    SignaturePartial,
+    /// `sha256-failed` (`header_file.py:235`).
+    Sha256Failed,
+    /// `sha384-failed` (`header_file.py:237`).
+    Sha384Failed,
+    /// `decompress-failed`: the zlib stream does not inflate
+    /// (`header_file.py:201-202`).
+    DecompressFailed,
+    /// `unverifiable`: transformed body with no integrity data
+    /// (`header_file.py:243`).
+    Unverifiable,
+    /// `decode-error`: the body cannot be decrypted or sliced at all (an
+    /// undocumented `signature_type` on a signed entry, a header-declared size
+    /// past the file, a cipher text that is not block-aligned). Upstream has no
+    /// label for this because `_decrypted_decompressed_body` runs outside every
+    /// `try` in `_verify_decode` (`header_file.py:200`): the exception escapes
+    /// `decode_verification()`. The Rust API is total and reports it instead;
+    /// it is never verified and never a plaintext identity.
+    DecodeError,
+}
+
+impl DecodeBasis {
+    /// The upstream label (`header_file.py:259-265`), e.g. `"signature-partial"`.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Signature => "signature",
+            Self::SignatureSha256 => "signature+sha256",
+            Self::SignatureSha384 => "signature+sha384",
+            Self::Sha256 => "sha256",
+            Self::Sha384 => "sha384",
+            Self::Plain => "plain",
+            Self::SignatureFailed => "signature-failed",
+            Self::SignatureUnresolved => "signature-unresolved",
+            Self::SignatureError => "signature-error",
+            Self::SignaturePartial => "signature-partial",
+            Self::Sha256Failed => "sha256-failed",
+            Self::Sha384Failed => "sha384-failed",
+            Self::DecompressFailed => "decompress-failed",
+            Self::Unverifiable => "unverifiable",
+            Self::DecodeError => "decode-error",
+        }
+    }
+
+    /// Whether this basis confirms the full decoded body — the six verified
+    /// labels of `header_file.py:260-261`.
+    pub const fn is_verified(self) -> bool {
+        matches!(
+            self,
+            Self::Signature
+                | Self::SignatureSha256
+                | Self::SignatureSha384
+                | Self::Sha256
+                | Self::Sha384
+                | Self::Plain
+        )
+    }
+}
+
+impl fmt::Display for DecodeBasis {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Single-pass decode verification of one HeaderFile-class entry — upstream
+/// `decode_verification()` (`header_file.py:191-196`), carrying the
+/// signature and checksum sub-results the `ls` File-Info tags render
+/// (`psptool.py:116-140`) so a caller never verifies twice.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct DecodeVerification {
+    method: DecodeBasis,
+    encrypted: bool,
+    signature: Option<SignatureCheck>,
+    checksum: Option<ChecksumCheck>,
+}
+
+impl DecodeVerification {
+    /// Whether the decoded body is positively confirmed authentic
+    /// (`decode_verified()`, `header_file.py:245-257`).
+    pub const fn decode_verified(&self) -> bool {
+        self.method.is_verified()
+    }
+
+    /// The basis of [`Self::decode_verified`]
+    /// (`decode_verification_method()`, `header_file.py:259-265`).
+    pub const fn decode_verification_method(&self) -> DecodeBasis {
+        self.method
+    }
+
+    /// Whether the decoded body is the true plaintext, i.e. its hash is a
+    /// valid content identity (`plaintext_identity_ok()`,
+    /// `header_file.py:267-276`): `(not encrypted or verified) and method !=
+    /// 'decompress-failed'`. Weaker than [`Self::decode_verified`]: an
+    /// unencrypted body is the plaintext verbatim whatever its signature
+    /// status. A [`DecodeBasis::DecodeError`] body does not exist, so it is
+    /// never an identity either (upstream raises there).
+    pub const fn plaintext_identity_ok(&self) -> bool {
+        (!self.encrypted || self.decode_verified())
+            && !matches!(
+                self.method,
+                DecodeBasis::DecompressFailed | DecodeBasis::DecodeError
+            )
+    }
+
+    /// The certificate-tree signature check, `None` when the entry is not
+    /// signed (a KeyStoreFile always is, `key_store_file.py:62-64`).
+    pub const fn signature(&self) -> Option<SignatureCheck> {
+        self.signature
+    }
+
+    /// The stored content checksum check, `None` when neither sha bit is set.
+    pub const fn checksum(&self) -> Option<ChecksumCheck> {
+        self.checksum
+    }
+}
+
+/// Certifying public keys by 16-byte key id: the key map of upstream's
+/// `CertificateTree` (`cert_tree.py:255-336`), consulted by
+/// [`Entry::decode_verification`] for its signature rung.
+#[derive(Clone, Debug, Default)]
+pub struct CertifyingKeys {
+    by_id: HashMap<[u8; 16], KeyCandidates>,
+}
+
+/// Every key known under one key id (`CertificateTree.pubkeys[key_id]`).
+#[derive(Clone, Debug, Default)]
+struct KeyCandidates {
+    /// Distinct usable keys. Upstream dedups key entities by address; equal
+    /// key material verifies identically, so dedup by value is equivalent.
+    keys: Vec<RsaPublicKey>,
+    /// Some candidate's crypto material is not an RSA-2048/4096 key; upstream
+    /// raises when it reaches that key (`cert_tree.py:204-208`).
+    unusable: bool,
+}
+
+impl CertifyingKeys {
+    /// Collect the certifying keys of a whole image, as
+    /// `CertificateTree.from_blob` does (`cert_tree.py:385-397`): every ROM
+    /// (every FET candidate that resolves to a layout), every directory, every
+    /// entry — `PubkeyFile` keys (`:392-393`, `add_pubkey_file` `:349-366`) and
+    /// every key of every `KeyStoreFile` `$KDB` store (`:396-397`,
+    /// `add_key_store_file` `:368-383`). Keys from one ROM certify entries of
+    /// another, exactly like upstream's single tree. `ikek` decrypts a
+    /// compressed key store (`key_store_file.py:39-40`).
+    ///
+    /// Upstream additionally scans file bodies for inline pubkeys
+    /// (`cert_tree.py:399-404`, `blob.py:133-181`); that heuristic finds none
+    /// in the test corpus and is not ported here.
+    pub fn from_blob(blob: &SourceBytes, ikek: Ikek) -> Self {
+        let mut keys = Self::default();
+        for position in scan_fet_candidates(blob) {
+            let Some(layout) = detect_rom_layout(blob, position) else {
+                continue;
+            };
+            for dir_ref in walk_directories(blob, &layout.fet, layout.rom_size, layout.rom_origin) {
+                let parsed: Vec<_> = match &dir_ref.directory {
+                    Directory::Psp(p) => (0..p.entries.len())
+                        .map(|i| Entry::parse_psp(blob, p, i, layout.rom_size, layout.rom_origin))
+                        .collect(),
+                    Directory::Bios(b) => (0..b.entries.len())
+                        .map(|i| Entry::parse_bios(blob, b, i, layout.rom_size, layout.rom_origin))
+                        .collect(),
+                    Directory::Combo(_) => Vec::new(),
+                };
+                for entry in parsed.iter().flatten() {
+                    keys.add_entry(entry, blob, ikek);
+                }
+            }
+        }
+        keys
+    }
+
+    fn add_entry(&mut self, entry: &Entry, blob: &SourceBytes, ikek: Ikek) {
+        match &entry.class {
+            // `PublicKeyEntity._from_pubkey_file` (`cert_tree.py:161-170`).
+            EntryClass::Pubkey(pk) => self.insert(pk.key_id, pk.rsa_public_key().ok()),
+            // `KeyStoreFile.key_store.keys` (`cert_tree.py:377-383`).
+            EntryClass::KeyStore(h) => {
+                let window = entry.header_file_window(h, blob);
+                let file = window.as_bytes();
+                let decoded = if h.is_compressed {
+                    h.decode_best_effort(file, ikek).ok().map(|(body, _)| body)
+                } else {
+                    None
+                };
+                let Some(store) = h.key_store_slice(file, decoded.as_deref()) else {
+                    return;
+                };
+                for (key_id, key) in kdb_keys(store) {
+                    self.insert(key_id, key);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn insert(&mut self, key_id: [u8; 16], key: Option<RsaPublicKey>) {
+        let slot = self.by_id.entry(key_id).or_default();
+        match key {
+            Some(key) if !slot.keys.contains(&key) => slot.keys.push(key),
+            Some(_) => {}
+            None => slot.unusable = true,
+        }
+    }
+
+    /// `SignedEntity.verify_with_tree` (`cert_tree.py:78-95`) over the signed
+    /// bytes and signature, when both could be cut from the file.
+    fn check(
+        &self,
+        certifying_id: &[u8; 16],
+        signed: Option<&[u8]>,
+        signature: Option<&[u8]>,
+    ) -> SignatureCheck {
+        // `cert_tree.py:79-80`: an empty key set raises NoCertifyingKey.
+        let Some(candidates) = self.by_id.get(certifying_id) else {
+            return SignatureCheck::NoCertifyingKey;
+        };
+        if candidates.unusable {
+            return SignatureCheck::Error;
+        }
+        let (Some(signed), Some(signature)) = (signed, signature) else {
+            return SignatureCheck::Error;
+        };
+        if candidates
+            .keys
+            .iter()
+            .any(|key| verify_blob(key, signed, signature))
+        {
+            SignatureCheck::Verified
+        } else {
+            SignatureCheck::Failed
+        }
+    }
+}
+
+impl Entry {
+    /// Decode verification of a HeaderFile-class entry (upstream
+    /// `decode_verification()`, `header_file.py:191-243`); `None` for every
+    /// other entry class (the method exists only on `HeaderFile` and its
+    /// `KeyStoreFile` subclass — `psptool.py:260` gates the JSON keys the same
+    /// way).
+    ///
+    /// `blob` is the image the entry was parsed from (a header whose
+    /// `rom_size` exceeds the directory size reads on into it), `keys` the
+    /// image's [`CertifyingKeys`], `ikek` the decryption IKEK — upstream always
+    /// uses [`Ikek::ZenPlus`] (`header_file.py:294-307`).
+    pub fn decode_verification(
+        &self,
+        blob: &SourceBytes,
+        keys: &CertifyingKeys,
+        ikek: Ikek,
+    ) -> Option<DecodeVerification> {
+        let (header, key_store) = match &self.class {
+            EntryClass::Header(h) => (h, false),
+            EntryClass::KeyStore(h) => (h, true),
+            _ => return None,
+        };
+        let window = self.header_file_window(header, blob);
+        Some(header.verify_decode(window.as_bytes(), key_store, keys, ikek))
+    }
+
+    /// The HeaderFile buffer upstream reads: the entry re-sized to the header's
+    /// `rom_size` (`header_file.py:72-75` grows it, `:104-105` pins it). A
+    /// shrink is applied by [`HeaderEntry::data_region`]'s `effective_end`; a
+    /// grow past the directory-declared size reads on into `blob`, as
+    /// upstream's `NestedBuffer` reads on into its parent. Falls back to the
+    /// entry body when `blob` does not cover the grown window.
+    fn header_file_window(&self, header: &HeaderEntry, blob: &SourceBytes) -> SourceBytes {
+        let rom_size = header.rom_size as usize;
+        if rom_size > self.body.len() {
+            let start = self.body.offset().get();
+            if let Some(grown) = blob.subslice_at(start..start.saturating_add(rom_size as u64)) {
+                return grown;
+            }
+        }
+        self.body.clone()
+    }
+}
+
+impl HeaderEntry {
+    /// The `_verify_decode` ladder (`header_file.py:198-243`) over the
+    /// HeaderFile buffer `file`. `key_store` selects the `KeyStoreFile`
+    /// overrides of the signed bytes, signature location and checksummed bytes
+    /// (`key_store_file.py:25-26`, `:44-51`).
+    fn verify_decode(
+        &self,
+        file: &[u8],
+        key_store: bool,
+        keys: &CertifyingKeys,
+        ikek: Ikek,
+    ) -> DecodeVerification {
+        // `header_file.py:200`: the decode runs first.
+        let decoded = self.decode_best_effort(file, ikek);
+        let body = decoded.as_ref().ok().map(|(bytes, _)| bytes.as_slice());
+
+        // (bytes signed after the header, signature, checksummed bytes)
+        let (payload, signature, checksummed) = if key_store {
+            // `key_store_file.py:50-51`: header || key_store; `:25-26`.
+            let store = self.key_store_slice(file, body);
+            (store, self.key_store_signature(file), store)
+        } else {
+            // `header_file.py:168-170`: (header || body)[:0x100 + size_signed];
+            // `:109-110`: the checksummed bytes are the decoded body.
+            let covered = body.map(|b| &b[..(self.size_signed as usize).min(b.len())]);
+            (covered, self.signature_bytes(file).ok(), body)
+        };
+
+        // A KeyStoreFile is always signed (`key_store_file.py:62-64`).
+        let signature_check = (key_store || self.is_signed()).then(|| {
+            let signed = file
+                .get(..HEADER_FILE_LEN)
+                .zip(payload)
+                .map(|(header, payload)| [header, payload].concat());
+            keys.check(&self.signature_fingerprint, signed.as_deref(), signature)
+        });
+
+        let sha256_ok = self.has_sha256_checksum()
+            && checksummed.is_some_and(|c| Sha256::digest(c).as_slice() == self.sha256_checksum());
+        let sha384_ok = self.has_sha384_checksum()
+            && checksummed.is_some_and(|c| Sha384::digest(c).as_slice() == self.sha384_checksum());
+        let checksum = if self.has_sha256_checksum() {
+            Some(ChecksumCheck::Sha256 { ok: sha256_ok })
+        } else if self.has_sha384_checksum() {
+            Some(ChecksumCheck::Sha384 { ok: sha384_ok })
+        } else {
+            None
+        };
+
+        let method = match &decoded {
+            Err(_) => DecodeBasis::DecodeError,
+            // `header_file.py:201-202`.
+            Ok((_, false)) => DecodeBasis::DecompressFailed,
+            Ok((body, true)) => match signature_check {
+                // `header_file.py:203-231`: the signed branch.
+                Some(SignatureCheck::NoCertifyingKey) => DecodeBasis::SignatureUnresolved,
+                Some(SignatureCheck::Error) => DecodeBasis::SignatureError,
+                Some(SignatureCheck::Failed) => DecodeBasis::SignatureFailed,
+                Some(SignatureCheck::Verified) => {
+                    if self.size_signed as usize >= body.len() {
+                        DecodeBasis::Signature
+                    } else if sha256_ok {
+                        DecodeBasis::SignatureSha256
+                    } else if sha384_ok {
+                        DecodeBasis::SignatureSha384
+                    } else {
+                        DecodeBasis::SignaturePartial
+                    }
+                }
+                // `header_file.py:232-243`: unsigned.
+                None if self.has_sha256_checksum() => {
+                    if sha256_ok {
+                        DecodeBasis::Sha256
+                    } else {
+                        DecodeBasis::Sha256Failed
+                    }
+                }
+                None if self.has_sha384_checksum() => {
+                    if sha384_ok {
+                        DecodeBasis::Sha384
+                    } else {
+                        DecodeBasis::Sha384Failed
+                    }
+                }
+                None if !self.is_encrypted && !self.is_compressed => DecodeBasis::Plain,
+                None => DecodeBasis::Unverifiable,
+            },
+        };
+
+        DecodeVerification {
+            method,
+            encrypted: self.is_encrypted,
+            signature: signature_check,
+            checksum,
+        }
+    }
+
+    /// `KeyStoreFile.key_store` (`key_store_file.py:36-42`): the decoded body
+    /// cut to `size_uncompressed` when compressed, else the raw `body_size`
+    /// bytes (header `0x14`, our `size_signed`) after the 0x100-byte header.
+    fn key_store_slice<'a>(&self, file: &'a [u8], decoded: Option<&'a [u8]>) -> Option<&'a [u8]> {
+        if self.is_compressed {
+            decoded?.get(..self.size_uncompressed as usize)
+        } else {
+            file.get(HEADER_FILE_LEN..HEADER_FILE_LEN.checked_add(self.size_signed as usize)?)
+        }
+    }
+
+    /// `KeyStoreFile.signature` (`key_store_file.py:44-47`): the bytes from the
+    /// end of the key store (`0x100 + body_size`) to the packed size —
+    /// `signature_size = packed_size - 0x100 - body_size`, falling back to the
+    /// buffer size when `packed_size == 0` (`key_store_file.py:126-130`).
+    fn key_store_signature<'a>(&self, file: &'a [u8]) -> Option<&'a [u8]> {
+        let start = HEADER_FILE_LEN.checked_add(self.size_signed as usize)?;
+        let end = self.effective_end(file).ok()?;
+        file.get(start..end)
+    }
+}
+
+/// Length of the `$KDB` key-store header and of each key-store key header
+/// (`key_store_file.py:142`, `:187`).
+const KDB_HEADER_LEN: usize = 0x50;
+
+/// RSA public exponent every key-store key carries (`key_store_file.py:218`).
+const KDB_RSA_EXPONENT: u32 = 0x10001;
+
+/// `(key_id, key)` of every key in a `$KDB` key store
+/// (`KeyStore.__init__`, `key_store_file.py:144-172`); the key is `None` when
+/// its crypto material is not an RSA-2048/4096 modulus
+/// (`PublicKeyEntity._from_key_store_key`, `cert_tree.py:172-182`). A store
+/// violating one of upstream's structural assertions yields no keys — upstream
+/// aborts the whole parse there.
+fn kdb_keys(store: &[u8]) -> Vec<([u8; 16], Option<RsaPublicKey>)> {
+    parse_kdb(store).unwrap_or_default()
+}
+
+fn parse_kdb(store: &[u8]) -> Option<Vec<([u8; 16], Option<RsaPublicKey>)>> {
+    let header = store.get(..KDB_HEADER_LEN)?;
+    // `key_store_file.py:150-159`: size == buffer size, flag == 1, `$KDB`,
+    // zero padding.
+    if le_u32(header, 0)? as usize != store.len()
+        || le_u32(header, 0x4)? != 1
+        || header.get(0x8..0xc)? != KDB_MAGIC.as_bytes()
+        || header[0xc..].iter().any(|&b| b != 0)
+    {
+        return None;
+    }
+    let body = &store[KDB_HEADER_LEN..];
+    // `key_store_file.py:164`: `assert body_size > 0`.
+    if body.is_empty() {
+        return None;
+    }
+    let mut keys = Vec::new();
+    let mut next = 0usize;
+    // `key_store_file.py:167-172`.
+    while next < body.len() {
+        let (size, key) = parse_kdb_key(body, next)?;
+        keys.push(key);
+        next = next.checked_add(size)?;
+    }
+    Some(keys)
+}
+
+/// One `KeyStoreKey` (`key_store_file.py:189-231`) at `offset` of the store
+/// body: its total size and `(key_id, key)`.
+type KdbKey = (usize, ([u8; 16], Option<RsaPublicKey>));
+
+fn parse_kdb_key(body: &[u8], offset: usize) -> Option<KdbKey> {
+    let size = le_u32(body, offset)? as usize;
+    let key = body.get(offset..offset.checked_add(size)?)?;
+    let header = key.get(..KDB_HEADER_LEN)?;
+    let modulus = &key[KDB_HEADER_LEN..];
+    // `:204` non-empty crypto material; `:212`/`:240` flag == 1; `:215` id <
+    // 0x100; `:218` exponent 0x10001; `:223` key_size == crypto bits;
+    // `:226-231` zero padding whose last byte is 0, 1 or 2.
+    if modulus.is_empty()
+        || le_u32(header, 0x4)? != 1
+        || le_u32(header, 0x8)? >= 0x100
+        || le_u32(header, 0xc)? != KDB_RSA_EXPONENT
+        || le_u32(header, 0x20)? as usize != modulus.len().checked_mul(8)?
+        || header[0x24..0x4f].iter().any(|&b| b != 0)
+        || header[0x4f] > 2
+    {
+        return None;
+    }
+    let mut key_id = [0u8; 16];
+    key_id.copy_from_slice(&header[0x10..0x20]);
+    // `cert_tree.py:175-180`: only 2048/4096-bit keys; `crypto.py:223-225`:
+    // modulus-only material, little-endian, exponent 0x10001.
+    let rsa = matches!(modulus.len(), 0x100 | 0x200)
+        .then(|| {
+            RsaPublicKey::new(
+                BigUint::from_bytes_le(modulus),
+                BigUint::from(KDB_RSA_EXPONENT),
+            )
+            .ok()
+        })
+        .flatten();
+    Some((size, (key_id, rsa)))
+}
+
+/// Little-endian `u32` at `offset`, `None` past the end.
+fn le_u32(bytes: &[u8], offset: usize) -> Option<u32> {
+    let raw = bytes.get(offset..offset.checked_add(4)?)?;
+    raw.try_into().ok().map(u32::from_le_bytes)
+}
+
+// ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
 
@@ -538,6 +1171,48 @@ fn find_zlib_start(plaintext: &[u8]) -> Result<usize, BodyError> {
     Err(BodyError::ZlibMagicMissing {
         window: ZLIB_SEARCH_WINDOW,
     })
+}
+
+/// `zlib.decompress(s)` (`utils.py:250`): inflate one complete zlib stream,
+/// ignoring any bytes after its end, and fail (`None`) on a corrupt OR
+/// truncated stream — Python raises `incomplete or truncated stream` there.
+/// `flate2`'s `Read` adapter returns the partial output of a truncated stream
+/// as success, so drive [`Decompress`] directly and demand `StreamEnd`.
+fn zlib_decompress_strict(stream: &[u8]) -> Option<Vec<u8>> {
+    let mut inflater = Decompress::new(true);
+    let mut out: Vec<u8> = Vec::new();
+    loop {
+        if out.len() == out.capacity() {
+            out.reserve(out.capacity().max(0x1000));
+        }
+        let (in_before, out_before) = (inflater.total_in(), inflater.total_out());
+        let rest = stream.get(usize::try_from(in_before).ok()?..)?;
+        match inflater.decompress_vec(rest, &mut out, FlushDecompress::None) {
+            Ok(Status::StreamEnd) => return Some(out),
+            Ok(Status::Ok | Status::BufError) => {
+                let stalled =
+                    inflater.total_in() == in_before && inflater.total_out() == out_before;
+                // No progress with output room left: the input ran out before
+                // the stream ended.
+                if stalled && out.len() < out.capacity() {
+                    return None;
+                }
+            }
+            Err(_) => return None,
+        }
+    }
+}
+
+/// `RsaPublicKey.verify_blob` (`crypto.py:247-258`): RSA-PSS under the KEY's
+/// hash — SHA-256 for a 2048-bit key, SHA-384 for 4096 (`crypto.py:189-194`)
+/// — and `false` for any mismatch (`except InvalidSignature: return False`),
+/// including a signature whose length is not the key's.
+fn verify_blob(key: &RsaPublicKey, signed: &[u8], signature: &[u8]) -> bool {
+    match key.size() {
+        0x100 => verify_pss::<Sha256>(key, signed, signature).is_ok(),
+        0x200 => verify_pss::<Sha384>(key, signed, signature).is_ok(),
+        _ => false,
+    }
 }
 
 fn verify_pss<D>(

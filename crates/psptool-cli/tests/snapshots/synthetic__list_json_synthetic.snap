@@ -20,10 +20,12 @@ expression: value
       },
       {
         "address": 131840,
+        "decodeVerificationMethod": "signature",
+        "decodeVerified": true,
         "index": 1,
         "info": [
           "signed",
-          "SIG_UNKNOWN"
+          "verified(A1A1)"
         ],
         "magic": "$PS1",
         "sectionType": "PSP_FW_BOOT_LOADER~0x1",

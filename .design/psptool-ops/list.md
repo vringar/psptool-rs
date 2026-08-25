@@ -66,7 +66,7 @@ below so no SHIPPED claim over-reaches its actual oracle.
   attribute assembly in `ls_files`/`ls_files_dict` (`psptool.py:114-165`/`:232-244`).
   *Self-oracle only.* The signature-verify and sha-verify **result** tags
   (`verified`/`veri-failed`/`sha256_ok`/`sha256_inconsistent`, `psptool.py:117-140`)
-  are NOT yet computed — see REQ-13.
+  are REQ-13.
 - REQ-8: **Verbose extension columns.** `list_verbose` and `list_json(verbose)`
   add `flags`, `MD5`, `size_signed`, `size_full`, `size_packed`, `load_addr`
   (JSON: `md5`, `flags`, `sizes{signed,uncompressed,packed}`, `load_addr`),
@@ -94,17 +94,26 @@ below so no SHIPPED claim over-reaches its actual oracle.
   shows the signature-verify and sha-checksum-verify *outcomes*
   (`verified`/`veri-failed(..)` and `sha256_ok`/`sha256_inconsistent`), mirroring
   `psptool.py:117-140`.
+- REQ-14: **Decode-verified bit in JSON.** Every HeaderFile-class entry
+  (`HeaderFile` and its `KeyStoreFile` subclass) in `list_json` carries
+  `decodeVerified` (bool) and `decodeVerificationMethod` (basis label), regardless
+  of `verbose`, computed by the tiered `HeaderFile._verify_decode` ladder
+  (`header_file.py:191-276`) against the image-wide certificate tree
+  (`cert_tree.py:385-406`), mirroring `ls_files_dict` `psptool.py:267-271`. Upstream
+  for this REQ is PSPTool `241629b` (vringar/PSPTool `claude-main`, = master
+  `edae097` + the decode-verified commit). This is the parity contract downstream
+  content-addressing keys `sha256_plain` on.
 
 ## Acceptance criteria
 
 - AC-1 (REQ-1..5,8,9): `cargo test -p psptool-ops --test list_micro` — 9 passed,
   0 failed, 0 ignored. Pins `list_default`/`list_verbose`/`list_json` text and
   JSON output over the PSP, BHD, and empty-directory micro-fixtures.
-- AC-2 (REQ-2,3,4,5,9): `cargo test -p psptool-cli --test differential` — 50
-  passed, 0 failed, 4 ignored. Every corpus ROM's directory address set and each
+- AC-2 (REQ-2,3,4,5,9): `cargo test -p psptool-cli --test differential` — 54
+  passed, 0 failed, 0 ignored. Every corpus ROM's directory address set and each
   entry's `index`/`address`/`size`/`sectionType` agree with reference PSPTool via
-  this unit's `-E -j` JSON. The 4 ignored are tracked bugs (#41 multi-ROM address
-  base ×3; #60 type-`0x5c` name ×1), not gaps in this unit.
+  this unit's `-E -j` JSON (the former #41/#60 ignores were cleared by the
+  cross-ROM-echo accommodation and the master repin).
 - AC-3 (REQ-10): `cargo test -p psptool-ops --test divergence_tertiary_generation`
   — `control_combo_reached_directory_carries_generation` passes, proving the
   render path stamps `Zen4Or5` for a combo-reached directory.
@@ -112,8 +121,23 @@ below so no SHIPPED claim over-reaches its actual oracle.
   `divergence_tertiary_0x48_directory_carries_generation` and `_0x4a_` are now
   `#[test]` (un-ignored) and PASS — the tertiary-reached `$PL2` renders
   `Zen4Or5` from the block's `[20:24]` id, closing blocker #70.
-- AC-5 (REQ-12, REQ-13): open — no green test exists; the placeholder strings
-  `AGESA_UNKNOWN` / `SIG_UNKNOWN` / `SHA_UNKNOWN` are emitted verbatim.
+- AC-5 (REQ-12): open — no green test exists; the placeholder string
+  `AGESA_UNKNOWN` is emitted verbatim.
+- AC-6 (REQ-13, REQ-14): `cargo test -p psptool-ops --test decode_verification`
+  — 20 passed, 0 failed, 0 ignored. Synthetic RSA-signed images reach every
+  ladder rung through `CertifyingKeys::from_blob` → `Entry::decode_verification`
+  (incl. a `$KDB`-only certifying key, strict zlib, encrypted entries) and
+  `ls_renders_verdicts_in_json_and_file_info` pins the JSON keys and the
+  `verified(A1A1)`/`key_missing(DEDE)`/`sha256_ok` tags.
+  `corpus_tally_matches_upstream_oracle` pins the per-basis tally over the 54
+  corpus images against an oracle run of upstream `241629b` (4147 HeaderFiles →
+  True 3159 = signature 3117 + plain 42; False 988 = signature-partial 295 +
+  signature-unresolved 251 + signature-failed 376 + unverifiable 66), adjusted
+  by the four documented entry-set deltas (zero-size-record HeaderFile echo ×3,
+  H12SSW9 cross-ROM echo ×1): this unit lists 4145 → signature 3116, plain 42,
+  signature-partial 293, signature-unresolved 251, signature-failed 377,
+  unverifiable 66; every shared entry's verdict and File-Info tag agrees with
+  upstream.
 
 ## REQ status table
 
@@ -132,7 +156,8 @@ below so no SHIPPED claim over-reaches its actual oracle.
 | REQ-10 (generation, combo-reached) | SHIPPED | `directory_generation` `list.rs:531-567`: combo branch (`:533-544`) joins distinct `zen_label`s; PSP/BIOS branch resolves `DirectoryProvenance::ComboEntry` back to the combo entry's generation (`:545-564`, `zen_label` `list.rs:569-577`); mirrors `directory.zen_generation` (`psptool.py:84`) combo threading (`directory.py:57-63`). Consumer: `psptool-cli/src/cmds/list.rs:47`. Verification: `divergence_tertiary_generation.rs::control_combo_reached_directory_carries_generation` (passes — renders `Zen4Or5`). |
 | REQ-11 (generation, tertiary-reached `$PL2`) | SHIPPED | `directory_generation` `list.rs:545-580` handles `DirectoryProvenance::Tertiary { generation, .. }` by rendering `generation.zen_generation()` via `zen_label` (`list.rs:571-576`); the id is read from `block[20:24]` in core `tertiary_actual_offset` (`directory.rs:864-869`) and attached to the walk result at `directory.rs:727-731`/`788-792` — mirrors upstream `directory.py:89`/`94`/`98`/`124` (block[20:24] → created dir's `zen_generation`) printed at `psptool.py:84`. Consumer: `psptool-cli/src/cmds/list.rs:47` (`list_default`). Verification: `divergence_tertiary_generation.rs::divergence_tertiary_0x48/0x4a_directory_carries_generation` (both now `#[test]`, pass — render `Zen4Or5`) + control still green. |
 | REQ-12 (AGESA version) | NOT-STARTED | open blocker #75. `render_rom_table` `list.rs:128` emits the `AGESA_UNKNOWN` placeholder (const `list.rs:61`) where `psptool.py:74` prints `rom.agesa_version`; the core parse for the AGESA string is not exposed on `RomListing`. Text-only column, not gated by the differential JSON oracle. |
-| REQ-13 (sig/sha verify result) | NOT-STARTED | open blocker #76. `info_list` `list.rs:460`/`:467`/`:471` emits `SIG_UNKNOWN`/`SHA_UNKNOWN` placeholders (consts `list.rs:62-63`) where `psptool.py:117-140` renders `verified`/`veri-failed(..)`/`sha256_ok`/`sha256_inconsistent`. `psptool-ops`'s `verify.rs` holds the signature machinery but is not wired into `info_list`. `info` is a differential-tolerated key, so this is not gated by the differential. |
+| REQ-13 (sig/sha verify result) | SHIPPED | `info_list` (`list.rs:571`) pushes `signature_tag` (`list.rs:625`: `verified(XXXX)`/`veri-failed(XXXX)`/`key_missing(XXXX)`, `XXXX` = first two certifying-id bytes upper-case hex per `KeyId.magic` `crypto.py:369-371`) and `checksum_tag` (`list.rs:639`: `sha256_ok`/`sha256_inconsistent`/`sha384_ok`/`sha384_inconsistent`) from one `Entry::decode_verification` pass (core `body.rs:899`) per `psptool.py:116-140`. A verification that cannot run renders `invalid_sig(XXXX)` (`psptool.py:124-125`; upstream's `ls` would propagate the exception). Consumer: `psptool-cli/src/cmds/list.rs:55`/`:53`/`:49`. Verification: `decode_verification.rs::ls_renders_verdicts_in_json_and_file_info`; corpus File-Info tags agree with upstream `ls_files` logic on every shared entry (3409 verified, 377 veri-failed, 251 key_missing, 141 sha256_ok, 3 sha256_inconsistent). `info` stays a differential-tolerated key. Closes #76. |
+| REQ-14 (decode-verified JSON bit) | SHIPPED | `entry_to_json` (`list.rs:447`) inserts `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry, non-verbose included, per `psptool.py:267-271` (`241629b`). The ladder is core `HeaderEntry::verify_decode` (`body.rs:937`, `header_file.py:198-243`) behind `Entry::decode_verification` (`body.rs:899`), resolving keys through `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`: PubkeyFile keys + every `$KDB` key-store key, `key_store_file.py:140-253`) built once per listing by `Verifier::new` (`list.rs:111`). `DecodeVerification` exposes `decode_verified()`/`decode_verification_method()`/`plaintext_identity_ok()` (`header_file.py:245-276`) to library consumers. Consumer: `psptool-cli/src/cmds/list.rs:49`. Verification: AC-6. Closes #89. |
 
 ## Architecture
 
@@ -209,12 +234,13 @@ The list below IS the gauntlet for this module; run inside `nix-shell` so
 `PSPTOOL_REFERENCE` + `PSPTOOL_TEST_CORPUS` are set (a skipped suite is a red gate,
 not a pass).
 
-- `cargo test -p psptool-cli --test differential` — **50 passed, 0 failed, 4
+- `cargo test -p psptool-cli --test differential` — **54 passed, 0 failed, 0
   ignored**. The route's declared `parity_ops` oracle: directory address sets and
   per-entry `index`/`address`/`size`/`sectionType` agree with reference PSPTool via
-  this unit's `-E -j` JSON. The 4 ignored are tracked bugs registered as
-  ignored-but-failing trials (#41 multi-ROM address base ×3; #60 type-`0x5c` name
-  ×1), not gaps in the rendering unit.
+  this unit's `-E -j` JSON.
+- `cargo test -p psptool-ops --test decode_verification` — **20 passed, 0 failed,
+  0 ignored** (AC-6): the REQ-13/REQ-14 ladder, File-Info and JSON pins plus the
+  corpus tally against upstream `241629b`.
 - `cargo test -p psptool-ops --test list_micro` — **9 passed, 0 failed, 0
   ignored**. Self-oracle snapshots of `list_default`/`list_verbose`/`list_json`
   over PSP, BHD, and empty-directory micro-fixtures; the pin for the text-table
@@ -234,6 +260,5 @@ not a pass).
   own suite is green; `list.rs` itself carries no in-file unit tests — its oracles
   are the integration suites above).
 
-Open prerequisite blockers for the NOT-STARTED REQs: **#70** (REQ-11, tertiary
-generation column), **#75** (REQ-12, AGESA version), **#76** (REQ-13, sig/sha
-verify result).
+Open prerequisite blocker for the NOT-STARTED REQ: **#75** (REQ-12, AGESA
+version). (#70 and #76 are closed: REQ-11 and REQ-13 are SHIPPED.)
