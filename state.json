@@ -1,5 +1,5 @@
 {
-  "next_display_id": 89,
+  "next_display_id": 90,
   "next_comment_id": 130,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -20,6 +20,7 @@
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
+    "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
@@ -745,6 +746,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAjeKIZuKPaI77Isukkk6wluqQBbm/Ct0Yw01p0WjksQSyEaxpVsKZpbMEu8s3kuvK1mZrmrKWm6SL1EvgvZe4Bg=="
         }
       }
+    },
+    "4d536e81-d60a-4bf5-a28b-bc08efab07f9": {
+      "uuid": "4d536e81-d60a-4bf5-a28b-bc08efab07f9",
+      "display_id": 89,
+      "title": "decode-verified tiered bit: decode_verified()/decode_verification()/plaintext_identity_ok() + ls_json fields (PSPTool cutover stage-a)",
+      "description": "Port upstream PSPTool@13374bd1 HeaderFile._verify_decode ladder to psptool-rs. Adds tiered (bool,basis) decode-verification in psptool-ops layered on existing pubkey-map + core checksum/decompress helpers; mirrors plaintext_identity_ok() = (!encrypted || decode_verified()) && (method!='decompress-failed'). Surfaces decodeVerified/decodeVerificationMethod in ls --json and wires verify into ls File-Info (closes #76). Acceptance: exact corpus breakdown of 4147 HeaderFiles -> True 3159 (signature 3117 + plain 42), False 988 (signature-partial 295, signature-unresolved 251, signature-failed 376, unverifiable 66); live differential vs Python oracle stays 54/54; full gauntlet green. This is the parity contract downstream consumers (psp-etl #384, psp-db #388) key sha256_plain on. Board refs #385 #393. Implementation delegated to acto-builder.",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-17T10:39:00.611338334Z",
+      "updated_at": "2026-10-17T10:39:00.611338334Z"
     },
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": {
       "uuid": "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405",
@@ -4113,11 +4126,16 @@
       "agent_id": "tLiK",
       "agent_seq": 262,
       "timestamp": "2026-08-02T10:11:45.402532587Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 263,
+      "timestamp": "2026-10-17T10:39:00.611338334Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-08-02T10:11:45.402532587Z",
+    "timestamp": "2026-10-17T10:39:00.611338334Z",
     "agent_id": "tLiK",
-    "agent_seq": 262
+    "agent_seq": 263
   }
 }
