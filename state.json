@@ -1,5 +1,5 @@
 {
-  "next_display_id": 94,
+  "next_display_id": 95,
   "next_comment_id": 131,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -23,6 +23,7 @@
     "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
     "4f1b3f73-783b-466e-a560-bc207b52e59c": 92,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
+    "524bcf22-328f-4580-a5d3-318a48ffacde": 94,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
     "5346afaa-652e-4838-a5c1-851082a0f96f": 69,
@@ -804,6 +805,18 @@
         "hater-review",
         "refactor"
       ]
+    },
+    "524bcf22-328f-4580-a5d3-318a48ffacde": {
+      "uuid": "524bcf22-328f-4580-a5d3-318a48ffacde",
+      "display_id": 94,
+      "title": "Divergence: ls_json emits sizes only with -v; upstream ls_files_dict emits sizes (and md5[:4].upper()) for every entry/HeaderFile unconditionally (psptool.py:246-266)",
+      "description": "Spillover from #89. ls_files_dict always inserts 'md5': file.md5()[:4].upper() (psptool.py:254) and, for issubclass(HeaderFile), 'sizes' {signed, uncompressed, packed} (psptool.py:260-266). psptool-ops list.rs entry_to_json only adds md5/sizes in verbose mode (full 32-char lowercase md5). decodeVerified/decodeVerificationMethod (#89) are emitted unconditionally as upstream does. Note crates/psptool-cli/tests/differential.rs reads reference 'sizes' to detect HeaderFiles and assumes our side never emits it — changing this touches that harness.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-18T22:43:26.390973718Z",
+      "updated_at": "2026-10-18T22:43:26.390973718Z"
     },
     "525d7258-de71-4087-8d5a-f7dd155266b5": {
       "uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
@@ -4251,11 +4264,16 @@
       "agent_id": "tLiK",
       "agent_seq": 272,
       "timestamp": "2026-10-18T22:43:22.005424074Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 273,
+      "timestamp": "2026-10-18T22:43:26.390973718Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:43:22.005424074Z",
+    "timestamp": "2026-10-18T22:43:26.390973718Z",
     "agent_id": "tLiK",
-    "agent_seq": 272
+    "agent_seq": 273
   }
 }
