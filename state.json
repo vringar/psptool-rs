@@ -757,12 +757,13 @@
       "display_id": 89,
       "title": "decode-verified tiered bit: decode_verified()/decode_verification()/plaintext_identity_ok() + ls_json fields (PSPTool cutover stage-a)",
       "description": "Port upstream PSPTool@13374bd1 HeaderFile._verify_decode ladder to psptool-rs. Adds tiered (bool,basis) decode-verification in psptool-ops layered on existing pubkey-map + core checksum/decompress helpers; mirrors plaintext_identity_ok() = (!encrypted || decode_verified()) && (method!='decompress-failed'). Surfaces decodeVerified/decodeVerificationMethod in ls --json and wires verify into ls File-Info (closes #76). Acceptance: exact corpus breakdown of 4147 HeaderFiles -> True 3159 (signature 3117 + plain 42), False 988 (signature-partial 295, signature-unresolved 251, signature-failed 376, unverifiable 66); live differential vs Python oracle stays 54/54; full gauntlet green. This is the parity contract downstream consumers (psp-etl #384, psp-db #388) key sha256_plain on. Board refs #385 #393. Implementation delegated to acto-builder.",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-17T10:39:00.611338334Z",
-      "updated_at": "2026-10-18T22:44:09.760762536Z",
+      "updated_at": "2026-10-18T22:45:28.965663853Z",
+      "closed_at": "2026-10-18T22:45:28.965659955Z",
       "comments": {
         "4a312b3a-a396-4b79-a339-059268b97071": {
           "display_id": 131,
@@ -4291,11 +4292,16 @@
       "agent_id": "tLiK",
       "agent_seq": 275,
       "timestamp": "2026-10-18T22:44:09.760762536Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 276,
+      "timestamp": "2026-10-18T22:45:28.965663853Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:44:09.760762536Z",
+    "timestamp": "2026-10-18T22:45:28.965663853Z",
     "agent_id": "tLiK",
-    "agent_seq": 275
+    "agent_seq": 276
   }
 }
