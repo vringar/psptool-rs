@@ -249,11 +249,12 @@
       "uuid": "085676e5-2e21-4681-9268-d4d848235525",
       "display_id": 76,
       "title": "Blocker for REQ-7 verify-status of .design/psptool-ops/list.md: ls File Info emits SIG_UNKNOWN/SHA_UNKNOWN placeholders (list.rs:62-63,460,467,471) where upstream psptool.py:117-140 renders verified/veri-failed(...) and sha256_ok/sha256_inconsistent. psptool-ops verify.rs has the signature machinery but it is not wired into list_* rendering. Needs verify wiring into info_list. info key is a documented differential-tolerated divergence, so not gated by the differential.",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-07-12T04:39:59.538529418Z",
-      "updated_at": "2026-07-12T04:40:04.231547613Z",
+      "updated_at": "2026-10-18T22:45:32.589864439Z",
+      "closed_at": "2026-10-18T22:45:32.589862586Z",
       "labels": [
         "blocker"
       ]
@@ -4297,11 +4298,16 @@
       "agent_id": "tLiK",
       "agent_seq": 276,
       "timestamp": "2026-10-18T22:45:28.965663853Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 277,
+      "timestamp": "2026-10-18T22:45:32.589864439Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:45:28.965663853Z",
+    "timestamp": "2026-10-18T22:45:32.589864439Z",
     "agent_id": "tLiK",
-    "agent_seq": 276
+    "agent_seq": 277
   }
 }
