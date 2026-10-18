@@ -1,5 +1,5 @@
 {
-  "next_display_id": 95,
+  "next_display_id": 96,
   "next_comment_id": 132,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -23,6 +23,7 @@
     "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
     "4f1b3f73-783b-466e-a560-bc207b52e59c": 92,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
+    "509a6fbd-4a92-4fcd-bb21-8ea679bfdc5d": 95,
     "524bcf22-328f-4580-a5d3-318a48ffacde": 94,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
@@ -812,6 +813,16 @@
         "hater-review",
         "refactor"
       ]
+    },
+    "509a6fbd-4a92-4fcd-bb21-8ea679bfdc5d": {
+      "uuid": "509a6fbd-4a92-4fcd-bb21-8ea679bfdc5d",
+      "display_id": 95,
+      "title": "psptool-py: pyo3/maturin Python bindings slice 1 (read API) + default.nix python attr",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-18T23:09:47.276154449Z",
+      "updated_at": "2026-10-18T23:09:47.276154449Z"
     },
     "524bcf22-328f-4580-a5d3-318a48ffacde": {
       "uuid": "524bcf22-328f-4580-a5d3-318a48ffacde",
@@ -4304,11 +4315,16 @@
       "agent_id": "tLiK",
       "agent_seq": 278,
       "timestamp": "2026-10-18T22:45:44.674426442Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 279,
+      "timestamp": "2026-10-18T23:09:47.276154449Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:45:44.674426442Z",
+    "timestamp": "2026-10-18T23:09:47.276154449Z",
     "agent_id": "tLiK",
-    "agent_seq": 278
+    "agent_seq": 279
   }
 }
