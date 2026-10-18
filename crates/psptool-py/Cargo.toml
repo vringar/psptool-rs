@@ -1,0 +1,48 @@
+[package]
+name = "psptool-py"
+description = "Python bindings for psptool-rs: a drop-in `psptool` module mirroring the reference PSPTool object model."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+# Imported as `psptool._native` (see pyproject.toml `module-name`); the pure
+# Python package in `python/psptool/` re-exports its classes under the
+# reference tool's module paths.
+name = "_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Opt the `corpus_parity` integration test into iterating
+# `vendor/test-corpus/test_files/`. Mirrors the `corpus` flag of the other
+# crates; the test self-skips when `PSPTOOL_TEST_CORPUS` or
+# `PSPTOOL_REFERENCE` is unset.
+default = ["corpus"]
+corpus = ["psptool-fixtures/corpus"]
+# Enabled by maturin (pyproject.toml) for the wheel/nix build: leaves the
+# libpython symbols unresolved so the extension loads into any interpreter.
+# Off for `cargo test`, whose test binaries must link libpython.
+extension-module = ["pyo3/extension-module"]
+
+[dependencies]
+psptool-core.workspace = true
+psptool-ops.workspace = true
+pyo3 = { version = "0.25", features = ["abi3-py39"] }
+md-5 = "0.10"
+sha2 = "0.10"
+rsa = { version = "0.9", features = ["sha2", "pem"] }
+pkcs8 = { version = "0.10", features = ["pem", "encryption"] }
+rand = "0.8"
+
+[dev-dependencies]
+psptool-fixtures = { workspace = true }
+libtest-mimic = "0.8"
+serde_json = "1"
+
+# Custom harness: one named trial per corpus ROM (mirrors `differential`).
+[[test]]
+name = "corpus_parity"
+harness = false

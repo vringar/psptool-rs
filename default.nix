@@ -29,25 +29,30 @@ let
   cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 
   # Reference Python PSPTool — the upstream tool this project re-implements.
-  # Pinned to the canonical GitHub master (PSPReverse/PSPTool), NOT a PyPI
-  # release: the maintainers treat master as canonical and do not prioritise
-  # releases, so the 3.4 sdist lags master (e.g. the type-0x5c 'SPI_ROM_CONFIG'
-  # entry, file.py:149). The differential oracle must match our translation
-  # source, which is that same master (`/tmp/psptool-ref`). Resolves the
-  # version-skew (#61) that gated the multi-ROM AM5 corpus.
+  # Pinned to a GitHub revision, NOT a PyPI release: the maintainers treat
+  # master as canonical and do not prioritise releases, so the 3.4 sdist lags
+  # master (e.g. the type-0x5c 'SPI_ROM_CONFIG' entry, file.py:149). The
+  # differential oracle must match our translation source (`/tmp/psptool-ref`),
+  # which is master edae097 plus the decode-verified signal
+  # (`header_file.py:191-276`, `psptool.py:267-271`) on vringar/PSPTool
+  # claude-main @ 241629b — the revision the consumers pin and the one the
+  # `decodeVerified` ladder (psptool-core `body.rs`) and the Python bindings
+  # were translated from. Resolves the version-skew (#61) that gated the
+  # multi-ROM AM5 corpus.
   #
-  # Consumed only by the corpus-gated differential integration test (issue
-  # #18): `psptool-cli/tests/differential.rs` shells out to `python3 -m psptool`
-  # via the `PSPTOOL_REFERENCE` env var the dev shell exports.
+  # Consumed by the corpus-gated integration tests through the
+  # `PSPTOOL_REFERENCE` env var the dev shell exports: the differential test
+  # (`psptool-cli/tests/differential.rs`, `python3 -m psptool`) and the
+  # bindings' parity test (`psptool-py/tests/corpus_parity.rs`).
   referencePsptool = pkgs.python3Packages.buildPythonPackage {
     pname = "psptool";
-    version = "3.4.0"; # master @ edae097 (2026-04-20, merge of PR #84)
+    version = "3.4.0"; # vringar/PSPTool claude-main @ 241629b (master edae097 + decode-verified)
     format = "pyproject";
     src = pkgs.fetchFromGitHub {
-      owner = "PSPReverse";
+      owner = "vringar";
       repo = "PSPTool";
-      rev = "edae097857e94b35d5203e644c177a3e1a3d444b";
-      hash = "sha256-mEhjPehbG1MTtAjV0yAb2WQw5FtcT+bxs+tCzJTquA4=";
+      rev = "241629b32866ffa8093543fde25a64d4fc4e6c21";
+      hash = "sha256-dtUmqXuYavrEuY4VefvDLGeXLDt0N+vAlQF8yzujfb4=";
     };
     nativeBuildInputs = with pkgs.python3Packages; [ hatchling hatch-vcs ];
     propagatedBuildInputs = with pkgs.python3Packages; [ cryptography prettytable ];
@@ -63,31 +68,72 @@ let
   # reference as a module (rather than its `psptool` console script) keeps it
   # off `PATH` and avoids any name collision with our own `psptool` binary.
   referencePython = pkgs.python3.withPackages (_: [ referencePsptool ]);
+
+  # Limit src to files cargo needs so the giant vendor/test-corpus
+  # submodule, .crosslink/, scripts/, and docs/ never enter the build sandbox.
+  # `./crates` carries every workspace member, including the Python package
+  # sources and tests of `crates/psptool-py`.
+  workspaceSrc = pkgs.lib.fileset.toSource {
+    root = ./.;
+    fileset = pkgs.lib.fileset.unions [
+      ./Cargo.toml
+      ./Cargo.lock
+      ./crates
+    ];
+  };
+
+  # The `psptool` Python package (crates/psptool-py: pyo3 abi3 extension +
+  # re-export modules, built by maturin) for a given Python package set — a
+  # drop-in for the reference tool's `import psptool`. Consumers on another
+  # interpreter version call e.g. `pythonFor pkgs.python312Packages`.
+  pythonFor = pythonPackages: pythonPackages.buildPythonPackage {
+    pname = "psptool";
+    inherit (cargoToml.workspace.package) version;
+    pyproject = true;
+    src = workspaceSrc;
+    buildAndTestSubdir = "crates/psptool-py";
+    cargoDeps = rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
+    # The pinned toolchain first: maturinBuildHook propagates nixpkgs' default
+    # cargo/rustc, which is older than the workspace's `rust-version`.
+    nativeBuildInputs = [
+      rustToolchain
+      rustPlatform.cargoSetupHook
+      rustPlatform.maturinBuildHook
+    ];
+    # The corpus-free API suite (synthetic image; parse, decode, edit,
+    # re-sign, PEM keys) against the installed package.
+    checkPhase = ''
+      runHook preCheck
+      ${pythonPackages.python.interpreter} ${workspaceSrc}/crates/psptool-py/tests/test_api.py -v
+      runHook postCheck
+    '';
+    pythonImportsCheck = [ "psptool" "psptool.header_file" ];
+    meta = with pkgs.lib; {
+      description = "PSPTool's Python API (import psptool) backed by psptool-rs";
+      homepage = "https://github.com/PSPReverse/psptool-rs";
+      license = with licenses; [ mit asl20 ];
+    };
+  };
 in
 {
-  inherit pkgs rustToolchain referencePython;
+  inherit pkgs rustToolchain referencePython pythonFor;
+
+  python = pythonFor pkgs.python3Packages;
 
   package = rustPlatform.buildRustPackage {
     pname = "psptool";
     inherit (cargoToml.workspace.package) version;
 
-    # Limit src to files cargo needs so the giant vendor/test-corpus
-    # submodule, .crosslink/, scripts/, and docs/ never enter the build sandbox.
-    src = pkgs.lib.fileset.toSource {
-      root = ./.;
-      fileset = pkgs.lib.fileset.unions [
-        ./Cargo.toml
-        ./Cargo.lock
-        ./crates
-      ];
-    };
+    src = workspaceSrc;
 
     cargoLock.lockFile = ./Cargo.lock;
 
     # Build only the CLI; psptool-fixtures isn't a dep of psptool-cli and
     # we don't want it pulled into the release artifact.
     cargoBuildFlags = [ "--package" "psptool-cli" ];
-    cargoTestFlags = [ "--workspace" ];
+    # psptool-py's tests link libpython and drive a Python interpreter; they
+    # run in the `python` attribute's check phase and the dev shell instead.
+    cargoTestFlags = [ "--workspace" "--exclude" "psptool-py" ];
 
     meta = with pkgs.lib; {
       description = "AMD PSP firmware inspection and modification tool (Rust port of PSPTool)";

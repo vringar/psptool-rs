@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+# Same distribution and import name as the reference tool: this package is a
+# drop-in replacement for PSPTool's Python API.
+name = "psptool"
+description = "AMD PSP firmware parser (Rust port of PSPTool) with PSPTool's Python API"
+requires-python = ">=3.9"
+license = { text = "MIT OR Apache-2.0" }
+dynamic = ["version"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "psptool._native"
+bindings = "pyo3"
+features = ["extension-module"]

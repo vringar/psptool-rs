@@ -411,7 +411,16 @@ impl HeaderEntry {
     /// ([`zlib_find_header`], `utils.py:218-234`) and the inflate is strict
     /// ([`zlib_decompress_strict`]), so a truncated stream is a failure exactly
     /// as `zlib.decompress` raises on it.
-    fn decode_best_effort(&self, file: &[u8], ikek: Ikek) -> Result<(Vec<u8>, bool), BodyError> {
+    ///
+    /// Public because it *is* upstream's `get_decrypted_decompressed_body()`
+    /// (`header_file.py:188-189` returns `_decrypted_decompressed_body()[0]`):
+    /// the `psptool-py` binding's `HeaderFile.get_decrypted_decompressed_body`
+    /// returns its bytes, which consumers hash as a content identity.
+    pub fn decode_best_effort(
+        &self,
+        file: &[u8],
+        ikek: Ikek,
+    ) -> Result<(Vec<u8>, bool), BodyError> {
         let output = if self.is_encrypted {
             self.get_decrypted_body(file, ikek)?
         } else {

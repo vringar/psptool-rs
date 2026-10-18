@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Python bindings (`crates/psptool-py`, pyo3 abi3 + maturin): a drop-in `psptool` module with PSPTool's classes, read API (upstream `(rom, dir, file)` order, `get_decrypted_decompressed_body`, `decode_verification`, `plaintext_identity_ok`) and edit/re-sign API; `default.nix` `python` / `pythonFor`; reference oracle repinned to vringar/PSPTool 241629b (#95)
 - Design doc: .design/psptool-core/address.md (address-mode / ROM-masking) (#67)
 - Design doc: .design/psptool-core/writer.md (diff-and-patch byte-exact writer) (#65)
 - acto-critic audit: psptool-core/directory.rs vs directory.py (#50)

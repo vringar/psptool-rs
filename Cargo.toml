@@ -5,6 +5,7 @@ members = [
     "crates/psptool-ops",
     "crates/psptool-cli",
     "crates/psptool-fixtures",
+    "crates/psptool-py",
 ]
 
 [workspace.package]
