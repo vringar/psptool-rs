@@ -1,5 +1,5 @@
 {
-  "next_display_id": 92,
+  "next_display_id": 93,
   "next_comment_id": 131,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -21,6 +21,7 @@
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
     "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
+    "4f1b3f73-783b-466e-a560-bc207b52e59c": 92,
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": 27,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
@@ -771,6 +772,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWSLES48ftLKo9/Xcb0Hw56NHdVaCPuRDmN6yRN7ANEBMEb079DHpZM+A0TYj6oTgquYQVlYDXn0HnCU1IpX2AQ=="
         }
       }
+    },
+    "4f1b3f73-783b-466e-a560-bc207b52e59c": {
+      "uuid": "4f1b3f73-783b-466e-a560-bc207b52e59c",
+      "display_id": 92,
+      "title": "Gap: CertifyingKeys lacks upstream's inline-pubkey search (cert_tree.py:399-404, blob.py:133-181)",
+      "description": "Spillover from #89. CertificateTree.from_blob loops find_inline_pubkey_entries over all seen ids, adding InlinePubkeyFile keys found by fingerprint inside non-Pubkey file bodies. Not ported into psptool_core::body::CertifyingKeys::from_blob. Upstream finds 0 inline keys across the 54-image corpus (instrumented 241629b run), partly because blob.py:146-158 reads version/size/ids from the BLOB at FILE-relative offsets (self[start_offset...] on the Blob). Porting needs a decision on mirroring that quirk (R-DEV-6) — no corpus verdict changes either way today.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-18T22:43:04.741746013Z",
+      "updated_at": "2026-10-18T22:43:04.741746013Z"
     },
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": {
       "uuid": "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405",
@@ -4199,11 +4212,16 @@
       "agent_id": "tLiK",
       "agent_seq": 268,
       "timestamp": "2026-10-18T22:42:58.780089167Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 269,
+      "timestamp": "2026-10-18T22:43:04.741746013Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:42:58.780089167Z",
+    "timestamp": "2026-10-18T22:43:04.741746013Z",
     "agent_id": "tLiK",
-    "agent_seq": 268
+    "agent_seq": 269
   }
 }
