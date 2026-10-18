@@ -1,6 +1,6 @@
 {
   "next_display_id": 90,
-  "next_comment_id": 130,
+  "next_comment_id": 131,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -757,7 +757,18 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-17T10:39:00.611338334Z",
-      "updated_at": "2026-10-17T10:39:00.611338334Z"
+      "updated_at": "2026-10-18T22:10:49.772939619Z",
+      "comments": {
+        "f4dd211f-bece-41f5-8e53-0d9371979a95": {
+          "display_id": 130,
+          "author": "tLiK",
+          "content": "Plan (acto-builder): upstream = vringar/PSPTool@241629b (13374bd1 not fetchable from PSPReverse or vringar remotes; 241629b = master edae097 + the decode-verified commit). Placement: ladder lives in psptool-core body.rs as HeaderFile methods (upstream header_file.py:191-276 is a HeaderFile method; body.rs route lists header_file.py+cert_tree.py). psptool-ops verify.rs/lib.rs have no translate-route (hook-blocked), so ops wiring is in list.rs. Abstractions: core body.rs CertifyingKeys (cert_tree.py:255-406 pubkeys-by-id incl. KeyStoreFile $KDB keys key_store_file.py:140-253 — the missing key source behind 129 corpus 'signature-unresolved' diffs), SignatureCheck (is_verified), ChecksumCheck (verify_sha256/384), DecodeBasis (14 upstream labels + Rust-only decode-error where upstream raises), DecodeVerification {decode_verified, method, plaintext_identity_ok, signature, checksum}, Entry::decode_verification(blob, keys, ikek). Consumers: ops list.rs builds CertifyingKeys blob-wide (all ROMs, as CertificateTree.from_blob) -> JSON decodeVerified/decodeVerificationMethod for HeaderFile/KeyStoreFile entries (psptool.py:267-271) + File-Info tags verified/veri-failed/key_missing/invalid_sig + sha256_ok/_inconsistent (psptool.py:116-140, closes #76). Tests: ops integration tests (synthetic ladder rungs + corpus per-basis tally). Oracle run of 241629b over vendor corpus reproduces 4147 -> True 3159 / False 988 exactly.",
+          "created_at": "2026-10-18T22:10:49.668699051Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAWSLES48ftLKo9/Xcb0Hw56NHdVaCPuRDmN6yRN7ANEBMEb079DHpZM+A0TYj6oTgquYQVlYDXn0HnCU1IpX2AQ=="
+        }
+      }
     },
     "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405": {
       "uuid": "4f64e9c7-fab4-4fb7-afd0-cf4fb810a405",
@@ -4131,11 +4142,16 @@
       "agent_id": "tLiK",
       "agent_seq": 263,
       "timestamp": "2026-10-17T10:39:00.611338334Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 264,
+      "timestamp": "2026-10-18T22:10:49.772939619Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-17T10:39:00.611338334Z",
+    "timestamp": "2026-10-18T22:10:49.772939619Z",
     "agent_id": "tLiK",
-    "agent_seq": 263
+    "agent_seq": 264
   }
 }
