@@ -1,5 +1,5 @@
 {
-  "next_display_id": 91,
+  "next_display_id": 92,
   "next_comment_id": 131,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -80,6 +80,7 @@
     "d8810440-1fe8-4bce-bb2d-f065ec626f86": 25,
     "d96c5e9c-61b5-4208-9977-af8e5b0424f9": 87,
     "da50c96c-a24f-41d2-ad91-4fd0c92d0a7f": 20,
+    "e08438bf-e7a4-4f28-8ab7-4367b77fb377": 91,
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": 52,
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
@@ -2502,6 +2503,18 @@
         "68f7ee46-7bae-4a64-8d9a-81f8c443a46d"
       ]
     },
+    "e08438bf-e7a4-4f28-8ab7-4367b77fb377": {
+      "uuid": "e08438bf-e7a4-4f28-8ab7-4367b77fb377",
+      "display_id": 91,
+      "title": "Divergence: body.rs find_zlib_start (extract path) takes the earliest of any zlib magic, upstream zlib_find_header tries magics in priority order (utils.py:224-232); get_decompressed_body accepts truncated zlib streams",
+      "description": "Spillover from #89. utils.py:224-232 iterates ZLIB_TYPES in order (78DA, 789C, 785E, 7801): for each magic it checks s[0x100:0x102] then s.find(magic), returning the first magic found ANYWHERE before trying the next magic. body.rs find_zlib_start (used by get_decompressed_body -> extract -c / get_signed_bytes) returns the earliest offset of ANY magic, so '78 9C' at 0x10 beats '78 DA' at 0x200 where upstream picks 0x200. entry.rs zlib_find_header is the faithful port; the #89 decode ladder (body.rs decode_best_effort) uses it. Second gap on the same path: get_decompressed_body inflates via flate2 Read, which returns the partial output of a TRUNCATED stream as success, whereas zlib.decompress raises (utils.py:250). body.rs zlib_decompress_strict (#89) is the faithful inflate. No corpus image currently exercises either difference.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-18T22:42:56.444970501Z",
+      "updated_at": "2026-10-18T22:42:56.444970501Z"
+    },
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": {
       "uuid": "e5722ead-8cd4-4006-8598-6cb24d15adbd",
       "display_id": 52,
@@ -4173,11 +4186,16 @@
       "agent_id": "tLiK",
       "agent_seq": 266,
       "timestamp": "2026-10-18T22:42:53.965685085Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 267,
+      "timestamp": "2026-10-18T22:42:56.444970501Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:42:53.965685085Z",
+    "timestamp": "2026-10-18T22:42:56.444970501Z",
     "agent_id": "tLiK",
-    "agent_seq": 266
+    "agent_seq": 267
   }
 }
