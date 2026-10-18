@@ -1,5 +1,5 @@
 {
-  "next_display_id": 90,
+  "next_display_id": 91,
   "next_comment_id": 131,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -88,6 +88,7 @@
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
+    "f7dd168c-f826-4ad4-adec-395534c077bf": 90,
     "fba50544-5971-4237-8157-aca0c67508f5": 32,
     "ff3a9562-e292-4ffb-8f75-0c1d07d85917": 59,
     "ff92bee9-e6df-4936-9845-a74200067d0b": 48
@@ -2715,6 +2716,18 @@
         "68f7ee46-7bae-4a64-8d9a-81f8c443a46d"
       ]
     },
+    "f7dd168c-f826-4ad4-adec-395534c077bf": {
+      "uuid": "f7dd168c-f826-4ad4-adec-395534c077bf",
+      "display_id": 90,
+      "title": "Divergence: zero-size directory record classified Plain, upstream parses it as a HeaderFile (header_file.py:32-33) and echoes it for the next same-offset record",
+      "description": "Spillover from #89. Upstream HeaderFile._parse grows buffer_size to 0x100 for entries with size 0 ('give those with a entry size of 0 a chance to get their header parsed', header_file.py:32-33), so a zero-size record pointing at a real header becomes a HeaderFile; the next directory record at the same offset is then the files_by_offset echo of it (file.py:47-50). Rust entry.rs classify() sees a 0-byte body and yields EntryClass::Plain, and parses the following record fresh. Corpus impact (vs upstream 241629b decode tally): ASUS_Notebook_TUF_FX505DY-AS.309 dir1 idx17/18 @0x1e9000 (KVM_IMAGE size 0 then S0I3_DRIVER), Lenovo_Thinkpad_A285 @0x3bf220 and A485 @0x51f420 idx14/15 (KVM_IMAGE size 0 then ABL0): upstream counts 2 HeaderFiles at each offset, we count 1. Pinned as named deltas in crates/psptool-ops/tests/decode_verification.rs ENTRY_SET_DELTA; fixing this must update that constant.",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-18T22:42:36.745527215Z",
+      "updated_at": "2026-10-18T22:42:36.745527215Z"
+    },
     "fba50544-5971-4237-8157-aca0c67508f5": {
       "uuid": "fba50544-5971-4237-8157-aca0c67508f5",
       "display_id": 32,
@@ -4147,11 +4160,16 @@
       "agent_id": "tLiK",
       "agent_seq": 264,
       "timestamp": "2026-10-18T22:10:49.772939619Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 265,
+      "timestamp": "2026-10-18T22:42:36.745527215Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T22:10:49.772939619Z",
+    "timestamp": "2026-10-18T22:42:36.745527215Z",
     "agent_id": "tLiK",
-    "agent_seq": 264
+    "agent_seq": 265
   }
 }
