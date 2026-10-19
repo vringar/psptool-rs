@@ -70,12 +70,13 @@
 //!   `address` to 0 while we report the raw directory field. `address` is not
 //!   compared when both tools report `size == 0`.
 //!
-//! Raw per-entry `extract` is not differentially tested: `get_bytes()` is
-//! `buffer[address .. address+size]` in both tools, so it is fully determined
-//! by the `address`/`size` already compared here — and the `-X -d` directory
-//! index space differs between the tools (ours numbers combo directories,
-//! upstream's does not), so a naive `-d N` extract comparison is ill-defined.
-//! The `-X` argv path itself is covered by `synthetic.rs`.
+//! Raw per-entry `extract` is not tested here: `get_bytes()` is the file's
+//! buffer — for a HeaderFile re-sized to its header's `rom_size`, the
+//! `size` this test tolerates — and the `-X -d` directory index space
+//! differs between the tools (ours numbers combo directories, upstream's
+//! does not), so a naive `-d N` extract comparison is ill-defined.
+//! `extract_oracle.rs` compares `get_bytes()` by flash address instead, and
+//! `synthetic.rs` covers the `-X` argv path.
 //!
 //! ## Gating
 //!

@@ -399,9 +399,10 @@ pub struct Entry {
 }
 
 impl Entry {
-    /// PSPTool-compatible accessor: returns the entry body source bytes
-    /// (`File.get_bytes()`). Callers needing the *decompressed* or *decrypted*
-    /// view should wait for #8.
+    /// The directory-declared entry body ([`Entry::body`]). Upstream's
+    /// `File.get_bytes()` matches it for every file but a HeaderFile-class
+    /// one, whose buffer is re-sized to the header's `rom_size`
+    /// (`header_file.py:72-75`, `:104-105`): that is [`Entry::file_bytes`].
     #[inline]
     pub fn get_bytes(&self) -> &SourceBytes {
         &self.body

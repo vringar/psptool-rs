@@ -51,7 +51,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:228` + `signature_bytes` at `body.rs:260`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; the grow half (`header_file.py:32-33` to the 0x100 header, `:72-75` to a larger `rom_size`, both reading on into the image; `rom_size == 0` reads as the grown buffer, #90) is `Entry::header_file_window` at `body.rs:867`. Consumers `psptool-ops/src/extract.rs` (`extract_decompressed` / `extract_decrypted` over the window, #99) + `psptool-ops/src/sign.rs:147`. Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`; the grown window is pinned live by `psptool-cli/tests/extract_oracle.rs`. |
+//! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:228` + `signature_bytes` at `body.rs:260`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; the grow half (`header_file.py:32-33` to the 0x100 header, `:72-75` to a larger `rom_size`, both reading on into the image; `rom_size == 0` reads as the grown buffer, #90) is `Entry::header_file_window` at `body.rs:867`, and the whole re-sized buffer (`header_file.py:104-105`, upstream `File.get_bytes()`) is `Entry::file_bytes` at `body.rs:891` (#101). Consumers `psptool-ops/src/extract.rs` (`extract_decompressed` / `extract_decrypted` over the window, #99; `extract_raw` over `file_bytes`, #101) + `psptool-ops/src/sign.rs:164-174` (#105). Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`; the grown window is pinned live by `psptool-cli/tests/extract_oracle.rs`. |
 //! | REQ-2 (AES-128 decryption) | SHIPPED | `get_decrypted_body` at `body.rs:255` (ECB-unwrap key then CBC-decrypt) per upstream `utils.py:281,283`, `header_file.py:184-190`; consumer `psptool-ops/src/extract.rs:79` → CLI `extract -d`. |
 //! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:303` = `zlib_decompress(output[:zlib_size])` (`zlib_decompress` `body.rs:1100`: `zlib_find_header` per-magic priority search `entry.rs:613`, strict inflate `body.rs:1118`, no magic → input unchanged) per upstream `utils.py:218-254`, `header_file.py:181`; consumer `decode` `body.rs:317` → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` (`-X -u`). Pins #82/#84 live; #91 pins `psptool-ops/tests/divergence_extract_zlib.rs` + `psptool-cli/tests/extract_oracle.rs`. |
 //! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` over `decode` at `body.rs:317` (decrypt iff encrypted, inflate iff compressed, the still-compressed region when the inflate fails) per upstream `header_file.py:172-189`; production consumer `get_signed_bytes` at `body.rs:375`. |
@@ -875,6 +875,30 @@ impl Entry {
         }
         Some(self.body.clone())
     }
+
+    /// Upstream `File.get_bytes()` (`utils.py:105-107` over the file's
+    /// buffer) — the raw `-X` output (`__main__.py:180`, `:200`) and what
+    /// `-T` compares (`__main__.py:52-56`). For a HeaderFile-class entry the
+    /// buffer is [`Self::header_file_window`] re-sized to the header's
+    /// `rom_size` (`header_file.py:104-105` `self.buffer_size =
+    /// self.rom_size`; `rom_size == 0` reads as the buffer so far, `:72-73`),
+    /// so it can be longer or shorter than the directory-declared entry. Every
+    /// other entry is its body ([`Entry::get_bytes`]).
+    ///
+    /// Where `blob` does not cover `rom_size` upstream's read fails; this
+    /// returns the bytes the image holds (the window falls back to the entry
+    /// body).
+    pub fn file_bytes(&self, blob: &SourceBytes) -> SourceBytes {
+        let (Some(header), Some(window)) = (self.class.header(), self.header_file_window(blob))
+        else {
+            return self.get_bytes().clone();
+        };
+        let len = match header.rom_size as usize {
+            0 => window.len(),
+            rom_size => rom_size.min(window.len()),
+        };
+        window.subslice(0..len).unwrap_or(window)
+    }
 }
 
 impl HeaderEntry {
@@ -1581,6 +1605,37 @@ mod tests {
         assert_eq!(window.as_bytes(), header.as_slice());
         let h = zero.class.header().ok_or("not a HeaderFile")?;
         assert!(h.data_region(window.as_bytes())?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn file_bytes_is_the_header_file_buffer_resized_to_rom_size() -> TestResult {
+        // `File.get_bytes()` of a HeaderFile is its buffer after
+        // `header_file.py:104-105` (`self.buffer_size = self.rom_size`).
+        let file = psptool_fixtures::micro::header_signed(); // rom_size 0x210
+        let mut image = file.to_vec();
+        image.extend_from_slice(&[0xEE; 0x40]);
+        for size in [0, 0x80, 0x110, 0x210, 0x250] {
+            let (blob, entry) = entry_over(0x01, size, &image)?;
+            assert_eq!(entry.file_bytes(&blob).as_bytes(), file, "size {size:#x}");
+        }
+
+        // `rom_size == 0` keeps the buffer so far (`header_file.py:72-73`):
+        // the directory size, grown to at least the header (`:32-33`).
+        let mut zero = image.clone();
+        zero[0x6C..0x70].fill(0);
+        let (blob, short) = entry_over(0x01, 0x80, &zero)?;
+        assert_eq!(short.file_bytes(&blob).as_bytes(), &zero[..HEADER_FILE_LEN]);
+        let (blob, long) = entry_over(0x01, 0x230, &zero)?;
+        assert_eq!(long.file_bytes(&blob).as_bytes(), &zero[..0x230]);
+
+        // An image ending before `rom_size` yields what it holds.
+        let (blob, cut) = entry_over(0x01, 0x110, &file[..0x110])?;
+        assert_eq!(cut.file_bytes(&blob).as_bytes(), &file[..0x110]);
+
+        // Without a header, the entry body.
+        let (blob, plain) = entry_over(0x21, 0x10, &image)?;
+        assert_eq!(plain.file_bytes(&blob).as_bytes(), &image[..0x10]);
         Ok(())
     }
 

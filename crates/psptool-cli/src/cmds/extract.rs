@@ -103,10 +103,12 @@ fn resolve_single(opened: &OpenedRom, selector: &EntrySelector) -> Result<Entry>
                 0 => bail!("no entry matches type regex {re_src:?}"),
                 1 => Ok(matches.remove(0)),
                 _ => {
-                    let first_bytes = matches[0].body.as_bytes();
+                    // `file.get_bytes()` of every match (`__main__.py:52-56`):
+                    // a HeaderFile's `rom_size` buffer, not its directory entry.
+                    let first_bytes = matches[0].file_bytes(&opened.blob);
                     let all_same = matches[1..]
                         .iter()
-                        .all(|e| e.body.as_bytes() == first_bytes);
+                        .all(|e| e.file_bytes(&opened.blob).as_bytes() == first_bytes.as_bytes());
                     if all_same {
                         eprintln!(
                             "warning: regex {re_src:?} matched {} entries with identical bytes; extracting the first",
@@ -157,7 +159,7 @@ fn transform_single(entry: &Entry, blob: &SourceBytes, args: &ExtractArgs) -> Re
         };
         Ok(pem_for_pubkey(pk)?)
     } else {
-        Ok(extract_raw(entry))
+        Ok(extract_raw(entry, blob))
     }
 }
 
@@ -222,7 +224,7 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
                     warn_if_inflate_failed(entry, blob, &name);
                     bytes
                 }
-                Err(_) => extract_raw(entry),
+                Err(_) => extract_raw(entry, blob),
             }
         } else if args.decrypt && header_file {
             // Upstream multi-file `-c` writes the BARE decrypted body
@@ -236,14 +238,17 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
                 .zip(entry.header_file_window(blob))
                 .map(|(h, file)| h.get_decrypted_body(file.as_bytes(), Ikek::ZenPlus))
                 .and_then(Result::ok)
-                .unwrap_or_else(|| extract_raw(entry))
+                .unwrap_or_else(|| extract_raw(entry, blob))
         } else if args.pem_key {
             match &entry.class {
-                EntryClass::Pubkey(p) => pem_for_pubkey(p).unwrap_or_else(|_| extract_raw(entry)),
-                _ => extract_raw(entry),
+                EntryClass::Pubkey(p) => {
+                    pem_for_pubkey(p).unwrap_or_else(|_| extract_raw(entry, blob))
+                }
+                _ => extract_raw(entry, blob),
             }
         } else {
-            extract_raw(entry)
+            // `file.get_bytes()` (`__main__.py:200`).
+            extract_raw(entry, blob)
         };
         let name = readable_type(entry.entry_type(), is_bios);
         // Mirrors `psptool/__main__.py:202-209`. The bare type name collides

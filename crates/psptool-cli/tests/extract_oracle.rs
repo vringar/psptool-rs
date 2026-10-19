@@ -1,5 +1,5 @@
-//! `-X -u` / `-X -c` differential vs the reference Python PSPTool (#91, #99,
-//! #100).
+//! `-X`, `-X -u` / `-X -c` differential vs the reference Python PSPTool (#91,
+//! #99, #100, #101).
 //!
 //! Single-file `-X -d D -e E -u` is `file.get_signed_bytes()` and `-c` is
 //! `file.to_decrypted_file_bytes()` in both tools (`__main__.py:169-176`) —
@@ -7,7 +7,11 @@
 //! 50-51`); multi-file `-X -u` / `-c` writes `get_signed_bytes()` /
 //! `get_decrypted_body()` only when `type(file) is HeaderFile`, and
 //! `get_bytes()` for every other file, `KeyStoreFile` included
-//! (`__main__.py:191-213`). The same argv must produce the same bytes.
+//! (`__main__.py:191-213`). Plain `-X` is `get_bytes()` throughout
+//! (`__main__.py:180`, `:200`) — for a HeaderFile-class file its buffer
+//! re-sized to `rom_size` (`header_file.py:104-105`), and `-T` compares those
+//! (`__main__.py:52-56`, [`synthetic_type_regex_compares_the_rom_size_buffers`]).
+//! The same argv must produce the same bytes.
 //!
 //! Shapes the corpus barely reaches get a synthetic image with one entry per
 //! edge case, run through both binaries in single-file
@@ -17,11 +21,13 @@
 //! `utils.zlib_decompress` (`utils.py:218-254`) — HeaderFiles whose header
 //! `rom_size` outgrows their directory entry, which upstream reads on into the
 //! image (`header_file.py:72-75`), and `KeyStoreFile`s (plain, compressed,
-//! encrypted). [`corpus_get_signed_bytes_matches_reference`] compares the `-u`
-//! and `-c` bytes of every corpus HeaderFile against the reference's
-//! `get_signed_bytes()` / `to_decrypted_file_bytes()`;
+//! encrypted), and for raw `-X` HeaderFiles whose directory entry declares
+//! more or less than `rom_size` (#101).
+//! [`corpus_get_signed_bytes_matches_reference`] compares the raw, `-u` and
+//! `-c` bytes of every corpus HeaderFile against the reference's
+//! `get_bytes()` / `get_signed_bytes()` / `to_decrypted_file_bytes()`;
 //! [`corpus_grown_headerfile_window_matches_reference`] does the same for the
-//! ones whose `rom_size` outgrows their directory entry (#99);
+//! ones whose `rom_size` outgrows their directory entry (#99, #101);
 //! [`corpus_multi_file_key_store_matches_reference`] compares both CLIs'
 //! multi-file `-u` key-store files (#100).
 //!
@@ -38,7 +44,7 @@ use psptool_core::{
     Directory, Entry, EntryClass, Ikek, SourceBytes, detect_rom_layout, scan_fet_candidates,
     walk_directories,
 };
-use psptool_ops::{extract_decompressed, extract_decrypted};
+use psptool_ops::{extract_decompressed, extract_decrypted, extract_raw};
 use sha2::{Digest, Sha256};
 
 const HEADER_LEN: usize = 0x100;
@@ -367,9 +373,54 @@ fn decrypt_cases() -> Vec<(&'static str, Placed)> {
     ]
 }
 
-/// The extract flag and its cases.
-fn flags() -> [(&'static str, Vec<(&'static str, Placed)>); 2] {
-    [("-u", decompress_cases()), ("-c", decrypt_cases())]
+/// The committed `header_signed` fixture (signed RSA-2048, `rom_size` 0x210).
+fn signed_fixture() -> Vec<u8> {
+    psptool_fixtures::micro::header_signed().to_vec()
+}
+
+/// Raw `-X` cases (no transform flag): `file.get_bytes()` (`__main__.py:180`,
+/// `:200`), which for a HeaderFile-class file is its buffer — grown to the
+/// header (`header_file.py:32-33`), then re-sized to `rom_size` (`:72-75`,
+/// `:104-105`) — not the directory-declared entry (#101).
+fn raw_cases() -> Vec<(&'static str, Placed)> {
+    let file = signed_fixture();
+    // An unsigned header with `rom_size == 0` on a record shorter than the
+    // header: the buffer grows to 0x100 and `rom_size` becomes 0x100.
+    let mut short = file[..HEADER_LEN].to_vec();
+    short[0x30..0x34].fill(0);
+    short[0x6C..0x70].fill(0);
+    short.extend_from_slice(&filler(0x40));
+    vec![
+        ("whole", Placed::header_file(file.clone())),
+        (
+            "grown",
+            Placed::header_file(file.clone()).declaring(HEADER_LEN + 0x10),
+        ),
+        (
+            "shrunk",
+            Placed::header_file(file.clone()).declaring(file.len() + 0x30),
+        ),
+        ("zero-size", Placed::header_file(file).declaring(0)),
+        ("rom-size-zero", Placed::header_file(short).declaring(0x80)),
+        (
+            "key-store-grown",
+            Placed::key_store(key_store_file(&kdb())).declaring(HEADER_LEN + 0x10),
+        ),
+    ]
+}
+
+/// The extract flag and its cases; `""` is the raw `-X`.
+fn flags() -> [(&'static str, Vec<(&'static str, Placed)>); 3] {
+    [
+        ("-u", decompress_cases()),
+        ("-c", decrypt_cases()),
+        ("", raw_cases()),
+    ]
+}
+
+/// `args` without the empty raw-`-X` flag.
+fn argv<'a>(args: &[&'a str]) -> Vec<&'a str> {
+    args.iter().copied().filter(|a| !a.is_empty()).collect()
 }
 
 /// The image of `cases` plus trailing entries a single-file `-u`/`-c` rejects
@@ -450,9 +501,9 @@ fn synthetic_rom_matches_reference() {
         let rom = temp_rom(&format!("single{flag}.bin"), &image_of(&cases));
         for (index, (case, _)) in cases.iter().enumerate() {
             let e = index.to_string();
-            let argv = ["-X", "-d", "0", "-e", &e, flag, rom.path()];
-            let theirs = run(&reference, &[&["-m", "psptool"], &argv[..]].concat());
-            let mine = run(ours(), &argv);
+            let args = argv(&["-X", "-d", "0", "-e", &e, flag, rom.path()]);
+            let theirs = run(&reference, &[&["-m", "psptool"], &args[..]].concat());
+            let mine = run(ours(), &args);
             assert!(
                 theirs.status.success(),
                 "[{flag} {case}] reference failed: {}",
@@ -501,10 +552,13 @@ fn synthetic_rom_multi_file_matches_reference() {
             Temp::new(&format!("ours{flag}")),
             Temp::new(&format!("theirs{flag}")),
         );
-        let mine = run(ours(), &["-X", flag, "-o", mine_dir.path(), rom.path()]);
+        let mine = run(
+            ours(),
+            &argv(&["-X", flag, "-o", mine_dir.path(), rom.path()]),
+        );
         let theirs = run(
             &reference,
-            &[
+            &argv(&[
                 "-m",
                 "psptool",
                 "-X",
@@ -512,7 +566,7 @@ fn synthetic_rom_multi_file_matches_reference() {
                 "-o",
                 theirs_dir.path(),
                 rom.path(),
-            ],
+            ]),
         );
         assert!(
             theirs.status.success(),
@@ -538,6 +592,52 @@ fn synthetic_rom_multi_file_matches_reference() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// `-T` extracts the first match when every match has the same
+/// `get_bytes()` (`__main__.py:49-56`, `:155-157`): four `PSP_FW_BOOT_LOADER`
+/// records of one file, declaring its `rom_size`, less, more and nothing,
+/// hold the same `rom_size` buffer, so both tools warn and extract the first
+/// (#101).
+#[test]
+fn synthetic_type_regex_compares_the_rom_size_buffers() {
+    let Some(reference) = reference() else { return };
+    let file = signed_fixture();
+    let rom = temp_rom(
+        "type_regex.bin",
+        &image(&[
+            Placed::header_file(file.clone()),
+            Placed::header_file(file.clone()).declaring(HEADER_LEN + 0x10),
+            Placed::header_file(file.clone()).declaring(file.len() + 0x30),
+            Placed::header_file(file.clone()).declaring(0),
+        ]),
+    );
+    let args = ["-X", "-T", "PSP_FW_BOOT_LOADER", rom.path()];
+    // Without `-e`, upstream also runs the multi-file extraction into
+    // `./{filename}_extracted` (`__main__.py:183-190`): keep it in a scratch
+    // working directory.
+    let cwd = Temp::new("type_regex_cwd");
+    std::fs::create_dir_all(&cwd.0).expect("scratch working directory");
+    let theirs = Command::new(&reference)
+        .current_dir(&cwd.0)
+        .args(["-m", "psptool"])
+        .args(args)
+        .output()
+        .unwrap_or_else(|e| panic!("spawning {}: {e}", reference.display()));
+    let mine = run(ours(), &args);
+    assert!(
+        theirs.status.success() && theirs.stdout == file,
+        "reference: {}",
+        String::from_utf8_lossy(&theirs.stderr)
+    );
+    assert!(
+        mine.status.success() && mine.stdout == theirs.stdout,
+        "ours exit={:?} {} bytes, reference {} bytes; stderr: {}",
+        mine.status.code(),
+        mine.stdout.len(),
+        theirs.stdout.len(),
+        String::from_utf8_lossy(&mine.stderr).trim()
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -633,11 +733,13 @@ fn corpus_multi_file_key_store_matches_reference() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Reference side, for every `HeaderFile` (exact type, as the multi-file
-/// `-u`/`-c` path tests it, `__main__.py:193-196`) of every directory of every
-/// ROM: `path address u sha256(get_signed_bytes())` — the `-u` output
-/// (`__main__.py:172`, `:194`) — and, when encrypted, `path address c
-/// sha256(to_decrypted_file_bytes())` — the single-file `-c` output
+/// Reference side, for every HeaderFile-class file (`KeyStoreFile` included)
+/// of every directory of every ROM: `path address r sha256(get_bytes())` —
+/// the raw `-X` output (`__main__.py:180`, `:200`, #101); and for every
+/// `HeaderFile` (exact type, as the multi-file `-u`/`-c` path tests it,
+/// `__main__.py:193-196`): `path address u sha256(get_signed_bytes())` — the
+/// `-u` output (`__main__.py:172`, `:194`) — and, when encrypted, `path
+/// address c sha256(to_decrypted_file_bytes())` — the single-file `-c` output
 /// (`__main__.py:176`).
 const ORACLE: &str = r#"
 import hashlib, sys
@@ -648,6 +750,10 @@ for path in sys.argv[1:]:
     for rom in psp.blob.roms:
         for directory in rom.directories:
             for f in directory.files:
+                if not isinstance(f, HeaderFile):
+                    continue
+                digest = hashlib.sha256(f.get_bytes()).hexdigest()
+                print(path, f.get_address(), 'r', digest)
                 if type(f) is not HeaderFile:
                     continue
                 digest = hashlib.sha256(f.get_signed_bytes()).hexdigest()
@@ -697,10 +803,11 @@ fn digest(bytes: Result<Vec<u8>, psptool_ops::ExtractError>) -> String {
     }
 }
 
-/// Our `-u` (and, when encrypted, `-c`) bytes for every HeaderFile-class entry
-/// whose header `rom_size` exceeds its directory size (`grown`) or does not
-/// (`!grown`). Upstream reads a grown HeaderFile on into the image
-/// (`header_file.py:72-75`).
+/// Our raw `-X` bytes for every HeaderFile-class entry, and the `-u` (and,
+/// when encrypted, `-c`) bytes of every `HeaderFile`, whose header `rom_size`
+/// exceeds its directory size (`grown`) or does not (`!grown`). Upstream reads
+/// a grown HeaderFile on into the image (`header_file.py:72-75`) and cuts a
+/// shrunk one at `rom_size` (`:104-105`).
 fn our_digests(roms: &[PathBuf], grown: bool) -> Digests {
     let mut digests = Digests::new();
     for path in roms {
@@ -720,7 +827,7 @@ fn our_digests(roms: &[PathBuf], grown: bool) -> Digests {
                     Directory::Combo(_) => Vec::new(),
                 };
                 for entry in entries.iter().flatten() {
-                    let EntryClass::Header(h) = &entry.class else {
+                    let Some(h) = entry.class.header() else {
                         continue;
                     };
                     if (h.rom_size as usize > entry.body.len()) != grown {
@@ -734,6 +841,10 @@ fn our_digests(roms: &[PathBuf], grown: bool) -> Digests {
                         );
                         digests.entry(key).or_default().insert(value);
                     };
+                    record("r", digest(Ok(extract_raw(entry, &blob))));
+                    if !matches!(entry.class, EntryClass::Header(_)) {
+                        continue;
+                    }
                     record("u", digest(extract_decompressed(entry, &blob)));
                     if h.is_encrypted {
                         record("c", digest(extract_decrypted(entry, &blob, Ikek::ZenPlus)));
