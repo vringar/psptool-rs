@@ -21,6 +21,7 @@ use crate::directory::{BiosDirectory, BiosDirectoryEntry, Directory, DirectoryEn
 use crate::file::{self, FileArgs};
 use crate::image::Image;
 use crate::listing;
+use crate::memory;
 use crate::model::{self, FileKind, Model};
 
 /// `Blob` (`blob.py:29-185`): the root view over the whole input.
@@ -121,7 +122,7 @@ impl Fet {
 }
 
 /// `PSPTool` (`psptool.py:33-290`).
-#[pyclass(dict, subclass, module = "psptool.psptool")]
+#[pyclass(dict, weakref, subclass, module = "psptool.psptool")]
 pub struct PSPTool {
     pub(crate) image: Arc<Image>,
 }
@@ -136,11 +137,13 @@ impl PSPTool {
     fn py_new<'py>(
         rom_bytes: &Bound<'py, PyAny>,
         verbose: bool,
-        filename: Option<PyObject>,
+        filename: Option<Py<PyAny>>,
     ) -> PyResult<Bound<'py, Self>> {
         let _ = verbose;
         let py = rom_bytes.py();
-        let image = Image::new(to_bytes(rom_bytes)?);
+        let bytes = to_bytes(rom_bytes)?;
+        memory::relieve_pressure(py, bytes.len())?;
+        let image = Image::new(bytes);
         let obj = Bound::new(
             py,
             PSPTool {

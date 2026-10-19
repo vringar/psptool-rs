@@ -106,7 +106,7 @@ impl Directory {
     }
 
     #[getter]
-    fn count(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn count(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf.getattr("_count")?.unbind())
     }
 

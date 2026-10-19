@@ -8,6 +8,7 @@ implementation. Run by ``python_api.rs`` (``cargo test``) and by the nix
 """
 
 import contextlib
+import gc
 import hashlib
 import io
 import json
@@ -15,6 +16,7 @@ import os
 import struct
 import tempfile
 import unittest
+import weakref
 import zlib
 from unittest import mock
 
@@ -37,6 +39,9 @@ IKEK = 0x32000
 KEY_ID = bytes(range(0x10, 0x20))
 BODY = bytes((i * 7) & 0xFF for i in range(0x200))
 VERSION = bytes([0x21, 0x00, 0x0D, 0x00])  # displayed reversed: 0.D.0.21
+# memory.rs MIN_TRIGGER: native bytes allowed to await the cycle collector
+# before a construction runs a full collection.
+GC_TRIGGER = 128 << 20
 
 
 def pubkey_file():
@@ -367,6 +372,72 @@ class TestSubclass(unittest.TestCase):
         # header_file.py:203: the bare fake has no `signed_entity`.
         with self.assertRaises(AttributeError):
             FakeHeaderFile(self.PLAIN).decode_verification()
+
+
+def rss():
+    """Resident set size in bytes (Linux ``/proc``)."""
+    with open("/proc/self/statm") as f:
+        return int(f.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+
+
+class TestMemory(unittest.TestCase):
+    """#98: upstream's object graph is cyclic (``psptool.blob.psptool``,
+    ``rom.fet.rom``, a view and its ``parent_buffer``), so a dropped parse is
+    the cycle collector's to reclaim, upstream's and ours alike."""
+
+    def setUp(self):
+        self.data = image()
+        gc.collect()
+
+    def test_dropped_parse_is_collected(self):
+        pt = parse(self.data)
+        rom = pt.blob.roms[0]
+        directory = rom.directories[0]
+        graph = [pt, pt.blob, rom, rom.fet, directory, directory.header, directory.entries[0], pt.cert_tree]
+        graph += directory.files
+        for obj in graph:
+            self.assertTrue(gc.is_tracked(obj), type(obj).__name__)
+        refs = [weakref.ref(obj) for obj in graph]
+        del pt, rom, directory, graph, obj
+        gc.collect()
+        self.assertEqual([type(r()).__name__ for r in refs if r() is not None], [])
+
+    def test_links_stay_strong(self):
+        # Upstream's attributes are plain references: a file alone keeps the
+        # whole parse reachable.
+        f = files(parse(self.data))[1]
+        gc.collect()
+        self.assertIs(f.parent_directory.rom.fet.psptool.files_by_offset[HEADER], f)
+
+    def test_subclass_cycle_is_collected(self):
+        f = FakeHeaderFile(b"body")
+        f.me = f
+        ref = weakref.ref(f)
+        del f
+        gc.collect()
+        self.assertIsNone(ref())
+
+    def test_dropped_parses_do_not_accumulate(self):
+        # The psp-etl loop: parse, drop, no gc.collect(). The few Python
+        # objects a parse allocates would not schedule a full collection for
+        # dozens of parses; the native bytes they hold do (memory.rs).
+        n = GC_TRIGGER // ROM_SIZE + 4
+        refs = [weakref.ref(parse(self.data)) for _ in range(n)]
+        self.assertLessEqual(sum(r() is not None for r in refs), n // 2)
+
+    @unittest.skipUnless(os.path.exists("/proc/self/statm"), "needs /proc")
+    def test_rss_is_flat_across_parses(self):
+        # One warm-up parse settles the allocator; afterwards each dropped and
+        # collected parse must give its image back (#98 leaked one per parse).
+        parse(self.data)
+        gc.collect()
+        before = rss()
+        growth = []
+        for _ in range(10):
+            parse(self.data)
+            gc.collect()
+            growth.append(rss() - before)
+        self.assertLess(max(growth), 5 * ROM_SIZE, [g >> 20 for g in growth])
 
 
 if __name__ == "__main__":

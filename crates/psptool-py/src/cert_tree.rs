@@ -32,7 +32,7 @@ fn range<'py>(py: Python<'py>, start: i64, stop: i64) -> PyResult<Bound<'py, PyA
 }
 
 /// `SignedEntity` (`cert_tree.py:28-124`).
-#[pyclass(dict, module = "psptool.cert_tree")]
+#[pyclass(dict, weakref, module = "psptool.cert_tree")]
 pub struct SignedEntity;
 
 #[pymethods]
@@ -55,11 +55,11 @@ impl SignedEntity {
         Ok(obj)
     }
 
-    fn get_address(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_address(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf.getattr("file")?.call_method0("get_address")?.unbind())
     }
 
-    fn get_length(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_length(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf.getattr("file")?.getattr("buffer_size")?.unbind())
     }
 
@@ -209,7 +209,7 @@ impl SignedEntity {
 }
 
 /// `PublicKeyEntity` (`cert_tree.py:127-252`).
-#[pyclass(dict, module = "psptool.cert_tree")]
+#[pyclass(dict, weakref, module = "psptool.cert_tree")]
 pub struct PublicKeyEntity;
 
 #[pymethods]
@@ -233,7 +233,7 @@ impl PublicKeyEntity {
         Ok(obj)
     }
 
-    fn get_address(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_address(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf.getattr("key_id")?.call_method0("get_address")?.unbind())
     }
 
@@ -475,7 +475,7 @@ impl PublicKeyEntity {
 }
 
 /// `CertificateTree` (`cert_tree.py:255-462`).
-#[pyclass(dict, module = "psptool.cert_tree")]
+#[pyclass(dict, weakref, module = "psptool.cert_tree")]
 pub struct CertificateTree;
 
 impl CertificateTree {

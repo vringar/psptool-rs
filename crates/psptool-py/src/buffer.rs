@@ -11,13 +11,14 @@
 use std::sync::Arc;
 
 use pyo3::exceptions::{PyAssertionError, PyIndexError, PyTypeError, PyValueError};
+use pyo3::gc::{PyTraverseError, PyVisit};
 use pyo3::prelude::*;
 use pyo3::types::{PyByteArray, PyBytes, PyInt, PyList, PySlice, PyType};
 
 use crate::image::Image;
 
 /// `utils.NestedBuffer`.
-#[pyclass(subclass, dict, module = "psptool.utils")]
+#[pyclass(subclass, dict, weakref, module = "psptool.utils")]
 pub struct NestedBuffer {
     pub(crate) image: Arc<Image>,
     /// `None` for a root view (upstream: a `bytearray` parent).
@@ -65,7 +66,7 @@ impl NestedBuffer {
         reversed: bool,
         checked: bool,
     ) -> PyResult<Self> {
-        let base = parent.downcast::<NestedBuffer>()?.borrow();
+        let base = parent.cast::<NestedBuffer>()?.borrow();
         if checked {
             if offset + size > base.size {
                 return Err(PyAssertionError::new_err(
@@ -98,7 +99,7 @@ impl NestedBuffer {
         while let Some(parent) = next {
             let bound = parent.bind(py);
             let nb = bound
-                .downcast::<NestedBuffer>()
+                .cast::<NestedBuffer>()
                 .map_err(|_| PyTypeError::new_err("parent buffer is not a NestedBuffer"))?
                 .borrow();
             levels.push(Level {
@@ -309,14 +310,14 @@ fn py_mod(a: i64, b: i64) -> PyResult<i64> {
 
 /// `bytes(value)` for anything bytes-like.
 pub(crate) fn to_bytes(value: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
-    if let Ok(b) = value.downcast::<PyBytes>() {
+    if let Ok(b) = value.cast::<PyBytes>() {
         return Ok(b.as_bytes().to_vec());
     }
-    if let Ok(b) = value.downcast::<PyByteArray>() {
+    if let Ok(b) = value.cast::<PyByteArray>() {
         return Ok(b.to_vec());
     }
     let b = value.py().get_type::<PyBytes>().call1((value,))?;
-    Ok(b.downcast::<PyBytes>()?.as_bytes().to_vec())
+    Ok(b.cast::<PyBytes>()?.as_bytes().to_vec())
 }
 
 /// Upper-case hex (`hexlify(...).upper()`).
@@ -331,6 +332,20 @@ pub(crate) fn hex_lower(b: &[u8]) -> String {
 
 #[pymethods]
 impl NestedBuffer {
+    /// GC support. Upstream's object graph is cyclic by design: a view holds
+    /// its `parent_buffer` while the parent holds the view in an attribute
+    /// (`directory.header`, `rom.fet`, `directory.entries`, ...), so a parse
+    /// is reclaimed by the cycle collector, as upstream's is. pyo3 visits and
+    /// clears the instance `__dict__`; the Rust-held parent link is the one
+    /// edge it cannot see.
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        visit.call(&self.parent)
+    }
+
+    fn __clear__(&mut self) {
+        self.parent = None;
+    }
+
     #[new]
     #[pyo3(signature = (parent_buffer, buffer_size, buffer_offset = 0))]
     fn py_new(
@@ -375,7 +390,7 @@ impl NestedBuffer {
 
     /// The parent view, or a `bytearray` copy of the image for a root view.
     #[getter]
-    fn parent_buffer(&self, py: Python<'_>) -> PyObject {
+    fn parent_buffer(&self, py: Python<'_>) -> Py<PyAny> {
         match &self.parent {
             Some(p) => p.clone_ref(py),
             None => PyByteArray::new(py, &self.image.to_vec())
@@ -389,14 +404,14 @@ impl NestedBuffer {
             .map_err(|_| PyValueError::new_err("__len__() should return >= 0"))
     }
 
-    fn __getitem__(&self, py: Python<'_>, item: &Bound<'_, PyAny>) -> PyResult<PyObject> {
-        if let Ok(slice) = item.downcast::<PySlice>() {
+    fn __getitem__(&self, py: Python<'_>, item: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        if let Ok(slice) = item.cast::<PySlice>() {
             let (start, stop, step) = slice_parts(slice)?;
             let bytes = self.fetch(self.resolve(py, start, stop, step)?)?;
             return Ok(PyByteArray::new(py, &bytes).into_any().unbind());
         }
         let index: i64 = item
-            .downcast::<PyInt>()
+            .cast::<PyInt>()
             .map_err(|_| PyAssertionError::new_err(""))?
             .extract()?;
         let abs = self.index(py, index)?;
@@ -413,12 +428,12 @@ impl NestedBuffer {
         key: &Bound<'_, PyAny>,
         value: &Bound<'_, PyAny>,
     ) -> PyResult<()> {
-        if let Ok(slice) = key.downcast::<PySlice>() {
+        if let Ok(slice) = key.cast::<PySlice>() {
             let (start, stop, step) = slice_parts(slice)?;
             return self.write(py, start, stop, step, &to_bytes(value)?);
         }
         let index: i64 = key
-            .downcast::<PyInt>()
+            .cast::<PyInt>()
             .map_err(|_| PyAssertionError::new_err(""))?
             .extract()?;
         let byte: i64 = value.extract()?;
@@ -458,7 +473,7 @@ impl NestedBuffer {
         }
     }
 
-    fn get_buffer(&self, py: Python<'_>) -> PyObject {
+    fn get_buffer(&self, py: Python<'_>) -> Py<PyAny> {
         self.parent_buffer(py)
     }
 
@@ -542,11 +557,9 @@ impl KeyId {
         parent_buffer: &Bound<'_, PyAny>,
         buffer_size: i64,
         buffer_offset: i64,
-    ) -> PyResult<(Self, NestedBuffer)> {
-        Ok((
-            Self,
-            NestedBuffer::child(parent_buffer, buffer_size, buffer_offset, false, true)?,
-        ))
+    ) -> PyResult<PyClassInitializer<Self>> {
+        let base = NestedBuffer::child(parent_buffer, buffer_size, buffer_offset, false, true)?;
+        Ok(PyClassInitializer::from(base).add_subclass(Self))
     }
 
     /// `hexlify(self.get_bytes(0, 2)).upper()`.
@@ -579,11 +592,9 @@ impl Signature {
         parent_buffer: &Bound<'_, PyAny>,
         buffer_size: i64,
         buffer_offset: i64,
-    ) -> PyResult<(Self, NestedBuffer)> {
-        Ok((
-            Self,
-            NestedBuffer::child(parent_buffer, buffer_size, buffer_offset, false, true)?,
-        ))
+    ) -> PyResult<PyClassInitializer<Self>> {
+        let base = NestedBuffer::child(parent_buffer, buffer_size, buffer_offset, false, true)?;
+        Ok(PyClassInitializer::from(base).add_subclass(Self))
     }
 
     /// `Signature.from_nested_buffer(nb)`: the same window, as a `Signature`.
@@ -623,7 +634,7 @@ pub(crate) fn signature<'py>(
 ) -> PyResult<Bound<'py, Signature>> {
     let py = nb.py();
     let (parent, size, offset) = {
-        let view = nb.downcast::<NestedBuffer>()?.borrow();
+        let view = nb.cast::<NestedBuffer>()?.borrow();
         let parent = view
             .parent
             .as_ref()

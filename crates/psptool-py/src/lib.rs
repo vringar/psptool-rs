@@ -16,6 +16,8 @@
 //! * [`tool`], [`directory`], [`file`] — the object model.
 //! * [`cert_tree`], [`crypto`] — certificate tree, keys, re-signing.
 //! * [`listing`] — `ls` / `ls_json`.
+//! * [`memory`] — native buffers the cycle collector cannot see, and the
+//!   collection they warrant at construction (#98).
 //!
 //! ## REQ status (per `.design/psptool-py/bindings.md`)
 //!
@@ -49,6 +51,7 @@ pub mod errors;
 pub mod file;
 pub mod image;
 pub mod listing;
+pub mod memory;
 pub mod model;
 pub mod tool;
 

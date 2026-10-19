@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Translation unit: psptool-core/fletcher.rs (#42)
 
 ### Fixed
+- psptool-py: memory leak across ROMs — no parse was ever freed: pyo3 0.25 `#[pyclass(dict)]` types were not GC types, so upstream's reference cycles through instance `__dict__`s and the `NestedBuffer` parent link were invisible to the cycle collector. pyo3 0.29.3 (dict traversal), `NestedBuffer.__traverse__`/`__clear__`, weakref support on the graph classes, and a native-bytes trigger that runs `gc.collect()` at construction (DEVIATIONS.md 21). Parse-and-drop loop over 216 corpus parses (Python 3.13): before +32-48 MB retained per ROM (psp-etl hit an allocation failure before ROM 250); after a 384 MB peak (upstream PSPTool 672 MB) (#98)
 - psptool-py: Python subclasses of the parsed model classes (PSP-DB's ROM-less `FakeHeaderFile(HeaderFile)`) instantiate without ROM arguments, and the `HeaderFile` decode ladder (`decode_verification`, `decode_verified`, `plaintext_identity_ok`, ...) runs upstream's call structure over their overrides and attributes; psptool-core exposes `body::decrypt` / `body::zlib_decompress` (`utils.py` primitives) (#97)
 - Version skew: differential oracle (psptool 3.4) != translation source (git HEAD ~3.6) — needs alignment decision (#61)
 - psptool-core: #59 zlib-recovery overrun check uses whole-file blob_end, upstream uses the ROM window (multi-ROM divergence) (#72)

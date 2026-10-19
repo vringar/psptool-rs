@@ -10,7 +10,7 @@
 
 use pyo3::exceptions::{PyAssertionError, PyException, PyKeyError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::sync::GILOnceCell;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::{PyBytes, PyDict, PyType};
 use rsa::pkcs1::DecodeRsaPrivateKey;
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
@@ -177,7 +177,7 @@ impl RsaPublicKey {
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
         other
-            .downcast::<RsaPublicKey>()
+            .cast::<RsaPublicKey>()
             .is_ok_and(|o| o.borrow().key == self.key)
     }
 
@@ -384,8 +384,8 @@ pub struct KeyType {
     signature_size: usize,
 }
 
-static RSA2048: GILOnceCell<Py<KeyType>> = GILOnceCell::new();
-static RSA4096: GILOnceCell<Py<KeyType>> = GILOnceCell::new();
+static RSA2048: PyOnceLock<Py<KeyType>> = PyOnceLock::new();
+static RSA4096: PyOnceLock<Py<KeyType>> = PyOnceLock::new();
 
 /// `KeyType.from_name(name)`.
 pub(crate) fn key_type<'py>(py: Python<'py>, name: &str) -> PyResult<Bound<'py, KeyType>> {

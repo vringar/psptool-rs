@@ -33,6 +33,7 @@ use crate::buffer::{self, NestedBuffer, hex_lower, py_hex, to_bytes};
 use crate::directory::BiosDirectoryEntry;
 use crate::errors;
 use crate::image::IKEK;
+use crate::memory::Footprint;
 use crate::model::{HEADER_LEN, PUBKEY_HEADER_LEN};
 
 /// `File.ENTRY_ALIGNMENT` (`file.py:58`).
@@ -42,7 +43,7 @@ const KDB_HEADER_LEN: i64 = 0x50;
 
 /// The view of `obj` as a [`NestedBuffer`].
 pub(crate) fn view<'py>(obj: &Bound<'py, PyAny>) -> PyResult<PyRef<'py, NestedBuffer>> {
-    Ok(obj.downcast::<NestedBuffer>()?.borrow())
+    Ok(obj.cast::<NestedBuffer>()?.borrow())
 }
 
 /// `obj.get_bytes()` of an attribute holding a buffer, through Python.
@@ -147,7 +148,7 @@ impl File {
         file_repr(slf.as_any())
     }
 
-    fn __eq__(slf: &Bound<'_, Self>, other: &Bound<'_, PyAny>) -> PyResult<PyObject> {
+    fn __eq__(slf: &Bound<'_, Self>, other: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let py = slf.py();
         let key = |o: &Bound<'_, PyAny>| -> PyResult<(i64, i64, i64)> {
             Ok((
@@ -218,7 +219,7 @@ impl File {
     fn move_buffer(slf: &Bound<'_, Self>, new_address: i64, size: i64) -> PyResult<()> {
         let current: i64 = slf.call_method0("get_address")?.extract()?;
         {
-            let mut nb = slf.downcast::<NestedBuffer>()?.borrow_mut();
+            let mut nb = slf.cast::<NestedBuffer>()?.borrow_mut();
             nb.offset += new_address - current;
             nb.size = size;
         }
@@ -317,11 +318,12 @@ impl BiosFile {
 /// and verification results are cached per image generation and buffer
 /// window, so the upstream call pattern (`decode_verified()`, then
 /// `decode_verification_method()`, then `plaintext_identity_ok()`) verifies
-/// once; any write invalidates them.
+/// once; any write invalidates them. The cached body registers a
+/// [`Footprint`] (see [`crate::memory`]).
 #[pyclass(extends = File, subclass, module = "psptool.header_file")]
 pub struct HeaderFile {
     pub(crate) record: Option<EntryRecord>,
-    decoded: Option<(CacheKey, Vec<u8>, bool)>,
+    decoded: Option<(CacheKey, Vec<u8>, bool, Footprint)>,
     verified: Option<(CacheKey, DecodeVerification)>,
 }
 
@@ -415,8 +417,8 @@ impl HeaderFile {
     /// `_decrypted_decompressed_body` (`header_file.py:172-186`).
     pub(crate) fn decode(slf: &Bound<'_, PyAny>) -> PyResult<(Vec<u8>, bool)> {
         let key = cache_key(slf)?;
-        let this = slf.downcast::<HeaderFile>()?;
-        if let Some((k, body, ok)) = &this.borrow().decoded
+        let this = slf.cast::<HeaderFile>()?;
+        if let Some((k, body, ok, _)) = &this.borrow().decoded
             && *k == key
         {
             return Ok((body.clone(), *ok));
@@ -425,7 +427,8 @@ impl HeaderFile {
         let (body, ok) = header
             .decode_best_effort(&window, IKEK)
             .map_err(body_error)?;
-        this.borrow_mut().decoded = Some((key, body.clone(), ok));
+        let footprint = Footprint::new(body.len());
+        this.borrow_mut().decoded = Some((key, body.clone(), ok, footprint));
         Ok((body, ok))
     }
 
@@ -433,7 +436,7 @@ impl HeaderFile {
     /// ladder, over the image-wide certifying keys.
     fn verification(slf: &Bound<'_, PyAny>) -> PyResult<DecodeVerification> {
         let key = cache_key(slf)?;
-        let this = slf.downcast::<HeaderFile>()?;
+        let this = slf.cast::<HeaderFile>()?;
         if let Some((k, v)) = &this.borrow().verified
             && *k == key
         {
@@ -447,7 +450,7 @@ impl HeaderFile {
     fn verify_uncached(slf: &Bound<'_, PyAny>) -> PyResult<DecodeVerification> {
         let py = slf.py();
         let record = slf
-            .downcast::<HeaderFile>()?
+            .cast::<HeaderFile>()?
             .borrow()
             .record
             .clone()
@@ -704,7 +707,7 @@ impl HeaderFile {
         Ok(readable_magic(&magic))
     }
 
-    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf
             .getattr("signed_entity")?
             .getattr("certifying_id")?
@@ -944,7 +947,7 @@ impl KeyStoreFile {
             .add_subclass(Self))
     }
 
-    fn get_checksummed_bytes(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_checksummed_bytes(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf
             .getattr("key_store")?
             .call_method0("get_bytes")?
@@ -972,7 +975,7 @@ impl KeyStoreFile {
             .to_owned())
     }
 
-    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf
             .getattr("header")?
             .getattr("certifying_id")?
@@ -1318,7 +1321,7 @@ impl PubkeyFile {
         ))
     }
 
-    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<Option<PyObject>> {
+    fn get_readable_signed_by(slf: &Bound<'_, Self>) -> PyResult<Option<Py<PyAny>>> {
         if !Self::is_signed(slf)? {
             return Ok(None);
         }
@@ -1327,7 +1330,7 @@ impl PubkeyFile {
         ))
     }
 
-    fn get_readable_magic(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_readable_magic(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         Ok(slf.getattr("key_id")?.getattr("magic")?.unbind())
     }
 
@@ -1383,7 +1386,7 @@ impl MicrocodeFile {
             .add_subclass(Self))
     }
 
-    fn get_readable_version(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_readable_version(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         let header = slf.getattr("header")?;
         if !header.is_none() {
             return Ok(header.call_method0("get_readable_version")?.unbind());
@@ -1392,7 +1395,7 @@ impl MicrocodeFile {
         Ok(py_hex(level).into_pyobject(slf.py())?.into_any().unbind())
     }
 
-    fn get_readable_magic(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
+    fn get_readable_magic(slf: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
         let header = slf.getattr("header")?;
         if !header.is_none() {
             return Ok(header.call_method0("get_readable_magic")?.unbind());
@@ -1438,7 +1441,7 @@ pub(crate) struct FileArgs<'a, 'py> {
 /// Instance attributes `File.__init__` sets (`file.py:274-327`).
 fn init_file(obj: &Bound<'_, PyAny>, a: &FileArgs<'_, '_>) -> PyResult<()> {
     let py = obj.py();
-    let compressed: PyObject = match a.record {
+    let compressed: Py<PyAny> = match a.record {
         EntryRecord::Bios(b) => i64::from((b.flags >> 3) & 1)
             .into_pyobject(py)?
             .into_any()

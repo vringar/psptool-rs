@@ -14,12 +14,17 @@
 //! [`Snapshot`] — an immutable [`SourceBytes`] copy plus the image-wide
 //! [`CertifyingKeys`] the decode-verification ladder needs. Rebuilding that key
 //! map walks the whole image, so it is built at most once per generation.
+//!
+//! Both buffers register a [`Footprint`]: they are what a dropped parse
+//! leaves behind until the cycle collector runs ([`crate::memory`]).
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock, PoisonError, RwLock};
 
 use psptool_core::body::CertifyingKeys;
 use psptool_core::{Ikek, SourceBytes};
+
+use crate::memory::Footprint;
 
 /// IKEK every decryption uses: upstream always unwraps with the Zen+ key
 /// (`get_unwrapped_ikek`, `header_file.py:294-307`).
@@ -31,6 +36,7 @@ pub struct Image {
     bytes: RwLock<Vec<u8>>,
     generation: AtomicU64,
     snapshot: RwLock<Option<Arc<Snapshot>>>,
+    _footprint: Footprint,
 }
 
 /// Immutable view of one generation of an [`Image`].
@@ -39,6 +45,7 @@ pub struct Snapshot {
     generation: u64,
     source: SourceBytes,
     keys: OnceLock<CertifyingKeys>,
+    _footprint: Footprint,
 }
 
 impl Snapshot {
@@ -58,6 +65,7 @@ impl Snapshot {
 impl Image {
     pub fn new(bytes: Vec<u8>) -> Arc<Self> {
         Arc::new(Self {
+            _footprint: Footprint::new(bytes.len()),
             bytes: RwLock::new(bytes),
             generation: AtomicU64::new(0),
             snapshot: RwLock::new(None),
@@ -144,9 +152,11 @@ impl Image {
         {
             return Arc::clone(snap);
         }
+        let bytes = self.to_vec();
         let snap = Arc::new(Snapshot {
             generation,
-            source: SourceBytes::from_blob(self.to_vec()),
+            _footprint: Footprint::new(bytes.len()),
+            source: SourceBytes::from_blob(bytes),
             keys: OnceLock::new(),
         });
         *self

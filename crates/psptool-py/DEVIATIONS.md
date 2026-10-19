@@ -120,3 +120,18 @@ Everything else differs only as listed here.
     `AttributeError` on `self.rom`).
 20. `psptool.__version__` is the psptool-rs version; the distribution is
     named `psptool`.
+
+## Memory
+
+21. **Construction may run a full garbage collection.** A parse's object
+    graph is cyclic exactly as upstream's (`psptool.blob.psptool`,
+    `rom.fet.rom`, a view and its `parent_buffer`), so a dropped `PSPTool` is
+    reclaimed by the cycle collector in both tools. Ours keeps the image and
+    decoded bodies in native buffers the collector does not count, so
+    `PSPTool(...)` / `PSPTool.from_file(...)` runs `gc.collect()` before
+    parsing once those buffers, live or awaiting collection, would exceed
+    twice what survived the previous such collection (at least 128 MiB).
+    Upstream never collects explicitly. Nothing is collected while
+    `gc.isenabled()` is false. *Why:* scheduled by object counts alone, a
+    parse-and-drop loop over 16 MiB ROMs held ~1 GiB of dead parses on Python
+    3.13 (#98); with the trigger it peaks below upstream's RSS.
