@@ -1,5 +1,5 @@
 {
-  "next_display_id": 104,
+  "next_display_id": 105,
   "next_comment_id": 144,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -65,6 +65,7 @@
     "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": 63,
     "a6322983-624f-4612-bcad-795481ee0f8d": 61,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
+    "ab32e006-dd73-4de8-b968-3a4880686ffd": 104,
     "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": 78,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "b697b202-9540-459f-894e-a315ee5421c9": 84,
@@ -1964,6 +1965,18 @@
       "created_by": "tLiK",
       "created_at": "2026-05-10T14:25:00.925271528Z",
       "updated_at": "2026-05-10T14:25:33.064674871Z"
+    },
+    "ab32e006-dd73-4de8-b968-3a4880686ffd": {
+      "uuid": "ab32e006-dd73-4de8-b968-3a4880686ffd",
+      "display_id": 104,
+      "title": "Divergence: multi-file -X dNN / -d directory index differs from upstream rom.directories order (e.g. ASRock-A520M-HSV-1.31.ROM KeyStoreFiles: ours d09/d10/d11, upstream d01/d03/d04)",
+      "description": "Spotted during #100. Multi-file filenames 'd%.2d_e%.2d_...' (__main__.py:202) and the -d selector (:165, :185) index psp.blob.roms[r].directories. psptool-cli cmds/extract.rs numbers walk_directories output, which includes combo directories and orders differently: the same 12 corpus KeyStoreFiles land in different dNN files (ASRock-A520M-HSV-1.31.ROM ours d09-d11 vs upstream d01/d03/d04). differential.rs:73-77 documents the -d index-space difference but no issue tracks it.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T14:28:26.979635514Z",
+      "updated_at": "2026-10-19T14:28:26.979635514Z"
     },
     "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": {
       "uuid": "ab6eb2e6-0890-4a93-8d75-8954a4c84d61",
@@ -4738,11 +4751,16 @@
       "agent_id": "tLiK",
       "agent_seq": 314,
       "timestamp": "2026-10-19T14:28:18.077496154Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 315,
+      "timestamp": "2026-10-19T14:28:26.979635514Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:28:18.077496154Z",
+    "timestamp": "2026-10-19T14:28:26.979635514Z",
     "agent_id": "tLiK",
-    "agent_seq": 314
+    "agent_seq": 315
   }
 }
