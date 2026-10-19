@@ -1,6 +1,6 @@
 {
   "next_display_id": 105,
-  "next_comment_id": 144,
+  "next_comment_id": 145,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -833,11 +833,20 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T10:25:43.805899940Z",
-      "updated_at": "2026-10-19T14:04:37.031671145Z",
+      "updated_at": "2026-10-19T14:30:33.057070975Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "5e3528e0-d25d-4cb0-9ce2-239796e925ea": {
+          "display_id": 144,
+          "author": "tLiK",
+          "content": "Result: Entry::header_file_window(blob) is public; extract_decompressed(entry, blob) / extract_decrypted(entry, blob, ikek) and the CLI (single + multi-file -u/-c, ZLIB warning) read the rom_size buffer. extract_oracle.rs corpus_grown_headerfile_window_matches_reference un-ignored: 13/13 grown corpus HeaderFiles byte-identical to 241629b get_signed_bytes(); corpus oracle widened to all 4019 HeaderFiles (-u) + 256 encrypted (-c); new synthetic grown cases (single + multi-file, -u and -c) failed on the pre-fix binary, pass now. Gauntlet green (workspace 595/0/3 pre-existing ignores, roundtrip 54/0/0, differential 54/0/0, corpus_parity 108, memory 1, clippy, fmt, nix package + python). Spillover: #101, #102.",
+          "created_at": "2026-10-19T14:30:33.051463851Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA2u4tf6w4iUxBA2xEBTAm5WDa/nSAy89HuZyTSSmJpC+o/P5V/NByUYnzpab9/VhQjq8OzsC+LxvUwGzL/rbPCQ=="
+        },
         "6e69b245-7c24-4391-b6e2-c76a0a6d86b2": {
           "display_id": 143,
           "author": "tLiK",
@@ -4764,11 +4773,16 @@
       "agent_id": "tLiK",
       "agent_seq": 316,
       "timestamp": "2026-10-19T14:28:33.318161746Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 317,
+      "timestamp": "2026-10-19T14:30:33.057070975Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:28:33.318161746Z",
+    "timestamp": "2026-10-19T14:30:33.057070975Z",
     "agent_id": "tLiK",
-    "agent_seq": 316
+    "agent_seq": 317
   }
 }
