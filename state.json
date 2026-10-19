@@ -1,6 +1,6 @@
 {
   "next_display_id": 96,
-  "next_comment_id": 132,
+  "next_comment_id": 133,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -822,7 +822,18 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-18T23:09:47.276154449Z",
-      "updated_at": "2026-10-18T23:09:47.276154449Z"
+      "updated_at": "2026-10-19T00:47:54.843697917Z",
+      "comments": {
+        "feeafb34-3b39-4cb9-b691-55c64dd0762b": {
+          "display_id": 132,
+          "author": "tLiK",
+          "content": "Plan (posted with the build; scope per spec change #486): new crate crates/psptool-py = pyo3 abi3 extension psptool._native + pure re-export package python/psptool (import name psptool, dist name psptool) mirroring upstream PSPTool 241629b's object model. model.rs translates upstream construction ORDER (blob.py:58-84, fet.py:59-127, directory.py:57-165, file.py:39-56 global files_by_offset cache, file.py:249-319 class/sizing) on psptool-core parsers (core walk_directories is LIFO + keeps combos, wrong for positional indices). image.rs = one shared buffer (typed RwLock, generation-keyed snapshot + CertifyingKeys cache). buffer.rs NestedBuffer (utils.py:40-114) parent-chain slicing; file.rs/directory.rs/tool.rs object model; HeaderFile decode via core decode_best_effort (made pub, the only core API change) + Entry::decode_verification; cert_tree.rs/crypto.rs re-sign chain + PEM PrivateKeyDict; listing.rs ls/ls_json. Tests: corpus_parity.rs (reference vs bindings dump of every (rom,dir,file): class/addr/size/type/strings/md5/entropy/flags/sha256 of get_bytes/get_decrypted_body/get_decrypted_decompressed_body/header+body/signed bytes/decode verdict; plus to_file roundtrip, no-op move_buffer, replace+resign verified by the reference), python_api.rs + test_api.py synthetic suite. default.nix: python/pythonFor attrs (maturin hook, pinned toolchain), package excludes psptool-py from sandbox tests, reference oracle repinned to vringar/PSPTool 241629b (translation source of the decode-verified ladder).",
+          "created_at": "2026-10-19T00:47:54.826219188Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAX8FDxoz4sXjAQhEy2gd5yirgCOHUUfoWTlvn/gl6Y71JYsxVi0oekbaGjmj0ncQmbZ4UfxfM8roWOH1C1m1hAA=="
+        }
+      }
     },
     "524bcf22-328f-4580-a5d3-318a48ffacde": {
       "uuid": "524bcf22-328f-4580-a5d3-318a48ffacde",
@@ -4320,11 +4331,16 @@
       "agent_id": "tLiK",
       "agent_seq": 279,
       "timestamp": "2026-10-18T23:09:47.276154449Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 280,
+      "timestamp": "2026-10-19T00:47:54.843697917Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-18T23:09:47.276154449Z",
+    "timestamp": "2026-10-19T00:47:54.843697917Z",
     "agent_id": "tLiK",
-    "agent_seq": 279
+    "agent_seq": 280
   }
 }
