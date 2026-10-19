@@ -43,7 +43,7 @@
 //! | REQ-2 (24B BIOS record) | SHIPPED | decode `BiosEntry::parse` at `directory.rs:183` (`destination` u64 @0x10) per upstream `entry.py:142-174`; consumer `psptool-ops/src/list.rs:392`. |
 //! | REQ-3 (address-mode `file_offset`) | SHIPPED | `resolve_body` at `entry.rs:473` via `resolve_with_entry` (`address.rs:248`) per upstream `entry.py:44-70`; consumer `psptool-ops/src/list.rs:366`. |
 //! | REQ-4 (soft-fuse no body) | SHIPPED | soft-fuse short-circuit at `entry.rs:485-490` per upstream `entry.py:40-42`; consumer `psptool-ops/src/replace.rs:143`. |
-//! | REQ-5 (type classification) | SHIPPED | `classify` at `entry.rs:524` per upstream `file.py:249-272`; consumer `psptool-ops/src/list.rs:405`. |
+//! | REQ-5 (type classification) | SHIPPED | `classify` at `entry.rs:655` per upstream `file.py:249-272`; a HeaderFile/KeyStoreFile record declaring under 0x100 bytes has its header parsed from the grown buffer (`header_buffer` at `entry.rs:639`, `header_file.py:32-33`, `key_store_file.py:28-29`; #90); consumers `psptool-ops/src/list.rs:529` (`magic_id_string`), `psptool-ops/src/verify.rs:229` (`decode_verification` of the class). |
 //! | REQ-6 (compressed size recovery) | SHIPPED | zlib-length recovery in `resolve_body` per upstream `file.py:302-311`; consumer `parse_bios` (`entry.rs`) from `psptool-ops/src/list.rs:380` (blockers #40/#59 closed). |
 
 use crate::address::{Address, AddressMode, FlashOffset, ResolveContext, RomSize};
@@ -120,9 +120,11 @@ impl EntryRecord {
 /// Parsed PSP "blob header" (§4): the 0x100-byte fixed prefix on signed-entry
 /// bodies. All multi-byte fields are little-endian unless noted.
 ///
-/// `source` covers exactly the 0x100 header bytes (a sub-window of the entry
-/// body). Decompression/decryption are deferred to #8 — this struct exposes
-/// only the fields the parser can read straight off the wire.
+/// `source` covers exactly the 0x100 header bytes: the start of the HeaderFile
+/// buffer ([`Entry::header_file_window`]), which runs past [`Entry::body`] when
+/// the directory record declares fewer than 0x100 bytes (`header_file.py:32-33`).
+/// Decompression/decryption are deferred to #8 — this struct exposes only the
+/// fields the parser can read straight off the wire.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HeaderEntry {
     /// 0x100-byte source slice covering the header.
@@ -451,7 +453,7 @@ impl Entry {
             rom_size,
             rom_origin,
         )?;
-        let class = classify(record.entry_type, /* is_bios */ false, &body);
+        let class = classify(record.entry_type, /* is_bios */ false, blob, &body);
         Ok(Self {
             record: EntryRecord::Psp(record),
             body,
@@ -493,7 +495,7 @@ impl Entry {
             rom_size,
             rom_origin,
         )?;
-        let class = classify(record.entry_type, /* is_bios */ true, &body);
+        let class = classify(record.entry_type, /* is_bios */ true, blob, &body);
         Ok(Self {
             record: EntryRecord::Bios(record),
             body,
@@ -625,12 +627,32 @@ pub(crate) fn zlib_find_header(s: &[u8]) -> Option<usize> {
     None
 }
 
+/// The bytes a `HeaderFile`-class entry's header is parsed from: `body`, or —
+/// for a record declaring fewer than [`HEADER_FILE_LEN`] bytes — the
+/// [`HEADER_FILE_LEN`] bytes at its offset in `blob`. Upstream grows such a
+/// buffer before parsing the header ("give those with a entry size of 0 (!?)
+/// a chance to get their header parsed", `header_file.py:32-33`), and the
+/// grown `NestedBuffer` reads on into its parent; `KeyStoreFile._parse` runs
+/// the same code (`key_store_file.py:28-29`). `body` itself stays the
+/// directory-declared window. A `blob` ending inside the header leaves `body`,
+/// whose parse then fails.
+fn header_buffer(blob: &SourceBytes, body: &SourceBytes) -> SourceBytes {
+    if body.len() >= HEADER_FILE_LEN {
+        return body.clone();
+    }
+    let start = body.offset().get();
+    blob.subslice_at(start..start.saturating_add(HEADER_FILE_LEN as u64))
+        .unwrap_or_else(|| body.clone())
+}
+
 /// Classify an entry body by `entry_type`. See [`EntryClass`].
 ///
 /// Order mirrors PSPTool's `File.from_entry` decisions, but special-cases the
 /// sub-directory-pointer / soft-fuse-chain types up front so callers see
-/// richer information than just `Plain` for those.
-fn classify(t: EntryType, is_bios: bool, body: &SourceBytes) -> EntryClass {
+/// richer information than just `Plain` for those. `blob` is the image `body`
+/// was cut from: a HeaderFile-class header can lie past a short `body`
+/// ([`header_buffer`]).
+fn classify(t: EntryType, is_bios: bool, blob: &SourceBytes, body: &SourceBytes) -> EntryClass {
     if t.is_secondary_directory_pointer() {
         return EntryClass::SecondaryDirectoryPointer;
     }
@@ -648,7 +670,7 @@ fn classify(t: EntryType, is_bios: bool, body: &SourceBytes) -> EntryClass {
             .unwrap_or(EntryClass::Plain);
     }
     if t.is_key_store() {
-        return HeaderEntry::parse(body)
+        return HeaderEntry::parse(&header_buffer(blob, body))
             .map(EntryClass::KeyStore)
             .unwrap_or(EntryClass::Plain);
     }
@@ -656,7 +678,7 @@ fn classify(t: EntryType, is_bios: bool, body: &SourceBytes) -> EntryClass {
         return EntryClass::Microcode;
     }
     if !t.has_no_header() {
-        return HeaderEntry::parse(body)
+        return HeaderEntry::parse(&header_buffer(blob, body))
             .map(EntryClass::Header)
             .unwrap_or(EntryClass::Plain);
     }
@@ -824,8 +846,13 @@ mod tests {
     /// (`type`, `size`, `offset`, `body`) where `offset` is dir-relative
     /// (additional_info v1, mode 10). Body sits right after the directory.
     fn psp_dir_with_entry(entry_type: u8, body: &[u8]) -> Vec<u8> {
+        psp_dir_with_sized_entry(entry_type, body.len() as u32, body)
+    }
+
+    /// As [`psp_dir_with_entry`], but the record declares `size` bytes of the
+    /// `body` that follows the directory.
+    fn psp_dir_with_sized_entry(entry_type: u8, size: u32, body: &[u8]) -> Vec<u8> {
         let body_off = (DIRECTORY_HEADER_SIZE + PSP_ENTRY_SIZE) as u32;
-        let size = body.len() as u32;
         // additional_info: v1 (bit 31 = 1), mode bits[25:24] = 10.
         let additional_info = (1u32 << 31) | (0b10u32 << 24);
         let mut entry = [0u8; PSP_ENTRY_SIZE];
@@ -903,6 +930,73 @@ mod tests {
             }
             other => panic!("expected KeyStore, got {other:?}"),
         }
+    }
+
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    /// Parse the single record of a [`psp_dir_with_sized_entry`] image.
+    fn parse_sized(
+        entry_type: u8,
+        size: u32,
+        file: &[u8],
+    ) -> Result<Entry, Box<dyn std::error::Error>> {
+        let blob = SourceBytes::from_blob(psp_dir_with_sized_entry(entry_type, size, file));
+        let Directory::Psp(dir) = Directory::parse_at(&blob, FlashOffset(0))? else {
+            return Err("synthetic directory is not $PSP".into());
+        };
+        Ok(Entry::parse_psp(
+            &blob,
+            &dir,
+            0,
+            RomSize::MIB_16,
+            FlashOffset::ZERO,
+        )?)
+    }
+
+    #[test]
+    fn short_header_record_parses_the_header_past_its_body() -> TestResult {
+        // `header_file.py:32-33`: a HeaderFile buffer shorter than the 0x100
+        // header is grown to it before the header is parsed. A zero-size
+        // KVM_IMAGE (0x29, a header type: absent from `NO_HDR_ENTRY_TYPES`,
+        // `file.py:239-241`) pointing at a real header is a HeaderFile, as is
+        // a record declaring part of one.
+        let file = psptool_fixtures::micro::header_signed();
+        for size in [0, 0x40, HEADER_FILE_LEN as u32 - 1] {
+            let entry = parse_sized(0x29, size, file)?;
+            // The body stays the directory-declared window (roundtrip rule).
+            assert_eq!(entry.body.len(), size as usize);
+            let EntryClass::Header(h) = &entry.class else {
+                return Err(format!("size {size:#x}: {:?} is not a Header", entry.class).into());
+            };
+            assert_eq!(h.source.offset(), entry.body.offset());
+            assert_eq!(h.source.as_bytes(), &file[..HEADER_FILE_LEN]);
+            assert_eq!(&h.magic, PS1_MAGIC.as_bytes());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn short_key_store_record_parses_the_header_past_its_body() -> TestResult {
+        // `key_store_file.py:28-29`: `KeyStoreFile._parse` starts with
+        // `HeaderFile._parse`, so it grows a short buffer the same way.
+        let file = psptool_fixtures::micro::header_signed();
+        let entry = parse_sized(0x50, 0, file)?;
+        assert!(entry.body.is_empty());
+        let EntryClass::KeyStore(h) = &entry.class else {
+            return Err(format!("{:?} is not a KeyStore", entry.class).into());
+        };
+        assert_eq!(h.source.as_bytes(), &file[..HEADER_FILE_LEN]);
+        Ok(())
+    }
+
+    #[test]
+    fn short_header_record_at_the_image_end_stays_plain() -> TestResult {
+        // Fewer than 0x100 bytes left in the image: there is no header to
+        // grow into, so the record keeps the `Plain` fallback.
+        let file = &psptool_fixtures::micro::header_signed()[..HEADER_FILE_LEN - 1];
+        let entry = parse_sized(0x29, 0, file)?;
+        assert!(matches!(entry.class, EntryClass::Plain));
+        Ok(())
     }
 
     #[test]

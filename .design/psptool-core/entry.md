@@ -61,7 +61,11 @@ classification.
   sub-directory-pointer families the walker follows — secondary
   (`0x40/0x49/0x70`) and tertiary (`0x48/0x4A`) — and soft-fuse (`0x0B`) with
   richer variants than upstream's base `File`. Mirrors `file.py:249-272`,
-  `file.py:34/35/235/239/243/244`.
+  `file.py:34/35/235/239/243/244`. A signed-header or key-store record that
+  declares fewer than `0x100` bytes (including `size == 0`) still parses its
+  header: upstream grows the buffer to `0x100` first, reading on into the image
+  (`header_file.py:32-33`, inherited by `KeyStoreFile` at
+  `key_store_file.py:28-29`).
 - REQ-6: **Compressed-entry size recovery when the declared size overruns the
   ROM.** When a BIOS entry's `compressed` flag is set and
   `entry.file_offset() + entry.size` exceeds the parent buffer, upstream recovers
@@ -90,6 +94,12 @@ classification.
 - AC-5 (REQ-5): each of pubkey / key-store / header / microcode / secondary /
   tertiary / plain types routes to its `EntryClass` variant; BIOS-only `0x66`
   is microcode while PSP `0x66` is plain. Pinned by the `classifies_*` tests.
+  A zero-size or sub-`0x100` header / key-store record classifies as
+  `Header` / `KeyStore` with its header read past the (unchanged) body, and
+  stays `Plain` when the image ends inside the header. Pinned by
+  `short_header_record_parses_the_header_past_its_body`,
+  `short_key_store_record_parses_the_header_past_its_body`,
+  `short_header_record_at_the_image_end_stays_plain`.
 - AC-6 (REQ-6): a compressed BIOS entry whose directory-declared size overruns
   the ROM parses to the zlib-recovered length rather than erroring. This is NOT
   met today (see the REQ status table).
@@ -105,7 +115,7 @@ classification.
 | REQ-2 (24B BIOS record) | SHIPPED | Decode impl `directory.rs:183` (`BiosEntry::parse`) reads the 8-byte `destination` u64 LE at 0x10 (`entry.py:142`, `'<Q'`), with `is_compressed` (`directory.rs:213`, `flags[3]`), `instance` (`directory.rs:219`, `flags[4:8]`), `subprogram` (`directory.rs:225`, `flags[8:11]`), `destination_is_unused` (`directory.rs:231`) mirroring `entry.py:158/166/174` and `entry.py:137` (`ENTRY_SIZE = 4*6`); `BIOS_ENTRY_SIZE = 0x18` at `directory.rs:32`. 16-vs-24 discrimination is by magic family at `directory.rs:316-325`. Wrapped by `EntryRecord::Bios` (`entry.rs:56`). Non-test consumer: `psptool-ops/src/list.rs:392` (`b.subprogram(), b.instance()`) and `list.rs:380` (`Entry::parse_bios`). Verification: `parse_bhd_directory_fixture` (in the 146-test pass). |
 | REQ-3 (address-mode `file_offset`) | SHIPPED | Impl `entry.rs:473` (`resolve_body`) computes the body offset via `entry.rs:496` `dir_mode.resolve_with_entry(entry_mode, entry_offset, ctx)` (`address.rs:248`), which applies mode `00` masking + the `>0xFF000000 && >16 MiB` window at `address.rs:281` (`normalise_physical`, mirrors `entry.py:50-60`), mode `01` flash offset (`entry.py:61-63`), and modes `10`/`11` directory-base add with the entry-level `rsv0[31:30]` override (`entry.py:44-48`, `entry.py:64-70`). Non-test consumer: `entry.rs:404`/`444` (`parse_psp`/`parse_bios`), themselves called from `psptool-ops/src/list.rs:366`/`380` and `psptool-cli/src/cmds/list.rs:124`. Verification: `cargo test -p psptool-core --test corpus_roundtrip` (54 passed, 0 failed, 0 ignored). |
 | REQ-4 (soft-fuse no body) | SHIPPED | Impl `entry.rs:485-490` (`resolve_body`): `if entry_type.is_soft_fuse_chain() { return Ok(record_source.clone()); }` (`id.rs:45`, `0x0B`) — returns the 16-byte record as the body, matching `entry.py:40-42` and `file.py:287-292` (`NO_SIZE_ENTRY_TYPES`, buffer of `entry.ENTRY_SIZE` at `dir_start + entry_offset`). Classified `SoftFuseChain` at `entry.rs:531`. Non-test consumer: `psptool-ops/src/replace.rs:143` (`matches!(entry.class, EntryClass::SoftFuseChain)` guards a replace). Verification: `classifies_soft_fuse_chain_uses_record_as_body` (in the 146-test pass). |
-| REQ-5 (type classification) | SHIPPED | Impl `entry.rs:524` (`classify`) dispatches secondary (`id.rs:32`, `0x40/0x49/0x70` — `file.py:34`), tertiary (`id.rs:39`, `0x48/0x4A` — `file.py:35`), soft-fuse, pubkey (`id.rs:51` — `file.py:235`), key-store (`id.rs:60` — `file.py:244`), BIOS-`0x66` microcode (`file.py:266`), then `!has_no_header` → signed header (`id.rs:75` — `file.py:239/264`), else plain — mirroring `file.py:249-272`. Non-test consumer: `psptool-ops/src/list.rs:405` (`magic_id_string(class: &EntryClass)`) and `list.rs:474` (`EntryClass::Pubkey`), plus `psptool-ops/src/verify.rs:246` (`EntryClass::Header \| EntryClass::KeyStore`). Verification: the `classifies_*` suite (pubkey/header/keystore/secondary/tertiary/microcode/plain) in the 146-test pass, plus `differential` (49 passed, 0 failed). |
+| REQ-5 (type classification) | SHIPPED | Impl `entry.rs:524` (`classify`) dispatches secondary (`id.rs:32`, `0x40/0x49/0x70` — `file.py:34`), tertiary (`id.rs:39`, `0x48/0x4A` — `file.py:35`), soft-fuse, pubkey (`id.rs:51` — `file.py:235`), key-store (`id.rs:60` — `file.py:244`), BIOS-`0x66` microcode (`file.py:266`), then `!has_no_header` → signed header (`id.rs:75` — `file.py:239/264`), else plain — mirroring `file.py:249-272`. Header and key-store headers are parsed from `header_buffer` (`entry.rs:639`): the body, or the `0x100` bytes at its offset when the record declares fewer (`header_file.py:32-33` `if self.buffer_size < 0x100: self.buffer_size = 0x100`; #90 — the zero-size KVM_IMAGE records of ASUS_Notebook_TUF_FX505DY-AS.309 / Lenovo A285 / A485 are HeaderFiles, as upstream). Non-test consumer: `psptool-ops/src/list.rs:405` (`magic_id_string(class: &EntryClass)`) and `list.rs:474` (`EntryClass::Pubkey`), plus `psptool-ops/src/verify.rs:246` (`EntryClass::Header \| EntryClass::KeyStore`). Verification: the `classifies_*` suite (pubkey/header/keystore/secondary/tertiary/microcode/plain) in the 146-test pass, plus `differential` (49 passed, 0 failed). |
 | REQ-6 (compressed size recovery) | SHIPPED | `resolve_body` (`entry.rs`) threads the BIOS `compressed` flag (`record.is_compressed()`, `flags[3]` — `file.py:280-281`) and, when `body_end > blob_end` AND the entry is compressed, sizes the on-flash body to `zlib_hdr + zlib_size` via `zlib_find_header` (mirrors `utils.py:218-234`) reading `zlib_size = le_u32(blob[offset+0x14:+4])` (`file.py:302-311`); a non-compressed overrun still returns `Truncated` (`file.py:316-318`). Non-test consumer: `parse_bios` (`entry.rs`), called from `psptool-ops/src/list.rs:380` and `psptool-cli/src/cmds/list.rs`. Verification: `divergence_bios_compressed` (3 passed, incl. the now-active pin) + `ASRock-A520M-HSV-1.31.ROM` passes the real `differential`. `AORUS_X570_X57AOXT2.FCd` no longer errors on the overrun but has a distinct type-0x5c naming divergence tracked as #60. Tracking issues #40/#59 closed. |
 
 ## Architecture
@@ -165,7 +175,14 @@ deferral of tertiary-pointer *following* to a later issue.
 to attach the fixed-header view when a body is a signed header, key-store, or
 pubkey; both retain their own [`SourceBytes`] sub-window so the roundtrip rule
 survives, and both fall back to `Plain` on a parse error (`entry.rs:538`/`544`)
-so a malformed corpus body never breaks the byte-exact roundtrip. The
+so a malformed corpus body never breaks the byte-exact roundtrip. A
+header-class record shorter than the `0x100` header has it parsed from the
+image bytes at the body offset (`header_buffer`, `header_file.py:32-33`), so
+`HeaderEntry::source` then lies past `Entry::body`: the body stays the
+directory-declared window the writer patches through, and the HeaderFile
+buffer is `Entry::header_file_window` (`body.rs`). The next record at the
+same offset, which upstream's `files_by_offset` echoes (`file.py:47-50`), is
+parsed fresh over the same bytes. The
 *field-level* decode contract for these fixed headers derives from upstream
 `header_file.py` / `pubkey_file.py`, which are outside this route's upstream
 set; the downstream body-access methods (`get_decrypted_body`,

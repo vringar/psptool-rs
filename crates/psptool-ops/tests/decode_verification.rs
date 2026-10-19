@@ -775,24 +775,20 @@ const UPSTREAM_TALLY: [(&str, usize); 6] = [
 /// `signature-unresolved` entries).
 const UPSTREAM_IDENTITY_FALSE: usize = 5;
 
-/// The entry SET differs from upstream in four documented places; every
-/// shared entry's verdict agrees.
+/// The entry SET differs from upstream in one documented place; every shared
+/// entry's verdict agrees.
 ///
-/// * Upstream parses a zero-size directory record as a HeaderFile by growing
-///   its buffer to 0x100 (`header_file.py:32-33`) and then echoes it for the
-///   next record at the same offset (`files_by_offset`, `file.py:47-50`). We
-///   classify the zero-size record as a plain file and parse the next record
-///   fresh: ASUS_Notebook_TUF_FX505DY-AS.309 (one `signature` fewer) and the
-///   Lenovo A285/A485 images (one `signature-partial` fewer each).
-/// * Upstream's global `files_by_offset` echoes a lower-ROM non-HeaderFile for
-///   H12SSW9.719's upper-ROM record at `0x1249000` (`file.py:47-54`; the
-///   differential's cross-ROM-echo accommodation); we parse that record as
-///   the HeaderFile it is (one `signature-failed` more).
-const ENTRY_SET_DELTA: [(&str, isize); 3] = [
-    ("signature", -1),
-    ("signature-partial", -2),
-    ("signature-failed", 1),
-];
+/// Upstream's global `files_by_offset` echoes a lower-ROM non-HeaderFile for
+/// H12SSW9.719's upper-ROM record at `0x1249000` (`file.py:47-54`; the
+/// differential's cross-ROM-echo accommodation); we parse that record as the
+/// HeaderFile it is (one `signature-failed` more).
+///
+/// A zero-size record pointing at a header is a HeaderFile in both tools
+/// (`header_file.py:32-33`, #90): ASUS_Notebook_TUF_FX505DY-AS.309 and the
+/// Lenovo A285/A485 images. Upstream echoes it for the next record at the same
+/// offset (`file.py:47-50`); we parse that record fresh over the same bytes,
+/// to the same verdict.
+const ENTRY_SET_DELTA: [(&str, isize); 1] = [("signature-failed", 1)];
 
 /// Every HeaderFile-class verdict of one image, walked the way `ls` lists it:
 /// every ROM (FET candidate resolving to a layout), every directory, every

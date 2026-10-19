@@ -52,17 +52,6 @@ for path in sys.argv[1:]:
 /// ROM indices probed per image; the corpus tops out at 2 ROMs.
 const MAX_ROM_INDEX: usize = 8;
 
-/// #90: a zero-size directory record shares its offset with the next record.
-/// Upstream parses it as a HeaderFile (`header_file.py:32-33`) and echoes it
-/// for that next record (`file.py:47-50`); we classify it as a plain file, so
-/// `verify` reports an extra `not-signed` row at the address. Tolerated here,
-/// and only as that one extra status. Fixing #90 must drop these.
-const ZERO_SIZE_RECORD_ECHOES: [(&str, u64); 3] = [
-    ("ASUS_Notebook_TUF_FX505DY-AS.309", 0x1e_9000),
-    ("Lenovo_Thinkpad_A285_r0xuj33wd.iso", 0x3b_f220),
-    ("Lenovo_Thinkpad_A485_r0wuj48wd.iso", 0x51_f420),
-];
-
 type Outcomes = BTreeMap<(String, u64), BTreeSet<String>>;
 
 fn reference_outcomes(reference: &Path, roms: &[PathBuf]) -> Outcomes {
@@ -167,15 +156,7 @@ fn corpus_verify_matches_reference_certificate_tree() {
     for (key, expected) in &theirs {
         let Some(got) = ours.get(key) else { continue };
         compared += 1;
-        let mut got = got.clone();
-        let image = Path::new(&key.0).file_name().and_then(|n| n.to_str());
-        if ZERO_SIZE_RECORD_ECHOES
-            .iter()
-            .any(|&(name, address)| image == Some(name) && key.1 == address)
-        {
-            got.remove("not-signed");
-        }
-        if &got != expected {
+        if got != expected {
             mismatches.push(format!(
                 "{} @{:#x}: ours {got:?}, reference {expected:?}",
                 key.0, key.1

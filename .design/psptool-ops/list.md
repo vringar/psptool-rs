@@ -133,11 +133,12 @@ below so no SHIPPED claim over-reaches its actual oracle.
   corpus images against an oracle run of upstream `241629b` (4147 HeaderFiles →
   True 3159 = signature 3117 + plain 42; False 988 = signature-partial 295 +
   signature-unresolved 251 + signature-failed 376 + unverifiable 66), adjusted
-  by the four documented entry-set deltas (zero-size-record HeaderFile echo ×3,
-  H12SSW9 cross-ROM echo ×1): this unit lists 4145 → signature 3116, plain 42,
-  signature-partial 293, signature-unresolved 251, signature-failed 377,
-  unverifiable 66; every shared entry's verdict and File-Info tag agrees with
-  upstream.
+  by the one documented entry-set delta (H12SSW9 cross-ROM echo): this unit
+  lists 4148 → signature 3117, plain 42, signature-partial 295,
+  signature-unresolved 251, signature-failed 377, unverifiable 66; every
+  shared entry's verdict and File-Info tag agrees with upstream. The three
+  zero-size records upstream parses as HeaderFiles (`header_file.py:32-33`)
+  are HeaderFiles here too (#90).
 
 ## REQ status table
 
