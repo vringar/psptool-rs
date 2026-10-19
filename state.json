@@ -1,6 +1,6 @@
 {
   "next_display_id": 105,
-  "next_comment_id": 146,
+  "next_comment_id": 147,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1299,11 +1299,20 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T11:04:37.471537633Z",
-      "updated_at": "2026-10-19T14:30:55.273082044Z",
+      "updated_at": "2026-10-19T14:50:22.759281252Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "62777385-0c7c-460d-ad0b-5d282cca1a7c": {
+          "display_id": 146,
+          "author": "tLiK",
+          "content": "Result: CLI multi-file -u/-c transform only EntryClass::Header (exact HeaderFile); KeyStoreFiles are written raw. Single-file -u of a KeyStore = KeyStoreFile.get_signed_bytes() via new HeaderEntry::get_key_store_signed_bytes (BodyError::KeyStoreTruncated). Reproduced first: corpus_multi_file_key_store_matches_reference 12/12 differed, synthetic key-store cases differed in single-file -u and multi-file -u/-c; all pass now. Side effect aligned with upstream: multi-file -u -k / -c -k now PEM-encode pubkeys (ASRock-A520M: 11 PEM files = reference, was 0). Gauntlet green (workspace 597/0/3 pre-existing ignores, extract_oracle 5, roundtrip 54/0/0, differential 54/0/0, corpus_parity 108, memory 1, clippy, fmt, nix package + python). Spillover: #103, #104.",
+          "created_at": "2026-10-19T14:50:22.722829951Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAH2Illxmc6QOxu2vXQriYX5hoT4MjeGJzTmaekvnhud35n3/KkQtNq2yKcGyaYhGAHyTh3IYYJBydsGtdSwzPBQ=="
+        },
         "cd632cdf-81e6-49d6-8f60-8b5d3a0a5682": {
           "display_id": 145,
           "author": "tLiK",
@@ -4800,11 +4809,16 @@
       "agent_id": "tLiK",
       "agent_seq": 319,
       "timestamp": "2026-10-19T14:30:55.273082044Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 320,
+      "timestamp": "2026-10-19T14:50:22.759281252Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:30:55.273082044Z",
+    "timestamp": "2026-10-19T14:50:22.759281252Z",
     "agent_id": "tLiK",
-    "agent_seq": 319
+    "agent_seq": 320
   }
 }
