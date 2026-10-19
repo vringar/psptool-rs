@@ -221,10 +221,6 @@
     "88": {
       "agent_id": "tLiK",
       "claimed_at": "2026-07-12T09:41:59.702102832Z"
-    },
-    "90": {
-      "agent_id": "tLiK",
-      "claimed_at": "2026-10-19T20:46:08.079593583Z"
     }
   },
   "issues": {
@@ -4954,11 +4950,16 @@
       "agent_id": "tLiK",
       "agent_seq": 335,
       "timestamp": "2026-10-19T20:46:21.166653562Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 336,
+      "timestamp": "2026-10-19T20:46:27.836575058Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T20:46:21.166653562Z",
+    "timestamp": "2026-10-19T20:46:27.836575058Z",
     "agent_id": "tLiK",
-    "agent_seq": 335
+    "agent_seq": 336
   }
 }
