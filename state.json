@@ -1,6 +1,6 @@
 {
   "next_display_id": 100,
-  "next_comment_id": 141,
+  "next_comment_id": 142,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1125,7 +1125,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-18T22:43:18.864395310Z",
-      "updated_at": "2026-10-19T10:42:02.505621851Z",
+      "updated_at": "2026-10-19T11:03:43.617022783Z",
       "labels": [
         "blocker"
       ],
@@ -1138,6 +1138,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAE4gnps4AhWx9ERX+OqOxSz9shINiMRJwzJMoY5ZQgw3DnDVEf6w27KU1nM0dQi5OMJaqFCf7Ns2IxgyHrifyDQ=="
+        },
+        "c895a52a-a4f3-4b66-ac7f-2569f9020323": {
+          "display_id": 141,
+          "author": "tLiK",
+          "content": "Result: 631ec15a. verify.rs classifies through the ladder: CertifyingKeys::from_blob (+ add_entry for the walked ROM) and Entry::decode_verification(..).signature(); verify_chain_of_trust/verify_with_directories take Ikek, CLI passes Ikek::ZenPlus. psptool verify over every corpus ROM: 3409 verified / 377 bad-signature / 251 unknown-key / 0 errors (was 2993/26/380/638); crates/psptool-cli/tests/verify_oracle.rs agrees with the live reference's is_verified() at 3927/3927 signed-file addresses (669 differed before; #90's three zero-size echoes tolerated as one extra not-signed row). Routed verify.rs + cmds/verify.rs in tooling/translate-routes.toml (design body.md REQ-6).",
+          "created_at": "2026-10-19T11:03:43.599222575Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAAbqJYQFMlwb33Xc2csK5DFYHRs5z4zu3ECYc09Ex+XupCryVOJmOl5P67BTXuCwx9mzqb+FFUDgqQ5bHwDGGCQ=="
         }
       }
     },
@@ -4582,11 +4591,16 @@
       "agent_id": "tLiK",
       "agent_seq": 302,
       "timestamp": "2026-10-19T10:42:02.505621851Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 303,
+      "timestamp": "2026-10-19T11:03:43.617022783Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T10:42:02.505621851Z",
+    "timestamp": "2026-10-19T11:03:43.617022783Z",
     "agent_id": "tLiK",
-    "agent_seq": 302
+    "agent_seq": 303
   }
 }
