@@ -1,6 +1,6 @@
 {
   "next_display_id": 105,
-  "next_comment_id": 147,
+  "next_comment_id": 148,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3087,7 +3087,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-18T22:42:36.745527215Z",
-      "updated_at": "2026-10-19T11:04:01.528969344Z",
+      "updated_at": "2026-10-19T20:23:14.599949527Z",
       "labels": [
         "blocker"
       ],
@@ -3100,6 +3100,15 @@
           "kind": "note",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAqLbnzsAocsnjHwlehKm7tJM2oMHMZXsQGCpdWPDsk9mn6y1DFY3qjDF7bAYtPwqpyUlmZ6aYNQRPuhwlAQP5Dw=="
+        },
+        "e7eccf94-3629-4b2b-ae7e-804b648baf9a": {
+          "display_id": 147,
+          "author": "tLiK",
+          "content": "Plan: (1) entry.rs classify() takes the image blob; for HeaderFile/KeyStoreFile-class types a body shorter than HEADER_FILE_LEN is grown to 0x100 from the image before HeaderEntry::parse, per header_file.py:32-33 ('if self.buffer_size < 0x100: self.buffer_size = 0x100'), inherited by KeyStoreFile (key_store_file.py:28-29 'super()._parse()'). Entry.body keeps the directory-declared window (roundtrip rule untouched). (2) body.rs Entry::header_file_window grows to max(body, 0x100, rom_size) so rom_size==0 reads as the grown 0x100 buffer (header_file.py:72-73) and a larger rom_size grows on (:74-75). (3) The next same-offset record (file.py:47-50 echo) is parsed fresh and yields the same verdict over the same bytes, so per-address outcomes converge. Tests: entry.rs unit tests (zero-size + sub-0x100 Header/KeyStore, image-ends-inside-header -> Plain), body.rs window test; drop the #90 deltas from psptool-ops/tests/decode_verification.rs ENTRY_SET_DELTA (H12SSW9 cross-ROM delta stays, unrelated) and psptool-cli/tests/verify_oracle.rs ZERO_SIZE_RECORD_ECHOES. Docs: .design/psptool-core/entry.md REQ-5, body.md REQ-1/verify note, psptool-ops/list.md tally.",
+          "created_at": "2026-10-19T20:23:14.486011336Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGiT+4ELs02kJTxDLvSxrIl3K8zKH7zDwleDypOxW6ydnnc1M5y2ubAZSlaYDxxGXQSOdEp0OpBy0nuv1Qx73CQ=="
         }
       }
     },
@@ -4820,11 +4829,16 @@
       "agent_id": "tLiK",
       "agent_seq": 321,
       "timestamp": "2026-10-19T14:50:29.867706837Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 322,
+      "timestamp": "2026-10-19T20:23:14.599949527Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:50:29.867706837Z",
+    "timestamp": "2026-10-19T20:23:14.599949527Z",
     "agent_id": "tLiK",
-    "agent_seq": 321
+    "agent_seq": 322
   }
 }
