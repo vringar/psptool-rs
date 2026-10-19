@@ -1,5 +1,5 @@
 {
-  "next_display_id": 103,
+  "next_display_id": 104,
   "next_comment_id": 144,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -76,6 +76,7 @@
     "c7d5f1c5-752a-43ef-aac3-121ccea81c72": 102,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "ca74b297-d703-4ae4-b2b2-0769a8ebc969": 77,
+    "cb86d5a6-ebd3-4390-808f-264383839f29": 103,
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
     "cdc4c578-ed06-4ff6-8395-41a3b3561c31": 82,
@@ -2347,6 +2348,18 @@
       "labels": [
         "refactor"
       ]
+    },
+    "cb86d5a6-ebd3-4390-808f-264383839f29": {
+      "uuid": "cb86d5a6-ebd3-4390-808f-264383839f29",
+      "display_id": 103,
+      "title": "Divergence: multi-file -X -n names a KeyStoreFile without upstream's _1 version suffix (issubclass(type(file), HeaderFile), __main__.py:228-229; key_store_file.py:53-54)",
+      "description": "Spotted during #100. The -n (unique_files) path appends _{get_readable_version()} for issubclass(HeaderFile), so a KeyStoreFile gets '_1' (KeyStoreFile.get_readable_version returns '1'); the non -n path uses type(file) is HeaderFile (no suffix). psptool-cli cmds/extract.rs header_version_suffix only matches EntryClass::Header, for both paths. Corpus: 12 KeyStoreFiles (AORUS_X570_X57AOXT2.FCd, ASRock-A520M-HSV-1.31.ROM).",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T14:28:12.328693381Z",
+      "updated_at": "2026-10-19T14:28:12.328693381Z"
     },
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": {
       "uuid": "cb8782f5-edb1-4629-9143-2a8e565fe0f6",
@@ -4712,11 +4725,16 @@
       "agent_id": "tLiK",
       "agent_seq": 312,
       "timestamp": "2026-10-19T14:27:58.497275141Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 313,
+      "timestamp": "2026-10-19T14:28:12.328693381Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:27:58.497275141Z",
+    "timestamp": "2026-10-19T14:28:12.328693381Z",
     "agent_id": "tLiK",
-    "agent_seq": 312
+    "agent_seq": 313
   }
 }
