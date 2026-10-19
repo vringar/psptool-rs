@@ -61,26 +61,31 @@ byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
   the IKEK constants `file.py:60` (`UNWRAPPED_IKEK_ZEN_PLUS`) / `file.py:63`
   (`UNWRAPPED_IKEK_ZEN`) selected by `header_file.py:192-203`
   (`get_unwrapped_ikek` returns the Zen+ IKEK unconditionally).
-- REQ-3: **zlib decompression with magic search and pre-magic prefix.** Scan the
-  first `0x500` bytes of the plaintext data region for one of the four zlib
-  magics (`78 DA`/`78 9C`/`78 5E`/`78 01`), short-circuiting at offset `0x100`,
-  then decompress `zlib_size` bytes and **prepend the pre-magic prefix** to the
-  output. Mirrors `utils.py:218-234` (`zlib_find_header`, 0x500 window + 0x100
-  short-circuit) and `utils.py:241-254` (`zlib_decompress`,
-  `uncompressed + decompressed`), invoked from `header_file.py:166-174`
+- REQ-3: **zlib decompression with magic search and pre-magic prefix.** Over
+  `output[:zlib_size]` (a Python slice of the plaintext data region), search the
+  first `0x500` bytes for each zlib magic in turn (`78 DA`, then `78 9C`, `78 5E`,
+  `78 01`), checking offset `0x100` first for each, inflate the stream at the
+  first hit and **prepend the pre-magic prefix**; without a magic, return the
+  slice unchanged. Inflating fails exactly where `zlib.decompress` raises — a
+  corrupt or a truncated stream. Mirrors `utils.py:209-234` (`ZLIB_TYPES`,
+  `zlib_find_header`) and `utils.py:241-254` (`zlib_decompress`,
+  `uncompressed + decompressed`, `return s`), invoked from `header_file.py:181`
   (`zlib_decompress(output[:self.zlib_size])`).
 - REQ-4: **Combined decrypted-then-decompressed body.** Produce the same
   "checksummed / signable body" view PSPTool exposes: decrypt (iff encrypted),
-  then decompress (iff compressed), else return the data region verbatim.
-  Mirrors `header_file.py:166-174` (`get_decrypted_decompressed_body`).
+  then decompress (iff compressed), else return the data region verbatim; a
+  stream that fails to inflate leaves the still-compressed decrypted region.
+  Mirrors `header_file.py:172-189` (`_decrypted_decompressed_body`,
+  `get_decrypted_decompressed_body`, PSPTool `241629b`).
 - REQ-5: **Signed-region computation = `header || ddb` truncated to
   `0x100 + size_signed`.** The RSA signature covers the header concatenated with
   the decrypted-decompressed body, truncated to `len(header) + size_signed`
   bytes — i.e. `size_signed` is a **body-signed** length added on top of the
-  full `0x100` header. Mirrors `header_file.py:162-164`
+  full `0x100` header; a shorter body is covered whole (a Python slice). Mirrors
+  `header_file.py:168-170`
   (`file_bytes = self.header.get_bytes() + self.get_decrypted_decompressed_body();
   return file_bytes[:len(self.header) + self.size_signed]`) and the field read
-  at `header_file.py:43`.
+  at `header_file.py:44`.
 - REQ-6: **RSA-PSS verification of a real signed HeaderFile.** Verify the
   trailing signature against a `PubkeyEntry`: select SHA-256/RSA-2048 or
   SHA-384/RSA-4096 by `signature_type`, hash the REQ-5 signed region under
@@ -114,10 +119,16 @@ byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
   `get_decrypted_body_rejects_non_block_aligned_ciphertext`,
   `get_decrypted_body_errors_when_not_encrypted`, and the IKEK constants by
   `ikek_zen_plus_matches_spec`.
-- AC-3 (REQ-3): `find_zlib_start` matches at 0, mid-window, and the 0x100
-  short-circuit, and misses beyond the 0x500 window; `get_decompressed_body`
-  decompresses a committed micro-fixture and preserves the pre-magic prefix.
-  Pinned by `find_zlib_start_*` and `get_decompressed_body_*`.
+- AC-3 (REQ-3): `zlib_find_header` matches at 0 and mid-window, tries the
+  magics in `ZLIB_TYPES` order (a later `78 DA` beats an earlier `78 9C`),
+  checks 0x100 first per magic, and misses beyond the 0x500 window;
+  `get_decompressed_body` decompresses a committed micro-fixture, preserves the
+  pre-magic prefix, rejects a truncated stream and returns a magic-free slice
+  unchanged. Pinned by `zlib_find_header_*`, `get_decompressed_body_*`,
+  `truncated_stream_fails_to_inflate_and_decodes_to_the_compressed_region`,
+  `divergence_body_bounds.rs`, and on the `-X -u` path by
+  `psptool-ops/tests/divergence_extract_zlib.rs` and the live reference
+  differential `psptool-cli/tests/extract_oracle.rs` (#91).
 - AC-4 (REQ-4): `get_decrypted_decompressed_body` returns the data region
   verbatim for a plain entry and the decompressed bytes for a compressed one.
   Exercised transitively by `get_signed_bytes_returns_header_plus_plaintext`
@@ -146,9 +157,9 @@ byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
 |---|---|---|
 | REQ-1 (rom_size-bounded slicing) | SHIPPED | Impl `body.rs:190` (`pub fn data_region`) + `body.rs:212` (`pub fn signature_bytes`) via `body.rs:170` (`effective_end`: `rom_size == 0 → body.len()`), sig length from `entry.rs:242` (`signature_len` → `0x100`/`0x200`). Mirrors `header_file.py:100` (`body = NestedBuffer(self, len(self) - len(self.header) - self.signature_len, len(self.header))`), `header_file.py:82` (`signature = NestedBuffer(self, self.signature_len, self.rom_size - self.signature_len)`), `header_file.py:66-69`. Non-test consumer: `psptool-ops/src/extract.rs:59` (`header.data_region(entry.body.as_bytes())`) and `psptool-ops/src/sign.rs:147` (`header.signature_bytes(body_bytes)`). Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `data_region_and_signature_bytes_honor_rom_size_truncation`. |
 | REQ-2 (AES-128 decryption) | SHIPPED | Impl `body.rs:236` (`pub fn get_decrypted_body`): ECB-unwrap the key under the IKEK (`body.rs:248-250`) then CBC-decrypt (`body.rs:255-258`); IKEK bytes at `body.rs:67`. Mirrors `utils.py:281` (`unwrapped_entry_key = decrypt_ecb(entry_key, unwrapped_ikek)`) + `utils.py:283` (`decrypt_cbd(data, iv, unwrapped_entry_key)`), `header_file.py:184-190`; constants `file.py:60`/`file.py:63` with the Zen+-default limitation faithfully mirrored from `header_file.py:203` (`return self.UNWRAPPED_IKEK_ZEN_PLUS`). Non-test consumer: `psptool-ops/src/extract.rs:79` (`header.get_decrypted_body(entry.body.as_bytes(), ikek)`) → CLI `psptool extract -d`. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `get_decrypted_body_round_trips_synthetic_fixture`, `..._rejects_non_block_aligned_ciphertext`. |
-| REQ-3 (zlib decompression) | SHIPPED | Impl `body.rs:273` (`pub fn get_decompressed_body`) + `body.rs:469` (`find_zlib_start`, 0x500 window + 0x100 short-circuit) prepending the pre-magic prefix (`body.rs:292` `out.extend_from_slice(&plaintext[..stream_start])`). Mirrors `utils.py:218-234` (`zlib_find_header`) and `utils.py:248-252` (`uncompressed + decompressed`), invoked at `header_file.py:171` (`zlib_decompress(output[:self.zlib_size])`); uses the `flate2` crate per R-DEV-7. Non-test consumer: `psptool-ops/src/extract.rs:60` (`header.get_decompressed_body(plaintext)`) → CLI `psptool extract`. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `get_decompressed_body_round_trips_micro_fixture`, `..._preserves_pre_zlib_prefix`, `find_zlib_start_*`. |
-| REQ-4 (combined decrypt+decompress) | SHIPPED | Impl `body.rs:306` (`pub fn get_decrypted_decompressed_body`): decrypt iff `is_encrypted`, decompress iff `is_compressed`, else data region verbatim — mirrors `header_file.py:166-174`. Non-test consumer: `body.rs:330` (`get_signed_bytes` calls it in production). Corpus-anchored: `divergence_signature_byte_order.rs:101` (`upstream_signed`) feeds its output to RSA-PSS and the control asserts the result verifies real signatures (`correct_plain_ok == true`), proving the composition is byte-correct on real firmware. Verification: `cargo test -p psptool-core --lib` (146 passed); `cargo test -p psptool-ops --test divergence_signature_byte_order` (control passes). |
-| REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | Impl `body.rs:333` (`get_signed_bytes`) emits `header(0x100) || plaintext[..size_signed]` (total `0x100 + size_signed`), mirroring upstream `header_file.py:162-164` (`file_bytes[:len(self.header) + self.size_signed]`); `size_signed` is read raw/header-EXCLUSIVE at `entry.rs:177`. Non-test consumers: `psptool-ops/src/sign.rs:143` (`header.get_signed_bytes(body_bytes, ikek)`) → CLI `psptool-cli/src/cmds/sign.rs:21`; and `body.rs:388` (in production `verify_signature`) → `psptool-ops/src/verify.rs:264` → CLI `psptool-cli/src/cmds/verify.rs:14`. Corpus-proven: the control `real_corpus_headerfile_convention_is_nonreversed_and_full_length` asserts `short_len_plain_ok == false` (the old short region fails) and `prod_plain_ok == true` (production length verifies real signatures). Closes **#79**. |
+| REQ-3 (zlib decompression) | SHIPPED | Impl `body.rs:303` (`pub fn get_decompressed_body`) = `zlib_decompress(output[:zlib_size])` via `body.rs:1100` (`pub fn zlib_decompress`: magic from `entry.rs:613` `zlib_find_header`, per-magic priority over `body.rs` `ZLIB_MAGICS`; strict inflate `body.rs:1118` `zlib_decompress_strict`, `None` on a corrupt or truncated stream; no magic → `s.to_vec()`). Mirrors `utils.py:224-232` (`for zlib_magic in ZLIB_TYPES.keys(): ... s.find(zlib_magic)`), `utils.py:248-254` (`uncompressed + decompressed` / `return s`), invoked at `header_file.py:181` (`zlib_decompress(output[:self.zlib_size])`); `flate2` per R-DEV-7. Non-test consumer: `body.rs:317` (`decode`) → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` → CLI `psptool -X -u`; and the decode-verification ladder (`decode_best_effort` → `ls`). Verification: `cargo test -p psptool-core --lib` (149 passed) incl. `zlib_find_header_*`, `get_decompressed_body_*`, `truncated_stream_fails_to_inflate_and_decodes_to_the_compressed_region`; `psptool-ops --test divergence_extract_zlib` (7 passed); `psptool-cli --test extract_oracle` (live reference: 7 synthetic edge cases + 3225 corpus compressed HeaderFiles byte-identical; #91). |
+| REQ-4 (combined decrypt+decompress) | SHIPPED | Impl `body.rs:340` (`pub fn get_decrypted_decompressed_body`) over `body.rs:317` (`decode`): decrypt iff `is_encrypted`, inflate iff `is_compressed` (a failed inflate keeps the still-compressed decrypted region), else data region verbatim — mirrors `header_file.py:172-189` (`return output, False` / `_decrypted_decompressed_body()[0]`). `decode_best_effort` (`body.rs:357`) is the same decode with the `decompress_ok` flag. Non-test consumer: `body.rs:375` (`get_signed_bytes` calls it in production). Corpus-anchored: `divergence_signature_byte_order.rs:101` (`upstream_signed`) feeds its output to RSA-PSS and the control asserts the result verifies real signatures (`correct_plain_ok == true`), proving the composition is byte-correct on real firmware. Verification: `cargo test -p psptool-core --lib` (149 passed); `cargo test -p psptool-ops --test divergence_signature_byte_order` (control passes). |
+| REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | Impl `body.rs:375` (`get_signed_bytes`) emits `header(0x100) || plaintext[..size_signed]`, a Python slice (a shorter body is covered whole), mirroring upstream `header_file.py:168-170` (`file_bytes[:len(self.header) + self.size_signed]`); `size_signed` is read raw/header-EXCLUSIVE at `entry.rs:177`. Non-test consumers: `psptool-ops/src/sign.rs:157` (`header.get_signed_bytes(body_bytes, ikek)`) → CLI `psptool-cli/src/cmds/sign.rs:21`; `psptool-ops/src/extract.rs:77` → CLI `psptool -X -u`; and `body.rs:395` (`verify_signature`). Corpus-proven: the control `real_corpus_headerfile_convention_is_nonreversed_and_full_length` asserts `short_len_plain_ok == false` (the old short region fails) and `prod_plain_ok == true` (production length verifies real signatures). Closes **#79**. |
 | REQ-6 (verify a real signed HeaderFile) | SHIPPED | Impl `body.rs:360` (`verify_signature`) uses the on-disk HeaderFile signature **plain** (`body.rs:395` `let signature = self.signature_bytes(body)?`, passed unchanged at `body.rs:400`), matching upstream's plain `Signature` (`cert_tree.py:63`; verified at `cert_tree.py:98` + `crypto.py:247-258`) — the reversed `ReversedSignature` convention (`crypto.py:386-409`) is PubkeyFile-only and untouched. Non-test consumer: `psptool-ops/src/verify.rs:264` (`header.verify_signature(...)` inside `verify_with_directories`) → CLI `psptool-cli/src/cmds/verify.rs:14`. Corpus-proven: `verify_chain_of_trust` now verifies **2993** real corpus HeaderFile signatures (26 BadSignature, same IKEK/key limits upstream shares) where it previously verified 0; the pin `real_corpus_headerfile_verifies_under_verify_chain_of_trust` is now a plain `#[test]` (0 ignored). Closes **#78** (with #79). |
 | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | Impl `body.rs:447` (`pub fn rsa_public_key`) with LE exponent/modulus (`body.rs:454-455` `BigUint::from_bytes_le`) + `body.rs:423`/`body.rs:435` (`pubexp_bytes`/`modulus_bytes`). Mirrors `crypto.py:219` (`pubexp = int.from_bytes(crypto_material[:cls.signature_size], 'little')`) + `crypto.py:222` (`modulus = int.from_bytes(crypto_material[cls.signature_size:], 'little')`). Non-test consumer: `body.rs:395` (`pubkey.rsa_public_key()` in production `verify_signature`). Corpus-anchored independently of the verify defects: the control test builds the key via `pubkey.rsa_public_key()` and RSA-PSS verifies real corpus signatures with it (`correct_plain_ok` asserted `true`), so the extraction itself is proven correct on real firmware keys. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `pubkey_entry_modulus_and_pubexp_extracted_from_micro_fixture`; `cargo test -p psptool-ops --test divergence_signature_byte_order` control. |
 
@@ -225,12 +236,22 @@ The verification list below IS the gauntlet for this module. Run inside
 `nix-shell` so `PSPTOOL_REFERENCE` + `PSPTOOL_TEST_CORPUS` are set (a skipped
 corpus suite is a red gate, not a pass).
 
-- `cargo test -p psptool-core --lib` — 146 passed, 0 failed, 0 ignored. Covers
-  REQ-1..REQ-4 and REQ-7 on synthetic + committed micro-fixtures (`body::tests`,
-  27 of which are the body module: `data_region_*`, `get_decrypted_body_*`,
-  `get_decompressed_body_*`, `find_zlib_start_*`, `get_signed_bytes_*`,
+- `cargo test -p psptool-core --lib` — 149 passed, 0 failed, 0 ignored. Covers
+  REQ-1..REQ-4 and REQ-7 on synthetic + committed micro-fixtures (`body::tests`:
+  `data_region_*`, `get_decrypted_body_*`, `get_decompressed_body_*`,
+  `zlib_find_header_*`, `zlib_decompress_follows_utils_zlib_decompress`,
+  `truncated_stream_fails_to_inflate_and_decodes_to_the_compressed_region`,
+  `get_signed_bytes_*`,
   `pubkey_entry_modulus_and_pubexp_extracted_from_micro_fixture`,
   `verify_signature_round_trip_rsa2048`).
+- `cargo test -p psptool-ops --test divergence_extract_zlib` (7 passed) and
+  `cargo test -p psptool-cli --test extract_oracle` (2 passed, 1 ignored = #99):
+  the REQ-3/REQ-4/REQ-5 zlib edge cases on the `-X -u` path — magic priority,
+  truncated and corrupt streams, no magic, `zlib_size` past the region, a
+  fallback body shorter than `size_signed` — against expectations built from
+  `utils.py`/`header_file.py`, and byte-for-byte against the live reference
+  (`PSPTOOL_REFERENCE`) on a synthetic image and on every compressed corpus
+  HeaderFile (3225 compared, #91).
 - `cargo test -p psptool-ops --test divergence_signature_byte_order` — **2
   passed, 0 failed, 0 ignored**: control
   `real_corpus_headerfile_convention_is_nonreversed_and_full_length` (plain +
@@ -256,6 +277,16 @@ corpus suite is a red gate, not a pass).
   matching upstream (`cert_tree.py:63`). REQ-6 SHIPPED. The pin
   `real_corpus_headerfile_verifies_under_verify_chain_of_trust` is a plain
   `#[test]` (0 failed, 0 ignored), verifying 2993 real corpus signatures.
+- **#91** (CLOSED) — the `-X -u` zlib step took the earliest of any magic,
+  accepted a truncated stream, and errored on a magic-free slice and on a body
+  shorter than `size_signed`. `get_decompressed_body` is now
+  `zlib_decompress(output[:zlib_size])` and `get_decrypted_decompressed_body` /
+  `decode_best_effort` share one `_decrypted_decompressed_body` decode, so the
+  extract path and the decode-verification ladder decode identically.
+- **#99** (open) — extract hands `HeaderEntry` the directory-sized entry body;
+  upstream grows a HeaderFile to its header `rom_size` (`header_file.py:72-75`),
+  so 13 corpus `-X -u` extracts still fail `BodyTooSmall`. Pinned by the
+  ignored `extract_oracle.rs::corpus_grown_headerfile_window_matches_reference`.
 
 Remaining follow-up (not a blocker for REQ-5/REQ-6):
 

@@ -8,7 +8,7 @@
 //! R-DEFER-3 the fixer flips them to plain `#[test]` when the fix lands.
 
 use psptool_core::body::Ikek;
-use psptool_core::{BodyError, HeaderEntry, SourceBytes};
+use psptool_core::{HeaderEntry, SourceBytes};
 
 const HEADER_FILE_LEN: usize = 0x100;
 
@@ -263,13 +263,13 @@ fn get_decompressed_body_zlib_size_is_absolute_offset_not_length() {
 /// returns -1 — there is no zlib magic in the region it actually searches.
 ///
 /// Expected value derived from upstream: `output[:zlib_size]` here is 0x40
-/// bytes of 0x00, so `zlib_find_header(output[:zlib_size])` finds NO magic. The
-/// target must reach the same conclusion (no magic within `[0, zlib_size)`),
-/// surfaced in its own error taxonomy as `ZlibMagicMissing` — and must NOT
-/// locate the magic that lives at offset 0x50 (past `zlib_size`). The current
-/// `ZlibSizeOutOfRange` is direct evidence the scan over-read past `zlib_size`.
+/// bytes of 0x00, so `zlib_find_header(output[:zlib_size])` finds NO magic and
+/// `zlib_decompress` returns its input unchanged (`utils.py:254`: `return s`).
+/// The target must reach the same result — `output[:zlib_size]` — and must NOT
+/// locate the magic that lives at offset 0x50 (past `zlib_size`).
 ///
-/// Tracking: #84 (fixed — pin now live)
+/// Tracking: #84 (fixed — pin now live); the no-magic result moved from an
+/// error to upstream's passthrough with #91.
 #[test]
 fn find_zlib_start_ignores_magic_beyond_zlib_size() {
     // Data region: 0x50 non-magic bytes, then a zlib magic (0x78 0xDA) at
@@ -294,18 +294,17 @@ fn find_zlib_start_ignores_magic_beyond_zlib_size() {
     let entry = HeaderEntry::parse(&src).expect("header parses");
     assert!(entry.is_compressed);
 
-    let err = entry
+    // Upstream searches output[:zlib_size], finds NO magic and returns that
+    // slice unchanged. Locating the magic at 0x50 (past zlib_size) would
+    // instead inflate (and fail on) the fake stream there.
+    let out = entry
         .get_decompressed_body(&plaintext)
-        .expect_err("no zlib magic within output[:zlib_size], so decompression cannot succeed");
-    // Upstream searches output[:zlib_size] and finds NO magic. The target must
-    // agree — it must NOT locate the magic at 0x50 (past zlib_size). A
-    // `ZlibSizeOutOfRange` is proof the scan looked past zlib_size and found
-    // the out-of-bounds magic; the upstream-faithful outcome is "no magic in
-    // the searched region" (`ZlibMagicMissing`).
-    assert!(
-        matches!(err, BodyError::ZlibMagicMissing { .. }),
-        "expected ZlibMagicMissing (no magic within output[:zlib_size]); got {err:?} — \
-         the scan located a magic beyond zlib_size, which upstream never inspects"
+        .expect("no zlib magic within output[:zlib_size]: zlib_decompress returns its input");
+    assert_eq!(
+        out,
+        &plaintext[..zlib_size as usize],
+        "expected output[:zlib_size] unchanged (utils.py:254); the scan must not \
+         look beyond zlib_size, which upstream never inspects"
     );
 }
 
@@ -331,9 +330,6 @@ fn get_decompressed_body_no_prefix_control_passes() {
 
     match entry.get_decompressed_body(&plaintext) {
         Ok(out) => assert_eq!(out, b"hello, psptool-rs"),
-        Err(BodyError::ZlibSizeOutOfRange { .. }) => {
-            panic!("control (no prefix) must not over-read")
-        }
         Err(e) => panic!("unexpected error in no-prefix control: {e}"),
     }
 }

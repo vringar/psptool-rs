@@ -47,6 +47,7 @@
 //! | REQ-6 (compressed size recovery) | SHIPPED | zlib-length recovery in `resolve_body` per upstream `file.py:302-311`; consumer `parse_bios` (`entry.rs`) from `psptool-ops/src/list.rs:380` (blockers #40/#59 closed). |
 
 use crate::address::{Address, AddressMode, FlashOffset, ResolveContext, RomSize};
+use crate::body::{ZLIB_MAGICS, ZLIB_SEARCH_WINDOW};
 use crate::directory::{BiosDirectory, BiosEntry, PspDirectory, PspEntry};
 use crate::error::ParseError;
 use crate::id::EntryType;
@@ -606,19 +607,13 @@ fn resolve_body(
 /// Mirror of upstream `utils.zlib_find_header` (`utils.py:218-234`): scan the
 /// first `0x500` bytes of `s` for a zlib magic and return its offset within
 /// `s`, checking the common `0x100` location first to avoid false positives.
-/// Returns `None` when no magic is found. Also the magic search of the decode
-/// ladder's `_decrypted_decompressed_body` port (`body.rs`), which feeds it
+/// Returns `None` when no magic is found. Also the magic search of
+/// `body::zlib_decompress`, which `HeaderEntry::get_decompressed_body` feeds
 /// `output[:zlib_size]` exactly as `utils.py:245` does.
 pub(crate) fn zlib_find_header(s: &[u8]) -> Option<usize> {
-    // `utils.py:210-214` — the four documented zlib magic byte pairs.
-    const ZLIB_MAGICS: [[u8; 2]; 4] = [
-        [0x78, 0xDA], // best compression
-        [0x78, 0x9C], // default compression
-        [0x78, 0x5E], // compressed
-        [0x78, 0x01], // header, no compression
-    ];
-    let window = &s[..s.len().min(0x500)];
-    for magic in &ZLIB_MAGICS {
+    // `utils.py:210-214` — `ZLIB_TYPES`, tried in order; `:222` the window.
+    let window = &s[..s.len().min(ZLIB_SEARCH_WINDOW)];
+    for magic in ZLIB_MAGICS {
         // `utils.py:225-227`: check the most common location at 0x100 first.
         if window.get(0x100..0x102) == Some(magic.as_slice()) {
             return Some(0x100);

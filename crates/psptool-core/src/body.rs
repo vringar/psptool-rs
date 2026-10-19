@@ -13,8 +13,9 @@
 //! | [`HeaderEntry::data_region`]          | `body[0x100:-signature_len]`                |
 //! | [`HeaderEntry::signature_bytes`]      | `body[-signature_len:]`                     |
 //! | [`HeaderEntry::get_decrypted_body`]   | `get_decrypted`                             |
-//! | [`HeaderEntry::get_decompressed_body`]| `get_decompressed_body`                     |
+//! | [`HeaderEntry::get_decompressed_body`]| `zlib_decompress(output[:zlib_size])`       |
 //! | [`HeaderEntry::get_decrypted_decompressed_body`] | `get_decrypted_decompressed_body` |
+//! | [`HeaderEntry::decode_best_effort`]   | `_decrypted_decompressed_body`              |
 //! | [`HeaderEntry::get_signed_bytes`]     | `get_signed_bytes`                          |
 //! | [`HeaderEntry::verify_signature`]     | `HeaderFile.verify_signature`               |
 //! | [`PubkeyEntry::rsa_public_key`]       | `PubkeyFile.get_public_key`                 |
@@ -48,16 +49,15 @@
 //! |---|---|---|
 //! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:190` + `signature_bytes` at `body.rs:222`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; consumer `psptool-ops/src/extract.rs:59` + `psptool-ops/src/sign.rs:147`. Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`. |
 //! | REQ-2 (AES-128 decryption) | SHIPPED | `get_decrypted_body` at `body.rs:255` (ECB-unwrap key then CBC-decrypt) per upstream `utils.py:281,283`, `header_file.py:184-190`; consumer `psptool-ops/src/extract.rs:79` → CLI `extract -d`. |
-//! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:292` + `find_zlib_start` (0x500 window, bounded to `plaintext[..zlib_size]`) per upstream `utils.py:218-234,241-254`, `header_file.py:171`; consumer `psptool-ops/src/extract.rs:60`. Pins #82 (absolute zlib_size) / #84 (scan bound) live. |
-//! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` (decrypt iff encrypted, decompress iff compressed) per upstream `header_file.py:166-174`; production consumer `get_signed_bytes` at `body.rs:365`. |
-//! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:365` emits `header(0x100) || plaintext[..size_signed]` per upstream `header_file.py:162-164`; consumer `psptool-ops/src/sign.rs:143` + `verify_signature` at `body.rs:392`. Closes #79. |
+//! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:303` = `zlib_decompress(output[:zlib_size])` (`zlib_decompress` `body.rs:1100`: `zlib_find_header` per-magic priority search `entry.rs:613`, strict inflate `body.rs:1118`, no magic → input unchanged) per upstream `utils.py:218-254`, `header_file.py:181`; consumer `decode` `body.rs:317` → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` (`-X -u`). Pins #82/#84 live; #91 pins `psptool-ops/tests/divergence_extract_zlib.rs` + `psptool-cli/tests/extract_oracle.rs`. |
+//! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` over `decode` at `body.rs:317` (decrypt iff encrypted, inflate iff compressed, the still-compressed region when the inflate fails) per upstream `header_file.py:172-189`; production consumer `get_signed_bytes` at `body.rs:375`. |
+//! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:375` emits `header(0x100) || plaintext[..size_signed]` (a Python slice: a shorter body is covered whole) per upstream `header_file.py:168-170`; consumer `psptool-ops/src/sign.rs:157` + `psptool-ops/src/extract.rs:77` + `verify_signature` at `body.rs:395`. Closes #79. |
 //! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_signature` at `body.rs:392` uses the on-disk signature **plain** (not the PubkeyFile-reversed convention) per upstream `cert_tree.py:63,98`, `crypto.py:247-258`; consumer `psptool-ops/src/verify.rs:264` → CLI `verify`. Corpus-proven: 2993 real signatures verify (was 0). Closes #78. |
 //! | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | `rsa_public_key` at `body.rs:481` with LE exponent/modulus per upstream `crypto.py:219-229`; production consumer `verify_signature` at `body.rs:392` (`pubkey.rsa_public_key()`). |
 
 use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockDecrypt, BlockDecryptMut, KeyInit, KeyIvInit, block_padding::NoPadding};
-use flate2::read::ZlibDecoder;
 use flate2::{Decompress, FlushDecompress, Status};
 use rsa::pss::{Signature as PssSignature, VerifyingKey as PssVerifyingKey};
 use rsa::signature::Verifier;
@@ -66,7 +66,6 @@ use rsa::{BigUint, RsaPublicKey};
 use sha2::{Digest, Sha256, Sha384};
 use std::collections::HashMap;
 use std::fmt;
-use std::io::Read as _;
 use thiserror::Error;
 
 use crate::directory::{Directory, walk_directories};
@@ -144,23 +143,10 @@ pub enum BodyError {
     /// Encrypted data region length is not a multiple of the AES block size.
     #[error("encrypted data length {0} is not a multiple of 16")]
     InvalidCipherLength(usize),
-    /// No zlib magic found within the §6 search window.
-    #[error("no zlib magic in first {window:#x} bytes of compressed body")]
-    ZlibMagicMissing { window: usize },
-    /// `zlib_size` from the header would extend past the data region.
-    #[error("zlib_size {size} extends past data region of {available} bytes (start={start})")]
-    ZlibSizeOutOfRange {
-        size: u64,
-        start: usize,
-        available: usize,
-    },
-    /// zlib-decompressing the stream failed.
+    /// The zlib stream is corrupt or truncated: `zlib.decompress` raises
+    /// (`utils.py:250`).
     #[error("zlib decompression failed: {0}")]
     Zlib(String),
-    /// `size_signed` from the header is larger than the
-    /// decrypted-decompressed body length.
-    #[error("size_signed {0} exceeds available signed body length {1}")]
-    SignedRegionOutOfRange(usize, usize),
 }
 
 /// Errors returned by [`HeaderEntry::verify_signature`].
@@ -302,145 +288,99 @@ impl HeaderEntry {
         decrypt(self.data_region(body)?, &self.wrapped_key, ikek, &self.iv)
     }
 
-    /// Apply zlib decompression to a candidate plaintext data region.
+    /// The zlib step of upstream `_decrypted_decompressed_body`:
+    /// `zlib_decompress(output[:self.zlib_size])` (`header_file.py:181`).
     ///
     /// `plaintext` is the data region — either [`Self::data_region`] directly
     /// (when `!is_encrypted`) or the output of [`Self::get_decrypted_body`].
-    /// PSPTool searches the first `0x500` bytes for one of the four documented
-    /// zlib magics (78 DA / 78 9C / 78 5E / 78 01) and decompresses
-    /// `zlib_size` bytes starting at the matched offset, then **prepends the
-    /// pre-magic prefix** to the decompressed output (matches reference
-    /// `psptool/utils.py::zlib_decompress`).
+    /// `zlib_size` is an ABSOLUTE end offset into it, and a Python slice: it
+    /// stops at the end of `plaintext`. [`zlib_decompress`] then finds the
+    /// stream with upstream's per-magic priority search ([`zlib_find_header`],
+    /// `utils.py:218-234`), inflates it strictly and prepends the bytes before
+    /// the magic (`utils.py:245-252`); without a magic the slice comes back
+    /// unchanged (`utils.py:254`). Fails with [`BodyError::Zlib`] exactly where
+    /// `zlib.decompress` raises: on a corrupt or truncated stream.
     pub fn get_decompressed_body(&self, plaintext: &[u8]) -> Result<Vec<u8>, BodyError> {
         if !self.is_compressed {
             return Err(BodyError::NotCompressed);
         }
-        // `zlib_size` is an ABSOLUTE end offset into the data region, not a
-        // length measured from the zlib magic. Upstream feeds
-        // `zlib_decompress(output[:self.zlib_size])` (`header_file.py:171`),
-        // and `zlib_decompress` (`utils.py:245-252`) slices the compressed
-        // stream as `s[zlib_start:]` where `s == output[:zlib_size]` — i.e.
-        // `output[zlib_start .. zlib_size]`. So the stream ends at the absolute
-        // offset `zlib_size`, and any pre-magic prefix (`output[..zlib_start]`)
-        // is prepended to the decompressed output.
-        let zlib_size = self.zlib_size as usize;
-        // Search for the zlib magic ONLY within `output[:zlib_size]`, exactly
-        // like upstream: `zlib_find_header(s)` is called with `s ==
-        // output[:zlib_size]` (`utils.py:245`), so upstream never inspects a
-        // byte at or beyond `zlib_size`. Bounding the scan here (instead of
-        // scanning the whole data region and clamping afterwards) ensures a
-        // spurious magic living past `zlib_size` is not located — upstream
-        // would return -1 (no magic), which surfaces as `ZlibMagicMissing`.
-        let search_end = zlib_size.min(plaintext.len());
-        let stream_start = find_zlib_start(&plaintext[..search_end])?;
-        if zlib_size > plaintext.len() || zlib_size < stream_start {
-            return Err(BodyError::ZlibSizeOutOfRange {
-                size: self.zlib_size as u64,
-                start: stream_start,
-                available: plaintext.len(),
-            });
-        }
-        let stream = &plaintext[stream_start..zlib_size];
-        // Don't pre-size from header.size_uncompressed — it is attacker-
-        // controlled (up to ~4 GiB) and would let a malformed entry trigger
-        // an OOM via Vec::with_capacity. Let `read_to_end` grow on demand.
-        let mut out = Vec::new();
-        out.extend_from_slice(&plaintext[..stream_start]);
-        let mut decoder = ZlibDecoder::new(stream);
-        decoder
-            .read_to_end(&mut out)
-            .map_err(|e| BodyError::Zlib(e.to_string()))?;
-        Ok(out)
+        let s = &plaintext[..(self.zlib_size as usize).min(plaintext.len())];
+        zlib_decompress(s).ok_or_else(|| BodyError::Zlib("corrupt or truncated stream".into()))
     }
 
-    /// Combined `get_decrypted` then `get_decompressed_body` — the same view
-    /// PSPTool's `get_decrypted_decompressed_body` exposes.
-    ///
-    /// `ikek` is required iff `is_encrypted == 1`. When neither flag is set
-    /// the data region is returned verbatim (as a copy) so all callers see
-    /// a uniform `Vec<u8>` shape.
-    pub fn get_decrypted_decompressed_body(
-        &self,
-        body: &[u8],
-        ikek: Option<Ikek>,
-    ) -> Result<Vec<u8>, BodyError> {
-        let decrypted = if self.is_encrypted {
-            let key = ikek.ok_or(BodyError::NotEncrypted)?;
-            self.get_decrypted_body(body, key)?
-        } else {
-            self.data_region(body)?.to_vec()
-        };
-        if self.is_compressed {
-            self.get_decompressed_body(&decrypted)
-        } else {
-            Ok(decrypted)
-        }
-    }
-
-    /// Best-effort decode mirroring upstream `_decrypted_decompressed_body`
-    /// (`header_file.py:172-186`). Unlike [`Self::get_decrypted_decompressed_body`]
-    /// a failed zlib stream does not discard the body.
-    ///
-    /// Returns `(bytes, decompress_ok)`. `decompress_ok` is `false` only when the
-    /// entry is compressed and its zlib stream fails to inflate; `bytes` is then
-    /// the still-compressed decrypted data region (upstream returns `output`, not
-    /// the `zlib_size`-truncated slice, `header_file.py:185`). A missing zlib
-    /// magic is not a failure: upstream `zlib_decompress` returns its input
-    /// unchanged then (`utils.py:254`), so `decompress_ok` stays `true`.
-    ///
-    /// The magic search is upstream's per-magic priority order
-    /// ([`zlib_find_header`], `utils.py:218-234`) and the inflate is strict
-    /// ([`zlib_decompress_strict`]), so a truncated stream is a failure exactly
-    /// as `zlib.decompress` raises on it.
-    ///
-    /// Public because it *is* upstream's `get_decrypted_decompressed_body()`
-    /// (`header_file.py:188-189` returns `_decrypted_decompressed_body()[0]`):
-    /// the `psptool-py` binding's `HeaderFile.get_decrypted_decompressed_body`
-    /// returns its bytes, which consumers hash as a content identity.
-    pub fn decode_best_effort(
-        &self,
-        file: &[u8],
-        ikek: Ikek,
-    ) -> Result<(Vec<u8>, bool), BodyError> {
+    /// Upstream `_decrypted_decompressed_body` (`header_file.py:172-186`): the
+    /// decrypted data region, inflated iff compressed, and whether the inflate
+    /// succeeded. A stream that fails to inflate leaves the still-compressed
+    /// decrypted region, untruncated (`header_file.py:182-185` returns
+    /// `output`, not `output[:zlib_size]`). `ikek` is required iff
+    /// `is_encrypted`.
+    fn decode(&self, file: &[u8], ikek: Option<Ikek>) -> Result<(Vec<u8>, bool), BodyError> {
         let output = if self.is_encrypted {
-            self.get_decrypted_body(file, ikek)?
+            self.get_decrypted_body(file, ikek.ok_or(BodyError::NotEncrypted)?)?
         } else {
             self.data_region(file)?.to_vec()
         };
         if !self.is_compressed {
             return Ok((output, true));
         }
-        // `header_file.py:181`: `zlib_decompress(output[:self.zlib_size])`.
-        let stream = &output[..(self.zlib_size as usize).min(output.len())];
-        match zlib_decompress(stream) {
-            Some(out) => Ok((out, true)),
-            None => Ok((output, false)),
+        match self.get_decompressed_body(&output) {
+            Ok(body) => Ok((body, true)),
+            Err(BodyError::Zlib(_)) => Ok((output, false)),
+            Err(e) => Err(e),
         }
+    }
+
+    /// Upstream `get_decrypted_decompressed_body()` (`header_file.py:188-189`,
+    /// `_decrypted_decompressed_body()[0]`): decrypt iff encrypted, inflate iff
+    /// compressed, else the data region verbatim (as a copy). A zlib stream
+    /// that fails to inflate yields the still-compressed decrypted region, as
+    /// upstream's does; [`Self::decode_best_effort`] reports which happened.
+    ///
+    /// `ikek` is required iff `is_encrypted == 1`.
+    pub fn get_decrypted_decompressed_body(
+        &self,
+        body: &[u8],
+        ikek: Option<Ikek>,
+    ) -> Result<Vec<u8>, BodyError> {
+        self.decode(body, ikek).map(|(bytes, _)| bytes)
+    }
+
+    /// Upstream `_decrypted_decompressed_body` (`header_file.py:172-186`):
+    /// [`Self::get_decrypted_decompressed_body`]'s bytes plus `decompress_ok`,
+    /// which is `false` only when the entry is compressed and its zlib stream
+    /// fails to inflate — corrupt or truncated, where `zlib.decompress` raises.
+    /// A missing zlib magic is not a failure: upstream `zlib_decompress`
+    /// returns its input unchanged then (`utils.py:254`).
+    ///
+    /// The `psptool-py` binding's `HeaderFile.get_decrypted_decompressed_body`
+    /// returns these bytes, which consumers hash as a content identity.
+    pub fn decode_best_effort(
+        &self,
+        file: &[u8],
+        ikek: Ikek,
+    ) -> Result<(Vec<u8>, bool), BodyError> {
+        self.decode(file, Some(ikek))
     }
 
     /// Bytes covered by the RSA signature: `header(0x100) ||
     /// decrypted_decompressed_body`, truncated to `0x100 + size_signed`
-    /// (`header_file.py:162-164`: `file_bytes[:len(self.header) +
+    /// (`header_file.py:168-170`: `file_bytes[:len(self.header) +
     /// self.size_signed]`, `len(header) == 0x100`). `size_signed` is the
     /// length of the *body* region covered by the signature, added on top of
     /// the full `0x100` header — the on-disk field is header-EXCLUSIVE
-    /// (`entry.rs:177` reads `h[0x14..0x18]` raw, no adjustment).
+    /// (`entry.rs:177` reads `h[0x14..0x18]` raw, no adjustment). The
+    /// truncation is a Python slice: a body shorter than `size_signed` (such
+    /// as the still-compressed region of a stream that failed to inflate) is
+    /// covered whole, not rejected.
     pub fn get_signed_bytes(&self, body: &[u8], ikek: Option<Ikek>) -> Result<Vec<u8>, BodyError> {
         if body.len() < HEADER_FILE_LEN {
             return Err(BodyError::Truncated(body.len()));
         }
-        let header_bytes = &body[..HEADER_FILE_LEN];
         let plaintext = self.get_decrypted_decompressed_body(body, ikek)?;
-        let size_signed = self.size_signed as usize;
-        if size_signed > plaintext.len() {
-            return Err(BodyError::SignedRegionOutOfRange(
-                size_signed,
-                plaintext.len(),
-            ));
-        }
-        let mut out = Vec::with_capacity(HEADER_FILE_LEN + size_signed);
-        out.extend_from_slice(header_bytes);
-        out.extend_from_slice(&plaintext[..size_signed]);
+        let covered = &plaintext[..(self.size_signed as usize).min(plaintext.len())];
+        let mut out = Vec::with_capacity(HEADER_FILE_LEN + covered.len());
+        out.extend_from_slice(&body[..HEADER_FILE_LEN]);
+        out.extend_from_slice(covered);
         Ok(out)
     }
 
@@ -1153,9 +1093,10 @@ pub fn decrypt(
 /// at the first magic [`zlib_find_header`] locates and prepend the bytes
 /// before it; `s` unchanged when there is no magic. `None` where
 /// `zlib.decompress` raises — a corrupt or truncated stream
-/// ([`zlib_decompress_strict`]). Consumers: [`HeaderEntry::decode_best_effort`]
-/// and the `psptool-py` `HeaderFile` subclass ladder, both on
-/// `output[:zlib_size]` (`header_file.py:181`).
+/// ([`zlib_decompress_strict`]). Consumers: [`HeaderEntry::get_decompressed_body`]
+/// (the decode behind decode verification and the `-X -u` extract path) and
+/// the `psptool-py` `HeaderFile` subclass ladder, both on `output[:zlib_size]`
+/// (`header_file.py:181`).
 pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
     let Some(start) = zlib_find_header(s) else {
         return Some(s.to_vec());
@@ -1168,39 +1109,6 @@ pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
-
-/// Find the offset of the first zlib stream within `plaintext`, scanning
-/// either the §6 search window (first 0x500 bytes) or the entire plaintext
-/// if it is shorter than the window. PSPTool short-circuits at offset 0x100
-/// (the most common location for HeaderFiles); we mirror that to preserve
-/// behaviour on corpus images that have padding before the stream.
-fn find_zlib_start(plaintext: &[u8]) -> Result<usize, BodyError> {
-    let window = ZLIB_SEARCH_WINDOW.min(plaintext.len());
-    if window < 2 {
-        return Err(BodyError::ZlibMagicMissing {
-            window: ZLIB_SEARCH_WINDOW,
-        });
-    }
-    // PSPTool's `zlib_find_header` short-circuits when one of the magics sits
-    // at exactly 0x100 (the BIOS-microcode glue case). We honor the same
-    // shortcut, but only as an optimisation — the linear scan would find it
-    // anyway.
-    if plaintext.len() >= 0x102 {
-        let m = &plaintext[0x100..0x102];
-        if ZLIB_MAGICS.iter().any(|expected| m == expected) {
-            return Ok(0x100);
-        }
-    }
-    for i in 0..window - 1 {
-        let m = &plaintext[i..i + 2];
-        if ZLIB_MAGICS.iter().any(|expected| m == expected) {
-            return Ok(i);
-        }
-    }
-    Err(BodyError::ZlibMagicMissing {
-        window: ZLIB_SEARCH_WINDOW,
-    })
-}
 
 /// `zlib.decompress(s)` (`utils.py:250`): inflate one complete zlib stream,
 /// ignoring any bytes after its end, and fail (`None`) on a corrupt OR
@@ -1283,48 +1191,51 @@ mod tests {
         );
     }
 
-    // -- find_zlib_start -----------------------------------------------------
+    // -- zlib_find_header (`utils.py:218-234`) --------------------------------
     #[test]
-    fn find_zlib_start_at_zero() {
-        assert_eq!(find_zlib_start(&[0x78, 0x9C, 0xAA, 0xBB]).unwrap(), 0);
-        assert_eq!(find_zlib_start(&[0x78, 0xDA, 0xAA]).unwrap(), 0);
-        assert_eq!(find_zlib_start(&[0x78, 0x5E, 0xAA]).unwrap(), 0);
-        assert_eq!(find_zlib_start(&[0x78, 0x01, 0xAA]).unwrap(), 0);
+    fn zlib_find_header_at_zero() {
+        assert_eq!(zlib_find_header(&[0x78, 0x9C, 0xAA, 0xBB]), Some(0));
+        assert_eq!(zlib_find_header(&[0x78, 0xDA, 0xAA]), Some(0));
+        assert_eq!(zlib_find_header(&[0x78, 0x5E, 0xAA]), Some(0));
+        assert_eq!(zlib_find_header(&[0x78, 0x01, 0xAA]), Some(0));
     }
 
     #[test]
-    fn find_zlib_start_in_middle() {
+    fn zlib_find_header_in_middle() {
         let mut buf = vec![0u8; 0x40];
-        buf[0x20] = 0x78;
-        buf[0x21] = 0x9C;
-        assert_eq!(find_zlib_start(&buf).unwrap(), 0x20);
+        buf[0x20..0x22].copy_from_slice(&[0x78, 0x9C]);
+        assert_eq!(zlib_find_header(&buf), Some(0x20));
     }
 
     #[test]
-    fn find_zlib_start_short_circuit_at_0x100() {
-        let mut buf = vec![0xFFu8; 0x110];
-        // Put a *different* (also valid) magic earlier so we can prove the
-        // 0x100 short-circuit returns 0x100 — but actually a linear scan would
-        // also find an earlier match. So instead place magic ONLY at 0x100.
-        buf[0x100] = 0x78;
-        buf[0x101] = 0x9C;
-        // Replace the FF spam with non-magic bytes.
-        for b in &mut buf[..0x100] {
-            *b = 0x00;
-        }
-        assert_eq!(find_zlib_start(&buf).unwrap(), 0x100);
+    fn zlib_find_header_tries_magics_in_zlib_types_order() {
+        // `utils.py:224-232`: each magic is searched for over the whole
+        // window before the next one, so a `78 DA` at 0x200 beats a
+        // `78 9C` at 0x10.
+        let mut buf = vec![0u8; 0x300];
+        buf[0x10..0x12].copy_from_slice(&[0x78, 0x9C]);
+        buf[0x200..0x202].copy_from_slice(&[0x78, 0xDA]);
+        assert_eq!(zlib_find_header(&buf), Some(0x200));
     }
 
     #[test]
-    fn find_zlib_start_misses_outside_window() {
+    fn zlib_find_header_checks_0x100_first_for_each_magic() {
+        // `utils.py:226-227`: `78 9C` at 0x100 beats `78 9C` at 0x10, but not
+        // a `78 DA` anywhere in the window.
+        let mut buf = vec![0u8; 0x300];
+        buf[0x10..0x12].copy_from_slice(&[0x78, 0x9C]);
+        buf[0x100..0x102].copy_from_slice(&[0x78, 0x9C]);
+        assert_eq!(zlib_find_header(&buf), Some(0x100));
+        buf[0x280..0x282].copy_from_slice(&[0x78, 0xDA]);
+        assert_eq!(zlib_find_header(&buf), Some(0x280));
+    }
+
+    #[test]
+    fn zlib_find_header_misses_outside_window() {
+        // `utils.py:222`: only `s[:0x500]` is searched.
         let mut buf = vec![0u8; 0x600];
-        buf[0x550] = 0x78;
-        buf[0x551] = 0x9C;
-        // Outside the 0x500 window → not found.
-        assert!(matches!(
-            find_zlib_start(&buf).unwrap_err(),
-            BodyError::ZlibMagicMissing { .. }
-        ));
+        buf[0x550..0x552].copy_from_slice(&[0x78, 0x9C]);
+        assert_eq!(zlib_find_header(&buf), None);
     }
 
     // -- decompressed body ---------------------------------------------------
@@ -1369,7 +1280,7 @@ mod tests {
         let stream_len = HeaderEntry::parse(&fixture)?.zlib_size as usize;
         // The fixture lays the zlib stream right after the 0x100 header.
         let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + stream_len];
-        // 32 bytes of non-magic prefix (no 0x78 byte to confuse find_zlib_start).
+        // 32 bytes of non-magic prefix (no 0x78 byte to confuse zlib_find_header).
         let prefix: [u8; 32] = [0x55; 32];
         let mut plaintext = Vec::with_capacity(prefix.len() + stream.len());
         plaintext.extend_from_slice(&prefix);
@@ -1405,6 +1316,33 @@ mod tests {
         assert_eq!(&out[32..], b"hello, psptool-rs");
         assert_eq!(zlib_decompress(&[0x55u8; 32]), Some(vec![0x55u8; 32]));
         assert_eq!(zlib_decompress(&stream[..stream.len() - 1]), None);
+        Ok(())
+    }
+
+    #[test]
+    fn truncated_stream_fails_to_inflate_and_decodes_to_the_compressed_region()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // `header_file.py:179-186`: `zlib_decompress(output[:zlib_size])`
+        // raises on a stream cut inside its adler32 trailer, and the decode is
+        // the untruncated `output`.
+        let mut bytes = psptool_fixtures::micro::header_compressed().to_vec();
+        let zlib_size = HeaderEntry::parse(&SourceBytes::from_blob(bytes.clone()))?.zlib_size;
+        bytes[0x54..0x58].copy_from_slice(&(zlib_size - 2).to_le_bytes());
+        let body = SourceBytes::from_blob(bytes);
+        let h = HeaderEntry::parse(&body)?;
+        let region = h.data_region(body.as_bytes())?;
+        assert!(matches!(
+            h.get_decompressed_body(region),
+            Err(BodyError::Zlib(_))
+        ));
+        assert_eq!(
+            h.get_decrypted_decompressed_body(body.as_bytes(), None)?,
+            region
+        );
+        assert_eq!(
+            h.decode_best_effort(body.as_bytes(), Ikek::ZenPlus)?,
+            (region.to_vec(), false)
+        );
         Ok(())
     }
 

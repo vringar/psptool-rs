@@ -23,7 +23,7 @@
 //! | REQ | Status | Evidence |
 //! |---|---|---|
 //! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:41` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:137`/`:171`. |
-//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs` `extract_decompressed` → `get_signed_bytes` (which decrypt-then-inflates the data region) per upstream inflate step (`header_file.py:169-174`); consumer `cmds/extract.rs:127`/`:162`. Now returns the full `-u` envelope (REQ-7). |
+//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:77` `extract_decompressed` → `get_signed_bytes` (core `body.rs:375`), which decrypts then inflates through the decode-verification ladder's `_decrypted_decompressed_body` decode (`zlib_find_header` priority search, strict inflate, still-compressed fallback; #91) per upstream `header_file.py:179-186`, `utils.py:218-254`; consumer `cmds/extract.rs:135`/`:204`. Returns the full `-u` envelope (REQ-7). |
 //! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs` `extract_decrypted` (`get_decrypted_body`, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:184-190`); consumer `cmds/extract.rs:129`/`:164`. Now returns the full `-c` envelope (REQ-7). |
 //! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:58`/`:78` (`entry.class.header().ok_or(NotHeaderEntry)?`) per upstream `type(file) is HeaderFile` (`__main__.py:193`,`:195`); Header/KeyStore only. |
 //! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:22` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
@@ -66,6 +66,8 @@ pub fn extract_raw(entry: &Entry) -> Vec<u8> {
 /// unconditionally to mirror upstream's hard-coded default; it is consulted
 /// only when the header advertises `is_encrypted == 1` (upstream decrypts then
 /// decompresses inside `get_decrypted_decompressed_body`, `header_file.py:166-174`).
+/// A zlib stream that fails to inflate leaves the still-compressed body in the
+/// envelope, as upstream's does (`header_file.py:182-185`).
 ///
 /// Returns an error when the entry is not a `HeaderFile`
 /// ([`ExtractError::NotHeaderEntry`]). The `not-compressed` guard that upstream

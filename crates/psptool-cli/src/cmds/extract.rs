@@ -132,7 +132,9 @@ fn transform_single(entry: &Entry, args: &ExtractArgs) -> Result<Vec<u8>> {
         {
             bail!("File is not compressed {}", single_readable_type(entry));
         }
-        Ok(extract_decompressed(entry).context("decompressing entry")?)
+        let bytes = extract_decompressed(entry).context("decompressing entry")?;
+        warn_if_inflate_failed(entry, &single_readable_type(entry));
+        Ok(bytes)
     } else if args.decrypt {
         // Upstream errors before decrypting a non-encrypted file
         // (`__main__.py:174`).
@@ -170,6 +172,22 @@ fn write_single_output(bytes: &[u8], outfile: Option<&Path>, out: &mut dyn Write
     Ok(())
 }
 
+/// `-u` emits the still-compressed body of a zlib stream that fails to
+/// inflate (`extract_decompressed` = `get_signed_bytes()`); upstream warns on
+/// stderr when that happens (`header_file.py:182-185`).
+fn warn_if_inflate_failed(entry: &Entry, readable_type: &str) {
+    let failed = entry.class.header().is_some_and(|h| {
+        h.is_compressed
+            && matches!(
+                h.decode_best_effort(entry.body.as_bytes(), Ikek::ZenPlus),
+                Ok((_, false))
+            )
+    });
+    if failed {
+        eprintln!("warning: ZLIB decompression failed on file {readable_type}");
+    }
+}
+
 /// The reference `file.get_readable_type()` for a single entry, used in the
 /// `-u`/`-c` precondition error messages (`__main__.py:170`/`:174`).
 fn single_readable_type(entry: &Entry) -> String {
@@ -183,7 +201,13 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
     let mut written = 0usize;
     for_each_entry(opened, |entry, dir_idx, entry_idx, is_bios| {
         let bytes = if args.decompress {
-            extract_decompressed(entry).unwrap_or_else(|_| extract_raw(entry))
+            match extract_decompressed(entry) {
+                Ok(bytes) => {
+                    warn_if_inflate_failed(entry, &readable_type(entry.entry_type(), is_bios));
+                    bytes
+                }
+                Err(_) => extract_raw(entry),
+            }
         } else if args.decrypt {
             // Upstream multi-file `-c` writes the BARE decrypted body
             // (`__main__.py:196` `file.get_decrypted_body()`), NOT the
