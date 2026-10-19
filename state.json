@@ -2805,11 +2805,12 @@
       "uuid": "da718d13-3f0f-4f02-ba1f-f5f9b99d0ee9",
       "display_id": 105,
       "title": "Divergence: sign_entry signs/patches Entry::body, upstream resign_only signs the rom_size HeaderFile buffer (cert_tree.py:101-117)",
+      "description": "Spillover from #90. Upstream SignedEntity.resign_only (cert_tree.py:101-117) signs self.file.get_signed_bytes() and writes the signature at rom_size - signature_len of the HeaderFile buffer (header_file.py:88), the buffer grown by header_file.py:32-33 / :72-75. psptool-ops/src/sign.rs sign_entry_with_rng uses entry.body, so re-signing a HeaderFile whose buffer outgrows its directory size fails: 13 corpus HeaderFiles grown past a non-zero directory size (BodyTooSmall) and, since #90, the 3 zero-size KVM_IMAGE records (Truncated). Fix shape: sign over Entry::header_file_window(blob) (body.rs) and patch at the window offset.",
       "status": "open",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T20:43:28.510688252Z",
-      "updated_at": "2026-10-19T20:44:30.431854028Z",
+      "updated_at": "2026-10-19T20:44:49.773859198Z",
       "labels": [
         "blocker"
       ],
@@ -4883,11 +4884,16 @@
       "agent_id": "tLiK",
       "agent_seq": 326,
       "timestamp": "2026-10-19T20:44:30.431854028Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 327,
+      "timestamp": "2026-10-19T20:44:49.773859198Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T20:44:30.431854028Z",
+    "timestamp": "2026-10-19T20:44:49.773859198Z",
     "agent_id": "tLiK",
-    "agent_seq": 326
+    "agent_seq": 327
   }
 }
