@@ -304,7 +304,7 @@ impl HeaderEntry {
     /// (when `!is_encrypted`) or the output of [`Self::get_decrypted_body`].
     /// `zlib_size` is an ABSOLUTE end offset into it, and a Python slice: it
     /// stops at the end of `plaintext`. [`zlib_decompress`] then finds the
-    /// stream with upstream's per-magic priority search ([`zlib_find_header`],
+    /// stream with upstream's per-magic priority search (`zlib_find_header`,
     /// `utils.py:218-234`), inflates it strictly and prepends the bytes before
     /// the magic (`utils.py:245-252`); without a magic the slice comes back
     /// unchanged (`utils.py:254`). Fails with [`BodyError::Zlib`] exactly where
@@ -1155,10 +1155,10 @@ pub fn decrypt(
 }
 
 /// `utils.zlib_decompress(s)` (`utils.py:241-254`): inflate the zlib stream
-/// at the first magic [`zlib_find_header`] locates and prepend the bytes
+/// at the first magic `zlib_find_header` locates and prepend the bytes
 /// before it; `s` unchanged when there is no magic. `None` where
 /// `zlib.decompress` raises — a corrupt or truncated stream
-/// ([`zlib_decompress_strict`]). Consumers: [`HeaderEntry::get_decompressed_body`]
+/// (`zlib_decompress_strict`). Consumers: [`HeaderEntry::get_decompressed_body`]
 /// (the decode behind decode verification and the `-X -u` extract path) and
 /// the `psptool-py` `HeaderFile` subclass ladder, both on `output[:zlib_size]`
 /// (`header_file.py:181`).

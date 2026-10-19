@@ -589,7 +589,7 @@ pub struct DirectoryRef {
 /// indirection) are followed too: the entry points at a 32-byte block whose
 /// `[16:20]` holds the real L2 directory offset, which is then walked like any
 /// other sub-directory (mirrors `directory.py:85-99`, see
-/// [`tertiary_actual_offset`]).
+/// `tertiary_actual_offset`).
 ///
 /// `rom_origin` is the file offset of the ROM's first byte within `blob`.
 /// For a bare flash dump pass [`FlashOffset::ZERO`]; for a capsule-wrapped

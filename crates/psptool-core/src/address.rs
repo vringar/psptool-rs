@@ -169,7 +169,7 @@ impl AddressMode {
         }
     }
 
-    /// Inverse of [`from_bits`]: the canonical 2-bit encoding for this mode.
+    /// Inverse of [`Self::from_bits`]: the canonical 2-bit encoding for this mode.
     #[inline]
     pub const fn bits(self) -> u8 {
         self as u8
