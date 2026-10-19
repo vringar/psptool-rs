@@ -3,6 +3,7 @@
 use std::io::Write;
 
 use anyhow::{Result, anyhow};
+use psptool_core::Ikek;
 use psptool_ops::{EntryVerification, VerificationStatus, verify_with_directories};
 use serde_json::{Value, json};
 
@@ -11,12 +12,14 @@ use crate::load::open_rom;
 
 pub fn run(args: &VerifyArgs, out: &mut dyn Write) -> Result<()> {
     let opened = open_rom(&args.file, args.rom_index)?;
+    // The selected ROM's entries, checked against the keys of the whole image
+    // with upstream's IKEK (`header_file.py:294-307`), as `ls` does.
     let report = verify_with_directories(
         &opened.blob,
         &opened.directories,
         opened.rom_size,
         opened.rom_origin,
-        None,
+        Ikek::ZenPlus,
     );
     if args.json {
         let value = json_report(&report);

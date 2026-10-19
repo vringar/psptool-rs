@@ -40,8 +40,8 @@
 //! port of the `CertificateTree` key map (`cert_tree.py:255-406`): every
 //! `PubkeyFile` key plus every key of every `KeyStoreFile` `$KDB` store
 //! (`key_store_file.py:140-253`). The governing requirement is
-//! `.design/psptool-ops/list.md` REQ-13/REQ-14 (its production consumer is the
-//! `ls` renderer in `psptool-ops/src/list.rs`).
+//! `.design/psptool-ops/list.md` REQ-13/REQ-14 (production consumers: the `ls`
+//! renderer, `psptool-ops/src/list.rs`; the `verify` report, `verify.rs`).
 //!
 //! ## REQ status (per `.design/psptool-core/body.md`)
 //!
@@ -52,8 +52,8 @@
 //! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:303` = `zlib_decompress(output[:zlib_size])` (`zlib_decompress` `body.rs:1100`: `zlib_find_header` per-magic priority search `entry.rs:613`, strict inflate `body.rs:1118`, no magic → input unchanged) per upstream `utils.py:218-254`, `header_file.py:181`; consumer `decode` `body.rs:317` → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` (`-X -u`). Pins #82/#84 live; #91 pins `psptool-ops/tests/divergence_extract_zlib.rs` + `psptool-cli/tests/extract_oracle.rs`. |
 //! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` over `decode` at `body.rs:317` (decrypt iff encrypted, inflate iff compressed, the still-compressed region when the inflate fails) per upstream `header_file.py:172-189`; production consumer `get_signed_bytes` at `body.rs:375`. |
 //! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:375` emits `header(0x100) || plaintext[..size_signed]` (a Python slice: a shorter body is covered whole) per upstream `header_file.py:168-170`; consumer `psptool-ops/src/sign.rs:157` + `psptool-ops/src/extract.rs:77` + `verify_signature` at `body.rs:395`. Closes #79. |
-//! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_signature` at `body.rs:392` uses the on-disk signature **plain** (not the PubkeyFile-reversed convention) per upstream `cert_tree.py:63,98`, `crypto.py:247-258`; consumer `psptool-ops/src/verify.rs:264` → CLI `verify`. Corpus-proven: 2993 real signatures verify (was 0). Closes #78. |
-//! | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | `rsa_public_key` at `body.rs:481` with LE exponent/modulus per upstream `crypto.py:219-229`; production consumer `verify_signature` at `body.rs:392` (`pubkey.rsa_public_key()`). |
+//! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_signature` at `body.rs:395` (library API, one `PubkeyEntry`) and the certificate-tree rung `CertifyingKeys::check` at `body.rs:788` → `verify_blob` at `body.rs:1154` both use the on-disk signature **plain** (not the PubkeyFile-reversed convention) per upstream `cert_tree.py:63,78-98`, `crypto.py:247-258`; consumers `psptool-ops/src/verify.rs:229` (`decode_verification(..).signature()`) → CLI `verify`, and `ls` (`psptool-ops/src/list.rs`). Corpus-proven: `psptool verify` agrees with the reference certificate tree at all 3927 signed-file addresses (`psptool-cli/tests/verify_oracle.rs`, #93). Closes #78. |
+//! | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | `rsa_public_key` at `body.rs:499` with LE exponent/modulus per upstream `crypto.py:219-229`; production consumers `CertifyingKeys::add_entry` at `body.rs:756` (the key map of `ls` and `verify`) and `verify_signature` at `body.rs:395`. |
 
 use aes::Aes128;
 use aes::cipher::generic_array::GenericArray;
@@ -743,7 +743,14 @@ impl CertifyingKeys {
         keys
     }
 
-    fn add_entry(&mut self, entry: &Entry, blob: &SourceBytes, ikek: Ikek) {
+    /// Add the certifying keys of one entry of `blob`: a `PubkeyFile` key
+    /// (`add_pubkey_file`, `cert_tree.py:349-366`) or every key of a
+    /// `KeyStoreFile` `$KDB` store (`add_key_store_file`,
+    /// `cert_tree.py:368-383`); other entries add none. [`Self::from_blob`]
+    /// adds every entry of every ROM it detects; a caller that walked a ROM
+    /// `from_blob` does not detect (a hand-picked FET or ROM size) adds that
+    /// ROM's entries here.
+    pub fn add_entry(&mut self, entry: &Entry, blob: &SourceBytes, ikek: Ikek) {
         match &entry.class {
             // `PublicKeyEntity._from_pubkey_file` (`cert_tree.py:161-170`).
             EntryClass::Pubkey(pk) => self.insert(pk.key_id, pk.rsa_public_key().ok()),

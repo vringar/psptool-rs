@@ -35,7 +35,7 @@
 //! `#[test]`) is the SHIPPED gate for those REQs.
 
 use psptool_core::{
-    Directory, DirectoryRef, Entry, EntryClass, Fet, FlashOffset, HeaderEntry, PubkeyEntry,
+    Directory, DirectoryRef, Entry, EntryClass, Fet, FlashOffset, HeaderEntry, Ikek, PubkeyEntry,
     RomSize, SourceBytes,
     directory::walk_directories,
     fet::{detect_rom_layout, scan_fet_candidates},
@@ -284,7 +284,7 @@ fn real_corpus_headerfile_verifies_under_verify_chain_of_trust() {
         let Some((_fet, dirs, rom_size, rom_origin)) = find_fet(&blob) else {
             continue;
         };
-        for r in verify_with_directories(&blob, &dirs, rom_size, rom_origin, None) {
+        for r in verify_with_directories(&blob, &dirs, rom_size, rom_origin, Ikek::ZenPlus) {
             match r.status {
                 VerificationStatus::Verified => verified_total += 1,
                 VerificationStatus::BadSignature => bad_total += 1,

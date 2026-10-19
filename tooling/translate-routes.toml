@@ -191,6 +191,28 @@ design = ".design/psptool-ops/extract.md"
 # is its oracle, like sign.rs.
 parity_ops = []
 
+[[route]]
+crate_pattern = "crates/psptool-ops/src/verify.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/cert_tree.py",
+  "/tmp/psptool-ref/psptool/key_store_file.py",
+  "/tmp/psptool-ref/psptool/header_file.py",
+]
+design = ".design/psptool-core/body.md"
+# The chain-of-trust report: SignedEntity.is_verified() over the blob's
+# CertificateTree, i.e. the signature rung of the core decode-verification
+# ladder (body.md REQ-6). Not exercised by roundtrip or the ls differential;
+# its oracles are the psptool-ops suite (decode_verification.rs `verify_*`)
+# and psptool-cli/tests/verify_oracle.rs (live reference, every corpus ROM).
+parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-cli/src/cmds/verify.rs"
+upstream = ["/tmp/psptool-ref/psptool/cert_tree.py"]
+design = ".design/psptool-core/body.md"
+# The Rust-native `verify` subcommand over psptool-ops verify.rs; same oracles.
+parity_ops = []
+
 # --- psptool-py (Python bindings; consumes psptool-core + psptool-ops) ----
 
 [[route]]

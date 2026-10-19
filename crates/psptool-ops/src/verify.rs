@@ -1,34 +1,42 @@
 //! Chain-of-trust verification.
 //!
-//! [`verify_chain_of_trust`] walks every directory reachable from a parsed
-//! [`Fet`], collects on-image [`PubkeyEntry`]s into a `key_id → pubkey` map,
-//! and then for every [`HeaderEntry`]-class entry tries to locate the signing
-//! key via [`HeaderEntry::signature_fingerprint`] and dispatches
-//! [`HeaderEntry::verify_signature`].
+//! [`verify_chain_of_trust`] reports, for every entry of every directory
+//! reachable from a parsed [`Fet`], whether its signature verifies: upstream's
+//! `SignedEntity.is_verified()` (`cert_tree.py:72-95`). The check is the
+//! signature rung of the core decode-verification ladder
+//! ([`Entry::decode_verification`]) — the one `ls` renders — against the
+//! image's [`CertifyingKeys`], upstream's single `CertificateTree`
+//! (`cert_tree.py:385-397`): every ROM of the image, every `PubkeyFile` key and
+//! every key of every `KeyStoreFile` `$KDB` store (`cert_tree.py:368-383`), and
+//! every key under an id (verified once any of them verifies,
+//! `cert_tree.py:82-95`). A `KeyStoreFile` is always signed and signs its
+//! header plus key store (`key_store_file.py:44-64`).
 //!
 //! The result is a typed report — one [`EntryVerification`] per
 //! [`Entry`] processed, classified as
 //! [`Verified`](VerificationStatus::Verified) /
 //! [`UnknownKey`](VerificationStatus::UnknownKey) /
 //! [`BadSignature`](VerificationStatus::BadSignature) /
-//! [`NotSigned`](VerificationStatus::NotSigned) — that mirrors the
-//! `verified` column of `vendor/test-corpus/bootloader_overview.py`. Errors
-//! at the body-prep / pubkey-extraction stage (truncation, key-size
-//! mismatch, malformed RSA modulus) collapse into
-//! [`VerificationStatus::Error`] with a human-readable string so the report
-//! never fails wholesale.
+//! [`NotSigned`](VerificationStatus::NotSigned) /
+//! [`Error`](VerificationStatus::Error), so the report never fails wholesale.
 //!
-//! Out of scope (deferred): root anchoring (PSPTool's `AMD_ROOT_KEY` table),
-//! KeyStore-embedded `$KDB` lookup, recursive PubkeyEntry-self-verification.
-//! Those layer cleanly on top of the per-entry classification this module
-//! produces.
+//! Out of scope: root anchoring (PSPTool's `AMD_ROOT_KEY` table) and
+//! PubkeyFile signatures (`SignedEntity._from_pubkey_file`,
+//! `cert_tree.py:53-56`): a PubkeyFile reports `NotSigned`.
+//!
+//! ## REQ status (per `.design/psptool-core/body.md`)
+//!
+//! | REQ | Status | Evidence |
+//! |---|---|---|
+//! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_with_directories` (`verify.rs:123`) builds `CertifyingKeys::from_blob` plus the walked ROM's `add_entry` keys (`verify.rs:136-139`, core `body.rs`, `cert_tree.py:385-397`) and classifies each entry by `Entry::decode_verification(..).signature()` (`verify.rs:229`, `cert_tree.py:78-95`); consumer CLI `psptool-cli/src/cmds/verify.rs:17`. Corpus: every `psptool verify` row at a reference signed-file address matches the reference outcome (`psptool-cli/tests/verify_oracle.rs`, #93). REQ-1..5 and REQ-7 are `body.rs`'s. |
 
 use std::collections::HashMap;
 use std::fmt;
 
+use psptool_core::body::{CertifyingKeys, DecodeBasis, SignatureCheck};
 use psptool_core::{
-    Directory, DirectoryRef, Entry, EntryClass, EntryRecord, EntryType, Fet, FlashOffset,
-    HeaderEntry, Ikek, ParseError, PubkeyEntry, RomSize, SourceBytes, walk_directories,
+    Directory, DirectoryRef, Entry, EntryClass, EntryType, Fet, FlashOffset, Ikek, ParseError,
+    PubkeyEntry, RomSize, SourceBytes, walk_directories,
 };
 
 /// 16-byte key fingerprint — matches PSPTool's `key_id` ([`PubkeyEntry::key_id`])
@@ -38,24 +46,21 @@ pub type KeyId = [u8; 16];
 /// Per-entry verification outcome.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VerificationStatus {
-    /// `is_signed == 0` — the entry does not carry an RSA signature, so
-    /// chain-of-trust does not apply.
+    /// The entry carries no signature upstream verifies: not HeaderFile-class,
+    /// or a HeaderFile with `is_signed == 0`.
     NotSigned,
-    /// The entry advertises a `signature_fingerprint`, but no
-    /// [`PubkeyEntry`] with a matching `key_id` was found anywhere in the
-    /// reachable directory tree.
+    /// No key in the image carries the entry's certifying id
+    /// ([`SignatureCheck::NoCertifyingKey`], upstream `NoCertifyingKey`).
     UnknownKey,
-    /// Pubkey was located, signature bytes were well-formed, RSA-PSS
-    /// verification succeeded.
+    /// Some key under the certifying id verifies the RSA-PSS signature.
     Verified,
-    /// Pubkey was located but RSA-PSS verification failed (tampered body or
-    /// stale signature).
+    /// Keys under the certifying id exist, none verifies the signature
+    /// (tampered body, stale signature, or a key of the wrong size).
     BadSignature,
-    /// Body-preparation, pubkey-extraction, or signature-decoding failed
-    /// before RSA-PSS could even run. The wrapped string is the underlying
-    /// `VerifyError` / `ParseError` rendered via `Display`. Treated as an
-    /// inconclusive result rather than a hard verification failure so the
-    /// caller can surface it without the whole report aborting.
+    /// The check could not run: the entry could not be parsed or decoded, a
+    /// candidate key is not an RSA-2048/4096 key, or the signed region /
+    /// signature could not be cut from the entry. Inconclusive rather than a
+    /// verification failure, so the report never aborts.
     Error(String),
 }
 
@@ -93,10 +98,10 @@ pub struct EntryVerification {
 /// Walk every directory reachable from `fet`, collecting per-entry
 /// verification reports.
 ///
-/// `ikek` is forwarded to [`HeaderEntry::verify_signature`] so encrypted
-/// signed entries can be decrypted before hashing. Pass `None` when the
-/// caller does not yet know the IKEK (encrypted entries will surface as
-/// [`VerificationStatus::Error`] in that case).
+/// The certifying keys come from the whole image `blob` (every ROM, as
+/// upstream's `CertificateTree`), whichever ROM `fet` belongs to. `ikek`
+/// decrypts encrypted signed entries and compressed key stores before hashing;
+/// upstream always uses [`Ikek::ZenPlus`] (`header_file.py:294-307`).
 ///
 /// Output ordering: directories in walk order (matches
 /// [`walk_directories`]), entries in record order within each directory.
@@ -106,7 +111,7 @@ pub fn verify_chain_of_trust(
     fet: &Fet,
     rom_size: RomSize,
     rom_origin: FlashOffset,
-    ikek: Option<Ikek>,
+    ikek: Ikek,
 ) -> Vec<EntryVerification> {
     let directories = walk_directories(blob, fet, rom_size, rom_origin);
     verify_with_directories(blob, &directories, rom_size, rom_origin, ikek)
@@ -120,66 +125,45 @@ pub fn verify_with_directories(
     directories: &[DirectoryRef],
     rom_size: RomSize,
     rom_origin: FlashOffset,
-    ikek: Option<Ikek>,
+    ikek: Ikek,
 ) -> Vec<EntryVerification> {
-    // First pass: parse every entry and stash the parsed forms keyed by
-    // (dir_index, entry_index). We hold the parsed entries because the
-    // pubkey lookup table needs to scan all of them before we can verify.
-    let mut parsed: Vec<Vec<Result<Entry, ParseError>>> = Vec::with_capacity(directories.len());
-    for dir_ref in directories {
-        parsed.push(parse_dir_entries(
-            blob,
-            &dir_ref.directory,
-            rom_size,
-            rom_origin,
-        ));
+    let parsed: Vec<Vec<Result<Entry, ParseError>>> = directories
+        .iter()
+        .map(|dir_ref| parse_dir_entries(blob, &dir_ref.directory, rom_size, rom_origin))
+        .collect();
+    // Upstream's tree spans every ROM of the image; the walked ROM's own keys
+    // join it even when `from_blob` does not detect that ROM's layout.
+    let mut keys = CertifyingKeys::from_blob(blob, ikek);
+    for entry in parsed.iter().flatten().flatten() {
+        keys.add_entry(entry, blob, ikek);
     }
 
-    // Build the pubkey lookup table from successful parses.
-    let mut pubkeys: HashMap<KeyId, PubkeyEntry> = HashMap::new();
-    for dir_entries in &parsed {
-        for entry in dir_entries.iter().filter_map(|e| e.as_ref().ok()) {
-            if let EntryClass::Pubkey(pk) = &entry.class {
-                // First-writer-wins: PSPTool tolerates duplicate pubkeys
-                // across directories (combos commonly repeat the AMD root)
-                // and uses whichever is reached first.
-                pubkeys.entry(pk.key_id).or_insert_with(|| pk.clone());
-            }
-        }
-    }
-
-    // Second pass: classify each entry.
     let mut out = Vec::new();
-    for (dir_idx, dir_entries) in parsed.into_iter().enumerate() {
-        for (entry_idx, parsed_entry) in dir_entries.into_iter().enumerate() {
-            let entry = match parsed_entry {
-                Ok(e) => e,
-                Err(err) => {
-                    // Entry record could not be resolved into a body — record
-                    // a synthetic row so the report mirrors the directory's
-                    // record list 1-to-1.
-                    out.push(EntryVerification {
-                        directory_index: dir_idx,
-                        entry_index: entry_idx,
-                        entry_type: EntryType::new(0),
-                        body_offset: FlashOffset(0),
-                        key_id: None,
-                        status: VerificationStatus::Error(err.to_string()),
-                    });
-                    continue;
-                }
-            };
-            out.push(classify_entry(dir_idx, entry_idx, &entry, &pubkeys, ikek));
+    for (dir_idx, entries) in parsed.into_iter().enumerate() {
+        for (entry_idx, result) in entries.into_iter().enumerate() {
+            out.push(match result {
+                Ok(entry) => classify_entry(dir_idx, entry_idx, &entry, blob, &keys, ikek),
+                // Entry record could not be resolved into a body — record a
+                // synthetic row so the report mirrors the directory's record
+                // list 1-to-1.
+                Err(err) => EntryVerification {
+                    directory_index: dir_idx,
+                    entry_index: entry_idx,
+                    entry_type: EntryType::new(0),
+                    body_offset: FlashOffset(0),
+                    key_id: None,
+                    status: VerificationStatus::Error(err.to_string()),
+                },
+            });
         }
     }
     out
 }
 
-/// Public helper: build a `key_id → pubkey` map from a list of directories.
-///
-/// Same data the verifier consumes internally; exposed so callers (CLI
-/// `search-keys`, the upcoming `sign` flow) can introspect the on-image
-/// pubkey table without re-walking everything.
+/// Public helper: the image's `PubkeyFile` entries by `key_id`, first one
+/// wins. This is NOT the certifying-key map verification uses — that is
+/// [`CertifyingKeys`], which also holds every `$KDB` key-store key and every
+/// key under an id.
 pub fn collect_pubkeys(
     blob: &SourceBytes,
     directories: &[DirectoryRef],
@@ -222,59 +206,45 @@ fn parse_dir_entries(
     }
 }
 
+/// `SignedEntity.is_verified()` (`cert_tree.py:72-95`) of one entry: the
+/// certificate-tree rung of its decode verification. Only HeaderFile-class
+/// entries carry a verdict, and only signed ones (a `KeyStoreFile` always is,
+/// `key_store_file.py:62-64`) a signature check.
 fn classify_entry(
     dir_idx: usize,
     entry_idx: usize,
     entry: &Entry,
-    pubkeys: &HashMap<KeyId, PubkeyEntry>,
-    ikek: Option<Ikek>,
+    blob: &SourceBytes,
+    keys: &CertifyingKeys,
+    ikek: Ikek,
 ) -> EntryVerification {
-    let entry_type = match &entry.record {
-        EntryRecord::Psp(p) => p.entry_type,
-        EntryRecord::Bios(b) => b.entry_type,
-    };
-    let body_offset = entry.body.offset();
     let mk = |status, key_id| EntryVerification {
         directory_index: dir_idx,
         entry_index: entry_idx,
-        entry_type,
-        body_offset,
+        entry_type: entry.entry_type(),
+        body_offset: entry.body.offset(),
         key_id,
         status,
     };
-
-    let header: &HeaderEntry = match &entry.class {
-        EntryClass::Header(h) | EntryClass::KeyStore(h) => h,
-        // Plain / Pubkey / SecondaryDirectoryPointer / TertiaryDirectoryPointer /
-        // Microcode / SoftFuseChain — none of these carry a HeaderFile-shape
-        // signature region, so they cannot participate in chain-of-trust as
-        // verifiable subjects.
-        _ => return mk(VerificationStatus::NotSigned, None),
-    };
-
-    if !header.is_signed() {
+    let verdict = entry.decode_verification(blob, keys, ikek);
+    let (Some(header), Some(check)) = (entry.class.header(), verdict.and_then(|v| v.signature()))
+    else {
         return mk(VerificationStatus::NotSigned, None);
-    }
-
-    let key_id = header.signature_fingerprint;
-    let Some(pubkey) = pubkeys.get(&key_id) else {
-        return mk(VerificationStatus::UnknownKey, Some(key_id));
     };
-
-    match header.verify_signature(entry.body.as_bytes(), pubkey, ikek) {
-        Ok(()) => mk(VerificationStatus::Verified, Some(key_id)),
-        Err(e) => match e {
-            // PSPTool's bootloader_overview.py returns False for both a real
-            // bad-signature outcome and a structurally-invalid signature blob.
-            // Mirror that taxonomy so the chain-of-trust report aligns with
-            // the reference oracle.
-            psptool_core::VerifyError::BadSignature
-            | psptool_core::VerifyError::InvalidSignature => {
-                mk(VerificationStatus::BadSignature, Some(key_id))
-            }
-            other => mk(VerificationStatus::Error(other.to_string()), Some(key_id)),
-        },
-    }
+    let status = match check {
+        SignatureCheck::Verified => VerificationStatus::Verified,
+        SignatureCheck::Failed => VerificationStatus::BadSignature,
+        // `cert_tree.py:79-80`: `NoCertifyingKey`.
+        SignatureCheck::NoCertifyingKey => VerificationStatus::UnknownKey,
+        SignatureCheck::Error => VerificationStatus::Error(
+            if verdict.is_some_and(|v| v.decode_verification_method() == DecodeBasis::DecodeError) {
+                "entry body cannot be decrypted or sliced".to_string()
+            } else {
+                "unusable certifying key or unreadable signed region".to_string()
+            },
+        ),
+    };
+    mk(status, Some(header.signature_fingerprint))
 }
 
 #[cfg(test)]
@@ -300,7 +270,8 @@ mod tests {
             build_synthetic_rom_with_signed_entry(&priv_key, &pk, b"hello, signed!");
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
+        let report =
+            verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), Ikek::ZenPlus);
 
         // Expect at least one Verified row for the signed entry, and a NotSigned
         // row for the pubkey itself (it does not carry a HeaderFile prefix).
@@ -328,7 +299,8 @@ mod tests {
         rom_bytes[sig_fp_off..sig_fp_off + 16].copy_from_slice(&[0xDE; 16]);
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
+        let report =
+            verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), Ikek::ZenPlus);
 
         let unknown = report
             .iter()
@@ -347,7 +319,8 @@ mod tests {
         rom_bytes[body_off + 0x100] ^= 0x01;
         let blob = SourceBytes::from_blob(rom_bytes);
         let fet = parse_fet_at(&blob, 0);
-        let report = verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), None);
+        let report =
+            verify_chain_of_trust(&blob, &fet, RomSize::MIB_16, FlashOffset(0), Ikek::ZenPlus);
 
         let bad = report
             .iter()
@@ -372,7 +345,8 @@ mod tests {
         let blob = SourceBytes::from_blob(rom_bytes.clone());
         let fet = parse_fet_at(&blob, 0);
         let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset(0));
-        let report = verify_with_directories(&blob, &dirs, RomSize::MIB_16, FlashOffset(0), None);
+        let report =
+            verify_with_directories(&blob, &dirs, RomSize::MIB_16, FlashOffset(0), Ikek::ZenPlus);
         assert!(
             report
                 .iter()
@@ -410,7 +384,13 @@ mod tests {
         assert_eq!(patched.len(), rom_bytes.len());
         let blob2 = SourceBytes::from_blob(patched);
         let fet2 = parse_fet_at(&blob2, 0);
-        let report2 = verify_chain_of_trust(&blob2, &fet2, RomSize::MIB_16, FlashOffset(0), None);
+        let report2 = verify_chain_of_trust(
+            &blob2,
+            &fet2,
+            RomSize::MIB_16,
+            FlashOffset(0),
+            Ikek::ZenPlus,
+        );
         assert!(
             report2
                 .iter()

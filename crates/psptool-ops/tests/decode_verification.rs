@@ -31,7 +31,9 @@ use psptool_core::{
     scan_fet_candidates, walk_directories,
 };
 use psptool_fixtures::corpus_rom_paths;
-use psptool_ops::{RomListing, list_default, list_json};
+use psptool_ops::{
+    RomListing, VerificationStatus, list_default, list_json, verify_with_directories,
+};
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rsa::RsaPrivateKey;
@@ -657,6 +659,96 @@ fn ls_renders_verdicts_in_json_and_file_info() {
     let text = list_default(&rom);
     for tag in ["verified(A1A1)", "key_missing(DEDE)", "sha256_ok"] {
         assert!(text.contains(tag), "{tag} missing from:\n{text}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// `verify` wiring (#93): the chain-of-trust report checks signatures against
+// the same certificate-tree key map
+// ---------------------------------------------------------------------------
+
+/// `psptool verify`'s status for every entry of the image.
+fn verify_statuses(entries: &[(u8, Vec<u8>)]) -> Vec<VerificationStatus> {
+    let blob = image(entries);
+    let layout = layout(&blob);
+    let dirs = walk_directories(&blob, &layout.fet, layout.rom_size, layout.rom_origin);
+    verify_with_directories(
+        &blob,
+        &dirs,
+        layout.rom_size,
+        layout.rom_origin,
+        Ikek::ZenPlus,
+    )
+    .into_iter()
+    .map(|row| row.status)
+    .collect()
+}
+
+#[test]
+fn verify_resolves_key_store_keys() {
+    // `cert_tree.py:368-383`: a `$KDB` key certifies like a PubkeyFile key.
+    // No PubkeyFile carries KEY_B.
+    let data = payload(0x40);
+    let statuses = verify_statuses(&[
+        (0x50, key_store_file(&kdb(KEY_B))),
+        (0x01, HeaderFile::plain(&data).signed_by(KEY_B).build()),
+    ]);
+    assert_eq!(statuses[1], VerificationStatus::Verified);
+    // The key store is signed by KEY_UNKNOWN, which nothing carries.
+    assert_eq!(statuses[0], VerificationStatus::UnknownKey);
+}
+
+#[test]
+fn verify_tries_every_key_under_an_id() {
+    // `cert_tree.py:82-95`: verified once ANY certifying key verifies. A first
+    // PubkeyFile under KEY_A carrying another (still odd, so valid) modulus
+    // must not shadow the key that signed the entry.
+    let mut other = pubkey_file(KEY_A);
+    other[0x140 + 0x80] ^= 0x01;
+    let data = payload(0x40);
+    let statuses = verify_statuses(&[
+        (0x00, other),
+        (0x00, pubkey_file(KEY_A)),
+        (0x01, HeaderFile::plain(&data).signed_by(KEY_A).build()),
+    ]);
+    assert_eq!(statuses[2], VerificationStatus::Verified);
+}
+
+#[test]
+fn verify_agrees_with_the_ls_signature_check() {
+    // One key map and one signature check for `ls` and `verify`: every
+    // HeaderFile-class verdict's certificate-tree sub-result maps onto the
+    // `verify` status of the same entry.
+    let data = payload(0x40);
+    let mut tampered = HeaderFile::plain(&data).signed_by(KEY_A).build();
+    tampered[HEADER_LEN + 3] ^= 0x01;
+    let entries = vec![
+        (0x00, pubkey_file(KEY_A)),
+        (0x50, key_store_file(&kdb(KEY_B))),
+        (0x01, HeaderFile::plain(&data).signed_by(KEY_B).build()),
+        (0x01, tampered),
+        (
+            0x01,
+            HeaderFile::plain(&data).signed_by(KEY_UNKNOWN).build(),
+        ),
+        (
+            0x01,
+            HeaderFile::plain(&data)
+                .signed_by(KEY_A)
+                .encrypted()
+                .build(),
+        ),
+        (0x01, HeaderFile::plain(&data).build()),
+    ];
+    for (verdict, status) in verdicts(&entries).iter().zip(verify_statuses(&entries)) {
+        let expected = match verdict.and_then(|v| v.signature()) {
+            None => VerificationStatus::NotSigned,
+            Some(SignatureCheck::Verified) => VerificationStatus::Verified,
+            Some(SignatureCheck::Failed) => VerificationStatus::BadSignature,
+            Some(SignatureCheck::NoCertifyingKey) => VerificationStatus::UnknownKey,
+            Some(SignatureCheck::Error) => panic!("no entry here is unverifiable"),
+        };
+        assert_eq!(status, expected, "{verdict:?}");
     }
 }
 
