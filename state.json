@@ -1,5 +1,5 @@
 {
-  "next_display_id": 108,
+  "next_display_id": 109,
   "next_comment_id": 152,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -46,6 +46,7 @@
     "6e427675-2426-49e2-8f35-d8362d7e331a": 34,
     "6ed84810-54d1-487c-b49d-1c7e5ed3f8f3": 106,
     "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": 66,
+    "77177c3c-4f43-4530-8d66-62aff66597e9": 108,
     "79977ea4-13a2-4642-be11-632dbd1123bd": 28,
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
@@ -1486,6 +1487,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAHAOS2wZGw+td57Qneqb/nMRiGrynM1y/UFBidLG3dZ2gGEwn23XmmOCI5XWMkH5YZvqi0GMbst6SmxTgT1RWAg=="
         }
       }
+    },
+    "77177c3c-4f43-4530-8d66-62aff66597e9": {
+      "uuid": "77177c3c-4f43-4530-8d66-62aff66597e9",
+      "display_id": 108,
+      "title": "Divergence: psptool sign / replace -p pass no IKEK, so the 256 encrypted corpus HeaderFiles cannot be re-signed; upstream get_signed_bytes decrypts with the Zen+ IKEK (header_file.py:286-307)",
+      "description": "Spillover from #105. psptool-cli/src/cmds/sign.rs:21 and cmds/replace.rs:59 call sign_entry(.., ikek = None); HeaderEntry::get_signed_bytes then fails NotEncrypted for an encrypted entry (body.rs decode: ikek.ok_or(BodyError::NotEncrypted)). Upstream resign_only signs file.get_signed_bytes() (cert_tree.py:113), whose get_decrypted_body unwraps with get_unwrapped_ikek() = UNWRAPPED_IKEK_ZEN_PLUS unconditionally (header_file.py:286-307). Corpus: 256 signed HeaderFiles are encrypted (reference probe, 241629b). Fix shape: pass Some(Ikek::ZenPlus) in both CLI callers (both files are unrouted: add routes first, R-XLATE-2); psptool-cli/tests/sign_oracle.rs can then include an encrypted control.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:22:30.647914459Z",
+      "updated_at": "2026-10-19T23:22:30.647914459Z"
     },
     "79977ea4-13a2-4642-be11-632dbd1123bd": {
       "uuid": "79977ea4-13a2-4642-be11-632dbd1123bd",
@@ -5044,11 +5057,16 @@
       "agent_id": "tLiK",
       "agent_seq": 346,
       "timestamp": "2026-10-19T22:56:24.246968644Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 347,
+      "timestamp": "2026-10-19T23:22:30.647914459Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T22:56:24.246968644Z",
+    "timestamp": "2026-10-19T23:22:30.647914459Z",
     "agent_id": "tLiK",
-    "agent_seq": 346
+    "agent_seq": 347
   }
 }
