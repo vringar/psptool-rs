@@ -1,6 +1,6 @@
 {
   "next_display_id": 111,
-  "next_comment_id": 154,
+  "next_comment_id": 155,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2775,11 +2775,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T14:27:36.799334206Z",
-      "updated_at": "2026-10-19T22:41:25.034043138Z",
+      "updated_at": "2026-10-19T23:27:57.105325566Z",
       "labels": [
         "blocker",
         "kaizen"
-      ]
+      ],
+      "comments": {
+        "695be929-c5b2-4bf9-9bb7-40f9c9992443": {
+          "display_id": 154,
+          "author": "tLiK",
+          "content": "Plan: core body.rs gains Entry::file_bytes(blob) = upstream File.get_bytes(): for a HeaderFile-class entry (Header/KeyStore) the header_file_window cut to the normalised rom_size (rom_size == 0 -> the grown buffer; header_file.py:32-33, :72-75, :104-105), else the entry body (Entry::get_bytes, whose doc stops claiming File.get_bytes()). ops extract_raw(entry, blob) returns it; CLI cmds/extract.rs passes opened.blob at every extract_raw site and the -T identical-bytes check compares file_bytes (__main__.py:52-56). Tests first: extract_oracle.rs gains a raw flag set (single + multi-file vs the reference: whole control, grown past the directory size, shrunk below it, zero-size record, rom_size 0 on a short record, grown KeyStoreFile) and a -T case with identical rom_size buffers behind different directory sizes; the corpus oracle adds sha256(f.get_bytes()) of every HeaderFile-class file. ops unit tests for grown/shrunk raw. ls 'size' (psptool.py:249 buffer_size) stays out: it is tolerated in differential.rs and changes ls output; filed separately. Docs: extract.md REQ-1/AC-1/arch, body.md REQ-1, CHANGELOG.",
+          "created_at": "2026-10-19T23:27:57.100520064Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAetVXEfPHyrx+zL45/7RsTYqJlozOtrQeeWoqvG1sP4ZSu4QWytpDjlZeyEvm1BAfdZmd/eYKPWNTxcv0ZKI4Ag=="
+        }
+      }
     },
     "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695": {
       "uuid": "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695",
@@ -5187,11 +5198,16 @@
       "agent_id": "tLiK",
       "agent_seq": 360,
       "timestamp": "2026-10-19T23:27:33.475759321Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 361,
+      "timestamp": "2026-10-19T23:27:57.105325566Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:27:33.475759321Z",
+    "timestamp": "2026-10-19T23:27:57.105325566Z",
     "agent_id": "tLiK",
-    "agent_seq": 360
+    "agent_seq": 361
   }
 }
