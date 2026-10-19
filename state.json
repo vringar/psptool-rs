@@ -1,5 +1,5 @@
 {
-  "next_display_id": 101,
+  "next_display_id": 102,
   "next_comment_id": 144,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -84,6 +84,7 @@
     "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334": 44,
     "d56107de-8835-47c3-ac4c-ec75ae9980ab": 62,
     "d5cbd6e4-4fb2-4759-9534-84b5ce12f96e": 29,
+    "d679f262-c442-45b7-bf07-18b8ab98bb80": 101,
     "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695": 51,
     "d8810440-1fe8-4bce-bb2d-f065ec626f86": 25,
     "d96c5e9c-61b5-4208-9977-af8e5b0424f9": 87,
@@ -2578,6 +2579,18 @@
         "refactor"
       ]
     },
+    "d679f262-c442-45b7-bf07-18b8ab98bb80": {
+      "uuid": "d679f262-c442-45b7-bf07-18b8ab98bb80",
+      "display_id": 101,
+      "title": "Divergence: raw -X (single + multi-file) of a HeaderFile writes the directory-sized entry; upstream File.get_bytes() is the rom_size buffer (header_file.py:72-75,104-105)",
+      "description": "Spillover from #99. HeaderFile._parse sets buffer_size = rom_size (grow header_file.py:74-75, pin :104-105), so file.get_bytes() — the default -X output (__main__.py:180) and the multi-file raw write (:200) — is rom_size bytes. psptool-ops extract_raw returns Entry::body (directory-sized). Corpus (241629b reference): 16 HeaderFiles grown, 144 shrunk. Also feeds -T identical-bytes (__main__.py:52-56) and ls 'size' (psptool.py:249, tolerated in differential.rs:34-38). Fix shape: extract_raw over Entry::header_file_window(blob) cut to rom_size (body.rs).",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T14:27:36.799334206Z",
+      "updated_at": "2026-10-19T14:27:36.799334206Z"
+    },
     "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695": {
       "uuid": "d691bf6c-5bf6-47f0-a0ca-d64fb76b0695",
       "display_id": 51,
@@ -4660,11 +4673,16 @@
       "agent_id": "tLiK",
       "agent_seq": 308,
       "timestamp": "2026-10-19T14:04:37.031671145Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 309,
+      "timestamp": "2026-10-19T14:27:36.799334206Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:04:37.031671145Z",
+    "timestamp": "2026-10-19T14:27:36.799334206Z",
     "agent_id": "tLiK",
-    "agent_seq": 308
+    "agent_seq": 309
   }
 }
