@@ -1,5 +1,5 @@
 {
-  "next_display_id": 102,
+  "next_display_id": 103,
   "next_comment_id": 144,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -73,6 +73,7 @@
     "bc034fa5-f3ae-4faf-99a1-18d096bf29fd": 21,
     "bddcb556-0ffa-485a-95fa-a61221162ed9": 79,
     "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
+    "c7d5f1c5-752a-43ef-aac3-121ccea81c72": 102,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "ca74b297-d703-4ae4-b2b2-0769a8ebc969": 77,
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
@@ -2262,6 +2263,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAEIxBlfQ6yoDujZdykl9nZ2w99stITdvcim1/NlkBxTGboy21wsRzukPxspKPEyxM9rglw161af0GwBhTRSA2AQ=="
         }
       }
+    },
+    "c7d5f1c5-752a-43ef-aac3-121ccea81c72": {
+      "uuid": "c7d5f1c5-752a-43ef-aac3-121ccea81c72",
+      "display_id": 102,
+      "title": "Divergence: multi-file -X -c of an unencrypted HeaderFile writes the raw entry; upstream writes get_decrypted_body() = the bare data region (header_file.py:286-288, __main__.py:195-196)",
+      "description": "Spillover from #99/#100. Upstream multi-file -c writes file.get_decrypted_body() for every HeaderFile (exact type); for is_encrypted == 0 that is self.body.get_bytes(), the data region without header or signature (header_file.py:286-288, body = header_file.py:106). psptool-cli cmds/extract.rs extract_all calls HeaderEntry::get_decrypted_body, which returns BodyError::NotEncrypted for those, and falls back to extract_raw (header + body + signature). Corpus: 3763 unencrypted HeaderFiles. extract_oracle.rs's multi-file -c image deliberately holds only encrypted HeaderFiles until this lands.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T14:27:52.588645831Z",
+      "updated_at": "2026-10-19T14:27:52.588645831Z"
     },
     "ca40b6c9-0483-40ff-accd-e46128d5e601": {
       "uuid": "ca40b6c9-0483-40ff-accd-e46128d5e601",
@@ -4686,11 +4699,16 @@
       "agent_id": "tLiK",
       "agent_seq": 310,
       "timestamp": "2026-10-19T14:27:43.554516054Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 311,
+      "timestamp": "2026-10-19T14:27:52.588645831Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T14:27:43.554516054Z",
+    "timestamp": "2026-10-19T14:27:52.588645831Z",
     "agent_id": "tLiK",
-    "agent_seq": 310
+    "agent_seq": 311
   }
 }
