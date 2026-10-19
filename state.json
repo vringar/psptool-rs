@@ -1,5 +1,5 @@
 {
-  "next_display_id": 100,
+  "next_display_id": 101,
   "next_comment_id": 143,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -41,6 +41,7 @@
     "6798ce69-9fe3-42b0-af27-75b0efb46e11": 26,
     "67df1b18-4065-4185-b87e-1eb8683f1d46": 50,
     "68f7ee46-7bae-4a64-8d9a-81f8c443a46d": 2,
+    "691d5fb4-ebcc-4007-82f3-43ff8f0907f5": 100,
     "6c23d90d-6db6-43dc-90db-2154af41be59": 12,
     "6e427675-2426-49e2-8f35-d8362d7e331a": 34,
     "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": 66,
@@ -1262,6 +1263,18 @@
           "kind": "plan"
         }
       }
+    },
+    "691d5fb4-ebcc-4007-82f3-43ff8f0907f5": {
+      "uuid": "691d5fb4-ebcc-4007-82f3-43ff8f0907f5",
+      "display_id": 100,
+      "title": "Divergence: multi-file -X -u/-c treats KeyStoreFile like HeaderFile; upstream gates on type(file) is HeaderFile (__main__.py:193-196,216-219) and writes get_bytes()",
+      "description": "Spotted during #91. Upstream's multi-file extract applies get_signed_bytes()/get_decrypted_body() only when 'type(file) is HeaderFile' (exact type), so a KeyStoreFile is written raw (file.get_bytes()). psptool-cli cmds/extract.rs extract_all calls extract_decompressed / get_decrypted_body for every class with a HeaderEntry (EntryClass::KeyStore included), writing the header + data[:size_signed] envelope instead. Corpus: 12 KeyStoreFiles (none compressed). Also, for a compressed KeyStoreFile single-file -u, upstream's KeyStoreFile.get_signed_bytes is header + key_store (key_store_file.py:50-51), not HeaderFile's (header + ddb)[:0x100+size_signed]; no corpus instance.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T11:04:37.471537633Z",
+      "updated_at": "2026-10-19T11:04:37.471537633Z"
     },
     "6c23d90d-6db6-43dc-90db-2154af41be59": {
       "uuid": "6c23d90d-6db6-43dc-90db-2154af41be59",
@@ -4618,11 +4631,16 @@
       "agent_id": "tLiK",
       "agent_seq": 305,
       "timestamp": "2026-10-19T11:04:01.528969344Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 306,
+      "timestamp": "2026-10-19T11:04:37.471537633Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T11:04:01.528969344Z",
+    "timestamp": "2026-10-19T11:04:37.471537633Z",
     "agent_id": "tLiK",
-    "agent_seq": 305
+    "agent_seq": 306
   }
 }
