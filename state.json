@@ -1,5 +1,5 @@
 {
-  "next_display_id": 96,
+  "next_display_id": 97,
   "next_comment_id": 133,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -55,6 +55,7 @@
     "99e1710e-053d-417e-802e-e1c86fb8cb62": 88,
     "9b196228-1911-43b8-9662-c9d1dde70cda": 64,
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": 70,
+    "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de": 96,
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
@@ -1675,6 +1676,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABANILr2vOKtHCeYLjE2E/brY6+zg2M7GhLx2tEWEqj4mJn4JhgtUMNK9Q+am9z9tXNmHtoqTOhn8sjAcqzZLRsCA=="
         }
       }
+    },
+    "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de": {
+      "uuid": "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de",
+      "display_id": 96,
+      "title": "Divergence: psptool -h description differs from upstream __main__.py:63 ('Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.'); upstream tests/unit/test_cli.py fails against the Rust CLI",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T00:48:01.043877627Z",
+      "updated_at": "2026-10-19T00:48:01.043877627Z"
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -4336,11 +4347,16 @@
       "agent_id": "tLiK",
       "agent_seq": 280,
       "timestamp": "2026-10-19T00:47:54.843697917Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 281,
+      "timestamp": "2026-10-19T00:48:01.043877627Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T00:47:54.843697917Z",
+    "timestamp": "2026-10-19T00:48:01.043877627Z",
     "agent_id": "tLiK",
-    "agent_seq": 280
+    "agent_seq": 281
   }
 }
