@@ -1,6 +1,6 @@
 {
   "next_display_id": 99,
-  "next_comment_id": 137,
+  "next_comment_id": 138,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2874,7 +2874,7 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-19T02:28:52.549286644Z",
-      "updated_at": "2026-10-19T02:36:57.389033512Z",
+      "updated_at": "2026-10-19T03:07:02.719946283Z",
       "comments": {
         "2ff55b67-7d6e-44ac-9e69-c45a6c62a8bf": {
           "display_id": 136,
@@ -2884,6 +2884,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA82hbaB3dco5zGJAvbKXFgldqJ6uK82Eeq7iPfxqDFToeUDK9Xjzq28BT0xfFfBHyYcPaYvg9DNWdmHVaSYJOBw=="
+        },
+        "4067fa64-887f-47d8-9d89-42ee9b5b797f": {
+          "display_id": 137,
+          "author": "tLiK",
+          "content": "Result: commit 3df62fe8 (on 11670c64). Root cause: pyo3 0.25 pyclass(dict) types were not GC types, so upstream's attribute cycles (through __dict__ and the Rust-held NestedBuffer.parent) were invisible to the collector; no parse was ever freed. Fix: pyo3 0.29.3 (dict traversal, PyO3#6206), NestedBuffer __traverse__/__clear__, weakref on graph classes, memory.rs native-bytes trigger (gc.collect() at PSPTool construction once registered image/snapshot/decode-cache bytes cross max(128 MiB, 2x survivors); DEVIATIONS.md 21). RSS, 216 corpus parses + decode + drop, no explicit collect, py3.13 release: before +32-48 MB/ROM unbounded; GC-only 1.33 GB plateau/1.70 GB peak; fixed 384 MB peak (upstream 241629b: 672 MB peak). 54-ROM probe: before +2270 MiB, fixed +320 MiB. Tests: test_api.py TestMemory (5; 4 fail pre-fix, trigger test fails with trigger off), tests/memory.rs corpus probe (<512 MiB growth). Gauntlet: fmt, clippy -D warnings, cargo test --workspace (corpus_parity 108/108, corpus_roundtrip 54/54, differential 54/54), nix-build -A python (23 tests OK, imports OK). Manifest expansion: Cargo.lock (pyo3 bump). Env note: dev shell PSPTOOL_REFERENCE predating the 241629b repin is stale (no decode_verification) and fails subclass_parity independently; re-enter nix-shell.",
+          "created_at": "2026-10-19T03:07:02.695214607Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAVFNCckI2Msptj6BMQw95wl4fMIK5PC4y+z/KgwPk4LAjPLlT9vaxUWjksYzRrC5Qfy4Q8XqTnkf9d5692fUVDA=="
         }
       }
     },
@@ -4484,11 +4493,16 @@
       "agent_id": "tLiK",
       "agent_seq": 294,
       "timestamp": "2026-10-19T02:36:57.389033512Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 295,
+      "timestamp": "2026-10-19T03:07:02.719946283Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T02:36:57.389033512Z",
+    "timestamp": "2026-10-19T03:07:02.719946283Z",
     "agent_id": "tLiK",
-    "agent_seq": 294
+    "agent_seq": 295
   }
 }
