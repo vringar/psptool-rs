@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Translation unit: psptool-core/fletcher.rs (#42)
 
 ### Fixed
+- psptool-py: Python subclasses of the parsed model classes (PSP-DB's ROM-less `FakeHeaderFile(HeaderFile)`) instantiate without ROM arguments, and the `HeaderFile` decode ladder (`decode_verification`, `decode_verified`, `plaintext_identity_ok`, ...) runs upstream's call structure over their overrides and attributes; psptool-core exposes `body::decrypt` / `body::zlib_decompress` (`utils.py` primitives) (#97)
 - Version skew: differential oracle (psptool 3.4) != translation source (git HEAD ~3.6) — needs alignment decision (#61)
 - psptool-core: #59 zlib-recovery overrun check uses whole-file blob_end, upstream uses the ROM window (multi-ROM divergence) (#72)
 - psptool-ops: replace.rs rewrite_size_field .expect can panic when zlib-recovered original_len exceeds u32 (R-CODE-2) (#71)

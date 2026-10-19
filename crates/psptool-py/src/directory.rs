@@ -8,11 +8,11 @@
 
 use pyo3::exceptions::{PyAssertionError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyList, PyType};
+use pyo3::types::{PyBytes, PyDict, PyList, PyTuple, PyType};
 
 use psptool_core::{EntryType, fletcher32};
 
-use crate::buffer::{NestedBuffer, py_hex, to_bytes};
+use crate::buffer::{self, NestedBuffer, py_hex, to_bytes};
 use crate::file::{File, view};
 use crate::model;
 
@@ -59,6 +59,17 @@ pub struct Directory;
 
 #[pymethods]
 impl Directory {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const HEADER_SIZE: i64 = HEADER_SIZE;
 
@@ -228,11 +239,24 @@ fn directory_checksum(slf: &Bound<'_, PyAny>) -> PyResult<u32> {
 }
 
 /// `BiosDirectory` (`directory.py:252-257`).
-#[pyclass(extends = Directory, module = "psptool.directory")]
+#[pyclass(extends = Directory, subclass, module = "psptool.directory")]
 pub struct BiosDirectory;
 
 #[pymethods]
 impl BiosDirectory {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(Directory)
+            .add_subclass(Self))
+    }
+
     #[classattr]
     const ENTRY_SIZE: i64 = 0x18;
 
@@ -277,6 +301,17 @@ impl DirectoryEntry {
 
 #[pymethods]
 impl DirectoryEntry {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const ENTRY_SIZE: i64 = 0x10;
 
@@ -386,11 +421,24 @@ impl DirectoryEntry {
 }
 
 /// `BiosDirectoryEntry` (`entry.py:136-180`).
-#[pyclass(extends = DirectoryEntry, module = "psptool.entry")]
+#[pyclass(extends = DirectoryEntry, subclass, module = "psptool.entry")]
 pub struct BiosDirectoryEntry;
 
 #[pymethods]
 impl BiosDirectoryEntry {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(DirectoryEntry)
+            .add_subclass(Self))
+    }
+
     #[classattr]
     const ENTRY_SIZE: i64 = 0x18;
 

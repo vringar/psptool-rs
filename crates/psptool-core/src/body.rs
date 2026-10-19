@@ -21,6 +21,8 @@
 //! | [`Entry::decode_verification`]        | `HeaderFile.decode_verification`            |
 //! | [`DecodeVerification`]                | `decode_verified` / `decode_verification_method` / `plaintext_identity_ok` |
 //! | [`CertifyingKeys::from_blob`]         | `CertificateTree.from_blob` (pubkeys by id) |
+//! | [`decrypt`]                           | `utils.decrypt`                             |
+//! | [`zlib_decompress`]                   | `utils.zlib_decompress`                     |
 //!
 //! The `body` argument is always the entry's full body slice
 //! (`[header(0x100) | data | signature]`). Nothing here mutates it.
@@ -297,28 +299,7 @@ impl HeaderEntry {
         if !self.is_encrypted {
             return Err(BodyError::NotEncrypted);
         }
-        let ciphertext = self.data_region(body)?;
-        if !ciphertext.len().is_multiple_of(16) {
-            return Err(BodyError::InvalidCipherLength(ciphertext.len()));
-        }
-
-        // Step 1: unwrap the entry key under the IKEK (single AES-128 ECB
-        // block; the wrapped key is exactly 16 bytes per the §4 layout).
-        let ikek_bytes = ikek.bytes();
-        let cipher = Aes128::new(GenericArray::from_slice(&ikek_bytes));
-        let mut entry_key = GenericArray::clone_from_slice(&self.wrapped_key);
-        cipher.decrypt_block(&mut entry_key);
-
-        // Step 2: CBC decrypt the data region with NoPadding (PSPTool stores
-        // already-padded data, so callers see the raw plaintext bytes).
-        let mut buf = ciphertext.to_vec();
-        let pt = Aes128CbcDec::new_from_slices(&entry_key, &self.iv)
-            .expect("AES-128 key + 16-byte IV are always accepted")
-            .decrypt_padded_mut::<NoPadding>(&mut buf)
-            .map_err(|_| BodyError::InvalidCipherLength(ciphertext.len()))?;
-        let len = pt.len();
-        buf.truncate(len);
-        Ok(buf)
+        decrypt(self.data_region(body)?, &self.wrapped_key, ikek, &self.iv)
     }
 
     /// Apply zlib decompression to a candidate plaintext data region.
@@ -431,17 +412,8 @@ impl HeaderEntry {
         }
         // `header_file.py:181`: `zlib_decompress(output[:self.zlib_size])`.
         let stream = &output[..(self.zlib_size as usize).min(output.len())];
-        let Some(start) = zlib_find_header(stream) else {
-            // `utils.py:254`: no magic → the (truncated) input, unchanged.
-            return Ok((stream.to_vec(), true));
-        };
-        match zlib_decompress_strict(&stream[start..]) {
-            Some(inflated) => {
-                // `utils.py:248-252`: `uncompressed + decompressed`.
-                let mut out = stream[..start].to_vec();
-                out.extend_from_slice(&inflated);
-                Ok((out, true))
-            }
+        match zlib_decompress(stream) {
+            Some(out) => Ok((out, true)),
             None => Ok((output, false)),
         }
     }
@@ -1146,6 +1118,54 @@ fn le_u32(bytes: &[u8], offset: usize) -> Option<u32> {
 }
 
 // ---------------------------------------------------------------------------
+// `utils.py` primitives over caller-supplied bytes
+// ---------------------------------------------------------------------------
+
+/// `utils.decrypt(data, entry_key, unwrapped_ikek, iv)` (`utils.py:257-283`):
+/// unwrap `wrapped_key` with one AES-128-ECB block under `ikek`, then
+/// AES-128-CBC-decrypt `data` (no padding) under the unwrapped key and `iv`.
+/// [`HeaderEntry::get_decrypted_body`] applies it to the data region; the
+/// `psptool-py` bindings apply it to the attributes of a Python `HeaderFile`
+/// subclass (`header_file.py:286-292`).
+pub fn decrypt(
+    data: &[u8],
+    wrapped_key: &[u8; 16],
+    ikek: Ikek,
+    iv: &[u8; 16],
+) -> Result<Vec<u8>, BodyError> {
+    // `cryptography`'s CBC `finalize()` raises on a partial final block.
+    if !data.len().is_multiple_of(16) {
+        return Err(BodyError::InvalidCipherLength(data.len()));
+    }
+    let cipher = Aes128::new(GenericArray::from_slice(&ikek.bytes()));
+    let mut entry_key = GenericArray::clone_from_slice(wrapped_key);
+    cipher.decrypt_block(&mut entry_key);
+    let mut buf = data.to_vec();
+    let len = Aes128CbcDec::new(&entry_key, GenericArray::from_slice(iv))
+        .decrypt_padded_mut::<NoPadding>(&mut buf)
+        .map_err(|_| BodyError::InvalidCipherLength(data.len()))?
+        .len();
+    buf.truncate(len);
+    Ok(buf)
+}
+
+/// `utils.zlib_decompress(s)` (`utils.py:241-254`): inflate the zlib stream
+/// at the first magic [`zlib_find_header`] locates and prepend the bytes
+/// before it; `s` unchanged when there is no magic. `None` where
+/// `zlib.decompress` raises — a corrupt or truncated stream
+/// ([`zlib_decompress_strict`]). Consumers: [`HeaderEntry::decode_best_effort`]
+/// and the `psptool-py` `HeaderFile` subclass ladder, both on
+/// `output[:zlib_size]` (`header_file.py:181`).
+pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
+    let Some(start) = zlib_find_header(s) else {
+        return Some(s.to_vec());
+    };
+    let mut out = s[..start].to_vec();
+    out.extend_from_slice(&zlib_decompress_strict(&s[start..])?);
+    Some(out)
+}
+
+// ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
 
@@ -1367,6 +1387,24 @@ mod tests {
         let out = hdr.get_decompressed_body(&plaintext)?;
         assert_eq!(&out[..prefix.len()], &prefix);
         assert_eq!(&out[prefix.len()..], b"hello, psptool-rs");
+        Ok(())
+    }
+
+    #[test]
+    fn zlib_decompress_follows_utils_zlib_decompress() -> Result<(), Box<dyn std::error::Error>> {
+        // `utils.py:241-254`: prefix + inflated stream; the input unchanged
+        // when there is no magic; `zlib.decompress` raises (None here) on a
+        // truncated stream.
+        let bytes = psptool_fixtures::micro::header_compressed().to_vec();
+        let stream_len = HeaderEntry::parse(&SourceBytes::from_blob(bytes.clone()))?.zlib_size;
+        let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + stream_len as usize];
+        let mut prefixed = vec![0x55u8; 32];
+        prefixed.extend_from_slice(stream);
+        let out = zlib_decompress(&prefixed).ok_or("prefixed stream did not inflate")?;
+        assert_eq!(&out[..32], &[0x55u8; 32]);
+        assert_eq!(&out[32..], b"hello, psptool-rs");
+        assert_eq!(zlib_decompress(&[0x55u8; 32]), Some(vec![0x55u8; 32]));
+        assert_eq!(zlib_decompress(&stream[..stream.len() - 1]), None);
         Ok(())
     }
 

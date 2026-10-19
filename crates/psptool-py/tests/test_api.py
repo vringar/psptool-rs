@@ -15,6 +15,7 @@ import os
 import struct
 import tempfile
 import unittest
+import zlib
 from unittest import mock
 
 import psptool
@@ -272,6 +273,100 @@ class TestEditSurface(unittest.TestCase):
         header.update_sha256()
         self.assertTrue(header.verify_sha256(print_warning=False))
         self.assertEqual(header._sha256_checksum.get_bytes(), hashlib.sha256(BODY).digest())
+
+
+class FakeBuffer:
+    def __init__(self, data):
+        self.data = data
+
+    def get_bytes(self):
+        return self.data
+
+
+class FakeHeaderFile(HeaderFile):
+    """PSP-DB's ROM-less fake (vringar/PSP-DB tests/test_identity.py): its own
+    ``__init__``, never calling the parent's, and an overridden body."""
+
+    def __init__(self, body, compressed=False, encrypted=False, zlib_size=0, decrypted=None, load_addr=0, type=0x1):
+        self.body = FakeBuffer(body)
+        self.compressed = compressed
+        self.encrypted = encrypted
+        self.zlib_size = zlib_size
+        self.decrypted = body if decrypted is None else decrypted
+        self.load_addr = load_addr
+        self.type = type
+
+    def get_decrypted_body(self):
+        return self.decrypted
+
+
+class LadderFake(FakeHeaderFile):
+    """Also sets what ``_verify_decode`` reads (header_file.py:198-243) and
+    overrides ``verify_sha256``."""
+
+    def __init__(self, body, sha256=None, **kwargs):
+        super().__init__(body, **kwargs)
+        self.signed_entity = None
+        self.has_sha256_checksum = int(sha256 is not None)
+        self.has_sha384_checksum = 0
+        self.sha256_ok = sha256
+        self._signed = FakeBuffer(bytes(4))
+
+    def verify_sha256(self, print_warning=True):
+        return self.sha256_ok
+
+
+class TestSubclass(unittest.TestCase):
+    """Python subclasses built without a ROM; the reference comparison is
+    ``oracle_subclass.py`` (run by ``python_api.rs``)."""
+
+    PLAIN = b"PSP firmware body " * 64
+
+    def test_construct_without_rom(self):
+        f = FakeHeaderFile(self.PLAIN, load_addr=0xFFFF0100, type=0x8)
+        self.assertIsInstance(f, HeaderFile)
+        self.assertIsInstance(f, File)
+        self.assertEqual((f.body.get_bytes(), f.load_addr, f.type), (self.PLAIN, 0xFFFF0100, 0x8))
+        # The native base is an empty, parentless buffer (DEVIATIONS.md 16).
+        self.assertEqual((f.buffer_size, f.get_bytes()), (0, b""))
+
+    def test_native_classes_still_come_from_a_parse(self):
+        for cls in (HeaderFile, File, Directory, PubkeyFile):
+            with self.assertRaises(TypeError):
+                cls()
+
+    def test_overridden_body_feeds_the_ladder(self):
+        # header_file.py:241-242: untransformed, unsigned, no checksum.
+        f = LadderFake(self.PLAIN)
+        self.assertEqual(f.decode_verification(), (True, "plain"))
+        self.assertTrue(f.plaintext_identity_ok())
+        # header_file.py:177-181: the overridden body is what gets inflated;
+        # an encrypted body without a signature or checksum stays
+        # unverifiable (:243) and is no plaintext identity (:276).
+        packed = zlib.compress(self.PLAIN)
+        f = LadderFake(bytes(len(packed)), compressed=True, encrypted=True, zlib_size=len(packed), decrypted=packed)
+        self.assertEqual(f.get_decrypted_decompressed_body(), self.PLAIN)
+        self.assertEqual(f.decode_verification(), (False, "unverifiable"))
+        self.assertFalse(f.plaintext_identity_ok())
+        # header_file.py:182-185, 201-202: a stream that does not inflate.
+        f = LadderFake(packed, compressed=True, zlib_size=len(packed) // 2, decrypted=packed)
+        self.assertEqual(f._decrypted_decompressed_body(print_warning=False), (packed, False))
+        self.assertEqual(f.decode_verification(), (False, "decompress-failed"))
+        self.assertFalse(f.plaintext_identity_ok())
+
+    def test_overridden_checksum_feeds_the_ladder(self):
+        # header_file.py:234-235.
+        self.assertEqual(LadderFake(self.PLAIN, sha256=True).decode_verification(), (True, "sha256"))
+        failed = LadderFake(self.PLAIN, sha256=False)
+        self.assertEqual(failed.decode_verification(), (False, "sha256-failed"))
+        self.assertEqual((failed.decode_verified(), failed.decode_verification_method()), (False, "sha256-failed"))
+        # header_file.py:276: an unencrypted body is its own identity.
+        self.assertTrue(failed.plaintext_identity_ok())
+
+    def test_unset_attribute_raises_like_upstream(self):
+        # header_file.py:203: the bare fake has no `signed_entity`.
+        with self.assertRaises(AttributeError):
+            FakeHeaderFile(self.PLAIN).decode_verification()
 
 
 if __name__ == "__main__":

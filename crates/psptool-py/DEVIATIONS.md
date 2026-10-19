@@ -5,8 +5,10 @@ The bindings mirror PSPTool's Python API as of vringar/PSPTool `241629b`
 (`psptool`), same classes, methods and attributes, same object graph and
 `(rom, directory, file)` order. Verified on the 54-ROM corpus by
 `tests/corpus_parity.rs` (walk, hashes, decode verdicts, edit + re-sign
-accepted by the reference) and by the reference tool's own integration suite
-(9 of 10 pass; the exception is item 13).
+accepted by the reference), for ROM-less Python subclasses by
+`tests/oracle_subclass.py` (identical output under the reference), and by
+the reference tool's own integration suite (9 of 10 pass; the exception is
+item 13).
 
 Everything else differs only as listed here.
 
@@ -86,8 +88,27 @@ Everything else differs only as listed here.
 16. **Construction from Python** is supported for `PSPTool`, `NestedBuffer`,
     `KeyId`, `Signature`, `ReversedSignature`, `PrivateKeyDict`,
     `CertificateTree`, `SignedEntity` and `PublicKeyEntity`; the parsed object
-    classes (`Directory`, `HeaderFile`, ...) only come from a parse.
-    `cls(...)` on a Python subclass of `PSPTool` returns a `PSPTool`.
+    classes (`Blob`, `Rom`, `Fet`, `Directory`, `DirectoryEntry`, `File`,
+    `HeaderFile`, `KeyStore*`, `PubkeyFile`, `MicrocodeFile` and their `Bios*`
+    variants) only come from a parse, and calling one directly raises
+    `TypeError`. A **Python subclass** of a parsed class can be instantiated
+    with any arguments and an `__init__` of its own that assigns plain
+    attributes (PSP-DB's ROM-less `FakeHeaderFile`). Its native base is an
+    empty buffer without a parent (`buffer_size == 0`, `get_bytes() == b''`,
+    `get_address() == 0`) where upstream has no `buffer_size` /
+    `parent_buffer` attributes until assigned; every other attribute is
+    exactly what the subclass sets, and a missing one raises
+    `AttributeError` as upstream. On such an instance the `HeaderFile` decode
+    methods (`get_decrypted_body`, `_decrypted_decompressed_body`,
+    `get_decrypted_decompressed_body`, `get_checksummed_bytes`,
+    `_verify_decode`, `decode_verification` / `decode_verified` /
+    `decode_verification_method`, `plaintext_identity_ok`, `is_signed`) run
+    upstream's call structure through attribute lookup, so the subclass's
+    overrides and attributes feed the ladder (warnings still go to stderr,
+    item 11). Parsed objects keep the core path: replacing a method on a
+    parsed *instance* (`f.get_decrypted_body = ...`) is not seen by its
+    ladder. `cls(...)` on a Python subclass of `PSPTool` returns a `PSPTool`;
+    the certificate-tree and crypto classes cannot be subclassed.
 
 ## Small API differences
 

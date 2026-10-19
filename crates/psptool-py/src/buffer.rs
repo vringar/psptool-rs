@@ -49,6 +49,13 @@ impl NestedBuffer {
         }
     }
 
+    /// An empty view without a parent: the native state of a model object
+    /// built by a Python subclass's own `__init__` instead of a parse (see
+    /// [`detached`]).
+    pub(crate) fn detached() -> Self {
+        Self::root(Image::new(Vec::new()))
+    }
+
     /// A child view of `parent` (`NestedBuffer.__init__`, `utils.py:41-49`).
     /// `checked` applies upstream's two constructor assertions.
     pub(crate) fn child(
@@ -633,6 +640,31 @@ pub(crate) fn signature<'py>(
     } else {
         Bound::new(py, PyClassInitializer::from(base).add_subclass(Signature))
     }
+}
+
+/// The base of `cls.__new__(cls, *args, **kwargs)` for a parsed model class
+/// `T` (`File`, `HeaderFile`, `Directory`, ...).
+///
+/// Upstream's classes are plain Python classes, so downstream test suites
+/// subclass them with an `__init__` of their own that never calls the
+/// parent's and only assigns the attributes it needs (PSP-DB's
+/// `FakeHeaderFile(HeaderFile)`). The native `__new__` therefore accepts and
+/// ignores any arguments and gives a Python subclass a [`NestedBuffer::detached`]
+/// base; attributes the subclass assigns land in the instance `__dict__`.
+/// `T` itself still only comes from a parse: its objects need the image
+/// window and directory record a parse attaches.
+pub(crate) fn detached<T: pyo3::PyTypeInfo>(
+    cls: &Bound<'_, PyType>,
+) -> PyResult<PyClassInitializer<NestedBuffer>> {
+    let native = T::type_object(cls.py());
+    if cls.is(&native) {
+        return Err(PyTypeError::new_err(format!(
+            "{} objects come from parsing an image (PSPTool(...)); only a Python \
+             subclass can be instantiated directly",
+            native.name()?
+        )));
+    }
+    Ok(PyClassInitializer::from(NestedBuffer::detached()))
 }
 
 /// A plain `NestedBuffer` child of `parent`.

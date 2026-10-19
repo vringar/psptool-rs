@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyBytes, PyDict, PyList, PySet, PyType};
+use pyo3::types::{PyBytes, PyDict, PyList, PySet, PyTuple, PyType};
 
 use psptool_core::SourceBytes;
 
@@ -24,11 +24,23 @@ use crate::listing;
 use crate::model::{self, FileKind, Model};
 
 /// `Blob` (`blob.py:29-185`): the root view over the whole input.
-#[pyclass(extends = NestedBuffer, module = "psptool.blob")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.blob")]
 pub struct Blob;
 
 #[pymethods]
 impl Blob {
+    /// A detached instance of a Python subclass ([`buffer::detached`]).
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         Ok(format!("Blob(self.roms={})", slf.getattr("roms")?.repr()?))
     }
@@ -59,11 +71,22 @@ impl Blob {
 }
 
 /// `Rom` (`rom.py:7-56`).
-#[pyclass(extends = NestedBuffer, module = "psptool.rom")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.rom")]
 pub struct Rom;
 
 #[pymethods]
 impl Rom {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         Ok(format!(
             "Rom(self.agesa_version={})",
@@ -73,11 +96,22 @@ impl Rom {
 }
 
 /// `Fet` (`fet.py:26-42`).
-#[pyclass(extends = NestedBuffer, module = "psptool.fet")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.fet")]
 pub struct Fet;
 
 #[pymethods]
 impl Fet {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         Ok(format!(
             "Fet(len(directories)={})",

@@ -9,15 +9,25 @@
 //! built (`tool.rs`); methods read the live buffer. Decoding and decode
 //! verification delegate to `psptool-core` (`HeaderEntry::decode_best_effort`,
 //! `HeaderEntry::get_decrypted_body`, `Entry::decode_verification`).
+//!
+//! Every class can be subclassed from Python and the subclass instantiated
+//! without a parse ([`buffer::detached`]). On such an instance the
+//! `HeaderFile` decode / verification methods run upstream's call structure
+//! through attribute lookup on `self` (`header_file.py:109-292`), so the
+//! subclass's overrides (`get_decrypted_body`, `verify_sha256`, ...) and
+//! assigned attributes are what the ladder sees; parsed objects keep the
+//! core fast path.
 
 use md5::{Digest as _, Md5};
-use pyo3::exceptions::{PyNotImplementedError, PyValueError};
+use pyo3::exceptions::{PyAssertionError, PyException, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyByteArray, PyBytes, PyList, PySet, PyTuple, PyType};
+use pyo3::types::{
+    PyBool, PyByteArray, PyBytes, PyDict, PyInt, PyList, PySet, PySlice, PyTuple, PyType,
+};
 use sha2::{Sha256, Sha384};
 
 use psptool_core::body::DecodeVerification;
-use psptool_core::{Entry, EntryClass, EntryRecord, EntryType, HeaderEntry, SourceBytes};
+use psptool_core::{Entry, EntryClass, EntryRecord, EntryType, HeaderEntry, Ikek, SourceBytes};
 
 use crate::buffer::{self, NestedBuffer, hex_lower, py_hex, to_bytes};
 use crate::directory::BiosDirectoryEntry;
@@ -88,6 +98,18 @@ pub struct File;
 
 #[pymethods]
 impl File {
+    /// A detached instance of a Python subclass ([`buffer::detached`]).
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const ENTRY_ALIGNMENT: i64 = ENTRY_ALIGNMENT;
 
@@ -243,6 +265,19 @@ pub struct BiosFile;
 
 #[pymethods]
 impl BiosFile {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(File)
+            .add_subclass(Self))
+    }
+
     /// APOBs have no address (`file.py:401-407`).
     fn get_address(slf: &Bound<'_, Self>) -> PyResult<i64> {
         if readable_type(slf.as_any())? == "APOB" {
@@ -277,26 +312,79 @@ impl BiosFile {
 }
 
 /// `HeaderFile` (`header_file.py:27-318`). `record` is the directory record
-/// the file was created from; decode verification needs it to rebuild the
-/// core [`Entry`]. The decode and verification results are cached per image
-/// generation and buffer window, so the upstream call pattern
-/// (`decode_verified()`, then `decode_verification_method()`, then
-/// `plaintext_identity_ok()`) verifies once; any write invalidates them.
+/// the file was parsed from (`None` for a detached subclass instance);
+/// decode verification needs it to rebuild the core [`Entry`]. The decode
+/// and verification results are cached per image generation and buffer
+/// window, so the upstream call pattern (`decode_verified()`, then
+/// `decode_verification_method()`, then `plaintext_identity_ok()`) verifies
+/// once; any write invalidates them.
 #[pyclass(extends = File, subclass, module = "psptool.header_file")]
 pub struct HeaderFile {
-    pub(crate) record: EntryRecord,
+    pub(crate) record: Option<EntryRecord>,
     decoded: Option<(CacheKey, Vec<u8>, bool)>,
     verified: Option<(CacheKey, DecodeVerification)>,
 }
 
 impl HeaderFile {
-    pub(crate) fn new(record: EntryRecord) -> Self {
+    pub(crate) fn new(record: Option<EntryRecord>) -> Self {
         Self {
             record,
             decoded: None,
             verified: None,
         }
     }
+}
+
+/// Whether `slf` is a parsed `HeaderFile` / `KeyStoreFile`, whose decode
+/// methods take the core fast path. Any other instance is a Python
+/// subclass's, which may override the methods and attributes upstream's
+/// ladder reads, so those methods dispatch through Python.
+fn is_native(slf: &Bound<'_, PyAny>) -> bool {
+    slf.is_exact_instance_of::<HeaderFile>() || slf.is_exact_instance_of::<KeyStoreFile>()
+}
+
+/// `{'print_warning': print_warning}` for a forwarded call.
+fn warning_kwargs(py: Python<'_>, print_warning: bool) -> PyResult<Bound<'_, PyDict>> {
+    let kwargs = PyDict::new(py);
+    kwargs.set_item("print_warning", print_warning)?;
+    Ok(kwargs)
+}
+
+/// `a, b = value`: Python's two-target unpacking of any iterable.
+fn unpack2<'py>(value: &Bound<'py, PyAny>) -> PyResult<(Bound<'py, PyAny>, Bound<'py, PyAny>)> {
+    let mut items = value.try_iter()?;
+    let mut next = || items.next().transpose();
+    match (next()?, next()?) {
+        (Some(a), Some(b)) if next()?.is_none() => Ok((a, b)),
+        (Some(_), Some(_)) => Err(PyValueError::new_err(
+            "too many values to unpack (expected 2)",
+        )),
+        (first, _) => Err(PyValueError::new_err(format!(
+            "not enough values to unpack (expected 2, got {})",
+            usize::from(first.is_some())
+        ))),
+    }
+}
+
+/// `except Exception:` — `Ok` when `err` would be caught, `err` itself
+/// otherwise (`BaseException`s such as `KeyboardInterrupt` propagate).
+fn caught(py: Python<'_>, err: PyErr) -> PyResult<()> {
+    if err.is_instance_of::<PyException>(py) {
+        Ok(())
+    } else {
+        Err(err)
+    }
+}
+
+/// `bytes(value)` of exactly 16 bytes (an AES-128 key, IKEK or IV).
+fn block16(value: &Bound<'_, PyAny>, what: &str) -> PyResult<[u8; 16]> {
+    let bytes = to_bytes(value)?;
+    <[u8; 16]>::try_from(bytes.as_slice()).map_err(|_| {
+        PyValueError::new_err(format!(
+            "Invalid {what} size ({}) for AES-128",
+            bytes.len() * 8
+        ))
+    })
 }
 
 /// What a cached decode depends on: the image generation and the window.
@@ -358,7 +446,12 @@ impl HeaderFile {
 
     fn verify_uncached(slf: &Bound<'_, PyAny>) -> PyResult<DecodeVerification> {
         let py = slf.py();
-        let record = slf.downcast::<HeaderFile>()?.borrow().record.clone();
+        let record = slf
+            .downcast::<HeaderFile>()?
+            .borrow()
+            .record
+            .clone()
+            .ok_or_else(|| PyValueError::new_err("HeaderFile has no directory record"))?;
         let (image, start, len) = {
             let nb = view(slf)?;
             (std::sync::Arc::clone(&nb.image), nb.absolute(py)?, nb.size)
@@ -398,16 +491,145 @@ impl HeaderFile {
         };
         Ok(stored == digest)
     }
+
+    /// `print_warning(f"... {self.get_readable_type()}")` through Python.
+    fn warn_with_type(slf: &Bound<'_, PyAny>, prefix: &str) -> PyResult<()> {
+        let kind = slf.call_method0("get_readable_type")?;
+        warn(slf.py(), &format!("{prefix} {}", kind.str()?))
+    }
+
+    /// `_decrypted_decompressed_body` (`header_file.py:172-186`) for a
+    /// subclass instance: its `get_decrypted_body()`, `compressed` and
+    /// `zlib_size`. Everything inside upstream's `try` (the `zlib_size`
+    /// lookup, the slice, the inflate) failing is a failed decompression.
+    fn decrypted_decompressed_py<'py>(
+        slf: &Bound<'py, PyAny>,
+        print_warning: bool,
+    ) -> PyResult<(Bound<'py, PyAny>, bool)> {
+        let py = slf.py();
+        let output = slf.call_method0("get_decrypted_body")?;
+        if !slf.getattr("compressed")?.is_truthy()? {
+            return Ok((output, true));
+        }
+        let inflate = || -> PyResult<Option<Vec<u8>>> {
+            let zlib_size = slf.getattr("zlib_size")?;
+            let head = py.get_type::<PySlice>().call1((py.None(), zlib_size))?;
+            let stream = to_bytes(&output.get_item(head)?)?;
+            Ok(psptool_core::body::zlib_decompress(&stream))
+        };
+        match inflate() {
+            Ok(Some(body)) => return Ok((PyBytes::new(py, &body).into_any(), true)),
+            Ok(None) => {}
+            Err(e) => caught(py, e)?,
+        }
+        if print_warning {
+            Self::warn_with_type(slf, "ZLIB decompression failed on file")?;
+        }
+        Ok((output, false))
+    }
+
+    /// `_verify_decode` (`header_file.py:198-243`) for a subclass instance:
+    /// the upstream ladder over `self`'s (possibly overridden) methods and
+    /// attributes, in upstream's order and with its short-circuits.
+    fn verify_decode_py(
+        slf: &Bound<'_, PyAny>,
+        print_warning: bool,
+    ) -> PyResult<(bool, &'static str)> {
+        let py = slf.py();
+        let kwargs = warning_kwargs(py, print_warning)?;
+        let (body, decompress_ok) =
+            unpack2(&slf.call_method("_decrypted_decompressed_body", (), Some(&kwargs))?)?;
+        if !decompress_ok.is_truthy()? {
+            return Ok((false, "decompress-failed"));
+        }
+        let verify = |method: &str| -> PyResult<bool> {
+            slf.call_method(method, (), Some(&kwargs))?.is_truthy()
+        };
+        if !slf.getattr("signed_entity")?.is_none() {
+            let verified = match slf
+                .getattr("signed_entity")
+                .and_then(|entity| entity.call_method0("is_verified"))
+            {
+                Ok(verified) => verified,
+                Err(e) if e.is_instance_of::<errors::NoCertifyingKey>(py) => {
+                    return Ok((false, "signature-unresolved"));
+                }
+                Err(e) => {
+                    caught(py, e)?;
+                    if print_warning {
+                        Self::warn_with_type(slf, "Unexpected error verifying signature of")?;
+                    }
+                    return Ok((false, "signature-error"));
+                }
+            };
+            if !verified.is_truthy()? {
+                return Ok((false, "signature-failed"));
+            }
+            if slf.getattr("size_signed")?.ge(body.len()?)? {
+                return Ok((true, "signature"));
+            }
+            if slf.getattr("has_sha256_checksum")?.is_truthy()? && verify("verify_sha256")? {
+                return Ok((true, "signature+sha256"));
+            }
+            if slf.getattr("has_sha384_checksum")?.is_truthy()? && verify("verify_sha384")? {
+                return Ok((true, "signature+sha384"));
+            }
+            return Ok((false, "signature-partial"));
+        }
+        if slf.getattr("has_sha256_checksum")?.is_truthy()? {
+            return Ok(if verify("verify_sha256")? {
+                (true, "sha256")
+            } else {
+                (false, "sha256-failed")
+            });
+        }
+        if slf.getattr("has_sha384_checksum")?.is_truthy()? {
+            return Ok(if verify("verify_sha384")? {
+                (true, "sha384")
+            } else {
+                (false, "sha384-failed")
+            });
+        }
+        if !slf.getattr("encrypted")?.is_truthy()?
+            && !slf.getattr("compressed")?.is_truthy()?
+            && !slf.getattr("is_signed")?.is_truthy()?
+        {
+            return Ok((true, "plain"));
+        }
+        Ok((false, "unverifiable"))
+    }
+
+    /// `(decode_verified, basis)` of a parsed file, from the core ladder.
+    fn verdict(slf: &Bound<'_, PyAny>) -> PyResult<(bool, &'static str)> {
+        let v = Self::verification(slf)?;
+        Ok((v.decode_verified(), v.decode_verification_method().as_str()))
+    }
 }
 
 #[pymethods]
 impl HeaderFile {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(File)
+            .add_subclass(Self::new(None)))
+    }
+
     #[classattr]
     const HEADER_LEN: u64 = HEADER_LEN;
 
     /// `get_checksummed_bytes` (`header_file.py:109-110`).
-    fn get_checksummed_bytes<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyBytes>> {
-        Ok(PyBytes::new(slf.py(), &Self::decode(slf.as_any())?.0))
+    fn get_checksummed_bytes<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
+        if is_native(slf.as_any()) {
+            return Ok(PyBytes::new(slf.py(), &Self::decode(slf.as_any())?.0).into_any());
+        }
+        slf.call_method0("get_decrypted_decompressed_body")
     }
 
     #[pyo3(signature = (print_warning = true))]
@@ -422,12 +644,14 @@ impl HeaderFile {
         Ok(ok)
     }
 
-    /// `update_sha256` (`header_file.py:119-121`).
+    /// `update_sha256` (`header_file.py:119-121`):
+    /// `self._sha256_checksum[:] = sha256(...).digest()`.
     fn update_sha256(slf: &Bound<'_, Self>) -> PyResult<()> {
+        let py = slf.py();
         let data = to_bytes(&slf.call_method0("get_checksummed_bytes")?)?;
-        let digest = Sha256::digest(&data);
-        let field = slf.getattr("_sha256_checksum")?;
-        view(&field)?.write(slf.py(), None, None, None, &digest)?;
+        let digest = PyBytes::new(py, &Sha256::digest(&data));
+        slf.getattr("_sha256_checksum")?
+            .set_item(PySlice::full(py), digest)?;
         slf.call_method0("verify_sha256")?;
         Ok(())
     }
@@ -444,16 +668,24 @@ impl HeaderFile {
         Ok(ok)
     }
 
-    /// `is_signed` (`header_file.py:130-135`), read live from header `0x30`.
+    /// `is_signed` (`header_file.py:130-135`):
+    /// `int.from_bytes(self._signed.get_bytes(), 'little')`, a live view of
+    /// header `0x30` on a parsed file.
     #[getter]
     fn is_signed(slf: &Bound<'_, Self>) -> PyResult<bool> {
-        let signed = u32::from_le_bytes(word(&view(slf.as_any())?.read(slf.py(), 0x30, 4)?));
-        if !matches!(signed, 0 | 1 | 0xFFFF_0000) {
+        let py = slf.py();
+        let raw = slf.getattr("_signed")?.call_method0("get_bytes")?;
+        let signed = py
+            .get_type::<PyInt>()
+            .call_method1("from_bytes", (raw, "little"))?;
+        let value = signed.extract::<u64>().ok();
+        if !matches!(value, Some(0 | 1 | 0xFFFF_0000)) {
             return Err(errors::ParseError::new_err(format!(
-                "Did not expect signed to be 0x{signed:x}"
+                "Did not expect signed to be 0x{}",
+                signed.call_method1("__format__", ("x",))?
             )));
         }
-        Ok(signed != 0)
+        Ok(value != Some(0))
     }
 
     /// `'.'.join(hex(b)[2:].upper() ...)` over `version` (`header_file.py:137-138`).
@@ -484,10 +716,10 @@ impl HeaderFile {
     /// (`header_file.py:168-170`).
     fn get_signed_bytes<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyBytes>> {
         let mut out = attr_bytes(slf.as_any(), "header")?;
-        let header_len = out.len();
         out.extend_from_slice(&to_bytes(
             &slf.call_method0("get_decrypted_decompressed_body")?,
         )?);
+        let header_len = slf.getattr("header")?.len()?;
         let size_signed: usize = slf.getattr("size_signed")?.extract()?;
         out.truncate(header_len + size_signed);
         Ok(PyBytes::new(slf.py(), &out))
@@ -497,7 +729,10 @@ impl HeaderFile {
     fn _decrypted_decompressed_body<'py>(
         slf: &Bound<'py, Self>,
         print_warning: bool,
-    ) -> PyResult<(Bound<'py, PyBytes>, bool)> {
+    ) -> PyResult<(Bound<'py, PyAny>, bool)> {
+        if !is_native(slf.as_any()) {
+            return Self::decrypted_decompressed_py(slf.as_any(), print_warning);
+        }
         let (body, ok) = Self::decode(slf.as_any())?;
         if !ok && print_warning {
             let kind = readable_type(slf.as_any())?;
@@ -506,39 +741,98 @@ impl HeaderFile {
                 &format!("ZLIB decompression failed on file {kind}"),
             )?;
         }
-        Ok((PyBytes::new(slf.py(), &body), ok))
+        Ok((PyBytes::new(slf.py(), &body).into_any(), ok))
     }
 
     /// `get_decrypted_decompressed_body` (`header_file.py:188-189`).
-    fn get_decrypted_decompressed_body<'py>(
-        slf: &Bound<'py, Self>,
-    ) -> PyResult<Bound<'py, PyBytes>> {
+    fn get_decrypted_decompressed_body<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
+        if !is_native(slf.as_any()) {
+            return slf
+                .call_method0("_decrypted_decompressed_body")?
+                .get_item(0);
+        }
         Ok(Self::_decrypted_decompressed_body(slf, true)?.0)
+    }
+
+    /// `_verify_decode` (`header_file.py:198-243`). Parsed files run the core
+    /// ladder (`print_warning` has nothing left to report there: its
+    /// warnings are the subclass path's).
+    #[pyo3(signature = (print_warning = false))]
+    fn _verify_decode(
+        slf: &Bound<'_, Self>,
+        print_warning: bool,
+    ) -> PyResult<(bool, &'static str)> {
+        if is_native(slf.as_any()) {
+            return Self::verdict(slf.as_any());
+        }
+        Self::verify_decode_py(slf.as_any(), print_warning)
     }
 
     /// `(decode_verified, basis)` (`header_file.py:191-196`).
     #[pyo3(signature = (print_warning = false))]
-    fn decode_verification(
-        slf: &Bound<'_, Self>,
+    fn decode_verification<'py>(
+        slf: &Bound<'py, Self>,
         print_warning: bool,
-    ) -> PyResult<(bool, &'static str)> {
-        let _ = print_warning;
-        let v = Self::verification(slf.as_any())?;
-        Ok((v.decode_verified(), v.decode_verification_method().as_str()))
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        if is_native(slf.as_any()) {
+            return Ok(Self::verdict(slf.as_any())?.into_pyobject(py)?.into_any());
+        }
+        slf.call_method(
+            "_verify_decode",
+            (),
+            Some(&warning_kwargs(py, print_warning)?),
+        )
     }
 
+    /// `decode_verified` (`header_file.py:245-257`).
     #[pyo3(signature = (print_warning = false))]
-    fn decode_verified(slf: &Bound<'_, Self>, print_warning: bool) -> PyResult<bool> {
-        Ok(Self::decode_verification(slf, print_warning)?.0)
+    fn decode_verified<'py>(
+        slf: &Bound<'py, Self>,
+        print_warning: bool,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        if is_native(slf.as_any()) {
+            let verified = Self::verdict(slf.as_any())?.0;
+            return Ok(PyBool::new(py, verified).to_owned().into_any());
+        }
+        slf.call_method(
+            "_verify_decode",
+            (),
+            Some(&warning_kwargs(py, print_warning)?),
+        )?
+        .get_item(0)
     }
 
-    fn decode_verification_method(slf: &Bound<'_, Self>) -> PyResult<&'static str> {
-        Ok(Self::decode_verification(slf, false)?.1)
+    /// `decode_verification_method` (`header_file.py:259-265`).
+    fn decode_verification_method<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
+        if is_native(slf.as_any()) {
+            let method = Self::verdict(slf.as_any())?.1;
+            return Ok(method.into_pyobject(slf.py())?.into_any());
+        }
+        slf.call_method0("_verify_decode")?.get_item(1)
     }
 
-    /// `plaintext_identity_ok` (`header_file.py:267-276`).
-    fn plaintext_identity_ok(slf: &Bound<'_, Self>) -> PyResult<bool> {
-        Ok(Self::verification(slf.as_any())?.plaintext_identity_ok())
+    /// `plaintext_identity_ok` (`header_file.py:267-276`):
+    /// `(not self.encrypted or verified) and method != 'decompress-failed'`
+    /// over `self.decode_verification()`.
+    fn plaintext_identity_ok<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        if is_native(slf.as_any()) {
+            let ok = Self::verification(slf.as_any())?.plaintext_identity_ok();
+            return Ok(PyBool::new(py, ok).to_owned().into_any());
+        }
+        let (verified, method) = unpack2(&slf.call_method0("decode_verification")?)?;
+        let trusted = if slf.getattr("encrypted")?.is_truthy()? {
+            verified
+        } else {
+            PyBool::new(py, true).to_owned().into_any()
+        };
+        if !trusted.is_truthy()? {
+            return Ok(trusted);
+        }
+        let ok = method.ne("decompress-failed")?;
+        Ok(PyBool::new(py, ok).to_owned().into_any())
     }
 
     /// `to_decrypted_file_bytes` (`header_file.py:278-284`).
@@ -556,17 +850,33 @@ impl HeaderFile {
         Ok(PyBytes::new(slf.py(), &out))
     }
 
-    /// `get_decrypted_body` (`header_file.py:286-292`).
-    fn get_decrypted_body<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyBytes>> {
+    /// `get_decrypted_body` (`header_file.py:286-292`). A parsed file
+    /// decrypts its live window; a subclass instance decrypts
+    /// `self.body.get_bytes()` with `self.key`, `self.get_unwrapped_ikek()`
+    /// and `self.iv` (`utils.decrypt`, `utils.py:277-283`).
+    fn get_decrypted_body<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
         let py = slf.py();
         if !slf.getattr("encrypted")?.is_truthy()? {
-            return Ok(PyBytes::new(py, &attr_bytes(slf.as_any(), "body")?));
+            return slf.getattr("body")?.call_method0("get_bytes");
         }
-        let (window, header) = Self::window(slf.as_any())?;
-        let plain = header
-            .get_decrypted_body(&window, IKEK)
-            .map_err(body_error)?;
-        Ok(PyBytes::new(py, &plain))
+        let plain = if is_native(slf.as_any()) {
+            let (window, header) = Self::window(slf.as_any())?;
+            header.get_decrypted_body(&window, IKEK)
+        } else {
+            let ikek = slf.call_method0("get_unwrapped_ikek")?;
+            if ikek.is_none() {
+                return Err(PyAssertionError::new_err(()));
+            }
+            let data = slf.getattr("body")?.call_method0("get_bytes")?;
+            let (key, iv) = (slf.getattr("key")?, slf.getattr("iv")?);
+            psptool_core::body::decrypt(
+                &to_bytes(&data)?,
+                &block16(&key, "key")?,
+                Ikek::Custom(block16(&ikek, "IKEK")?),
+                &block16(&iv, "IV")?,
+            )
+        };
+        Ok(PyBytes::new(py, &plain.map_err(body_error)?).into_any())
     }
 
     fn get_unwrapped_ikek<'py>(slf: &Bound<'py, Self>) -> Bound<'py, PyBytes> {
@@ -575,7 +885,8 @@ impl HeaderFile {
 
     /// `shannon(self.body[:])` (`header_file.py:309-310`).
     fn shannon_entropy(slf: &Bound<'_, Self>) -> PyResult<f64> {
-        Ok(shannon(&attr_bytes(slf.as_any(), "body")?))
+        let body = slf.getattr("body")?.get_item(PySlice::full(slf.py()))?;
+        Ok(shannon(&to_bytes(&body)?))
     }
 
     /// `md5(self.body.get_bytes())`; a read failure hashes nothing, as the
@@ -614,11 +925,25 @@ fn word(b: &[u8]) -> [u8; 4] {
 }
 
 /// `KeyStoreFile` (`key_store_file.py:23-64`).
-#[pyclass(extends = HeaderFile, module = "psptool.key_store_file")]
+#[pyclass(extends = HeaderFile, subclass, module = "psptool.key_store_file")]
 pub struct KeyStoreFile;
 
 #[pymethods]
 impl KeyStoreFile {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(File)
+            .add_subclass(HeaderFile::new(None))
+            .add_subclass(Self))
+    }
+
     fn get_checksummed_bytes(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
         Ok(slf
             .getattr("key_store")?
@@ -662,7 +987,7 @@ impl KeyStoreFile {
 }
 
 /// `KeyStoreFileHeader` (`key_store_file.py:67-137`).
-#[pyclass(extends = NestedBuffer, module = "psptool.key_store_file")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.key_store_file")]
 pub struct KeyStoreFileHeader;
 
 impl KeyStoreFileHeader {
@@ -677,6 +1002,17 @@ impl KeyStoreFileHeader {
 
 #[pymethods]
 impl KeyStoreFileHeader {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const HEADER_SIZE: i64 = 0x100;
 
@@ -734,11 +1070,22 @@ impl KeyStoreFileHeader {
 }
 
 /// `KeyStore` (`key_store_file.py:140-182`).
-#[pyclass(extends = NestedBuffer, module = "psptool.key_store_file")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.key_store_file")]
 pub struct KeyStore;
 
 #[pymethods]
 impl KeyStore {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const HEADER_SIZE: i64 = KDB_HEADER_LEN;
 
@@ -758,7 +1105,7 @@ impl KeyStore {
 }
 
 /// `KeyStoreKey` (`key_store_file.py:185-253`).
-#[pyclass(extends = NestedBuffer, module = "psptool.key_store_file")]
+#[pyclass(extends = NestedBuffer, subclass, module = "psptool.key_store_file")]
 pub struct KeyStoreKey;
 
 impl KeyStoreKey {
@@ -774,6 +1121,17 @@ impl KeyStoreKey {
 
 #[pymethods]
 impl KeyStoreKey {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?.add_subclass(Self))
+    }
+
     #[classattr]
     const HEADER_SIZE: i64 = KDB_HEADER_LEN;
 
@@ -830,6 +1188,19 @@ impl PubkeyFile {
 
 #[pymethods]
 impl PubkeyFile {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(File)
+            .add_subclass(Self))
+    }
+
     #[classattr]
     const HEADER_LEN: u64 = PUBKEY_HEADER_LEN;
 
@@ -993,11 +1364,25 @@ impl PubkeyFile {
 }
 
 /// `MicrocodeFile` (`microcode_file.py:24-60`).
-#[pyclass(extends = BiosFile, module = "psptool.microcode_file")]
+#[pyclass(extends = BiosFile, subclass, module = "psptool.microcode_file")]
 pub struct MicrocodeFile;
 
 #[pymethods]
 impl MicrocodeFile {
+    #[new]
+    #[classmethod]
+    #[pyo3(signature = (*_args, **_kwargs))]
+    fn py_new(
+        cls: &Bound<'_, PyType>,
+        _args: &Bound<'_, PyTuple>,
+        _kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<PyClassInitializer<Self>> {
+        Ok(buffer::detached::<Self>(cls)?
+            .add_subclass(File)
+            .add_subclass(BiosFile)
+            .add_subclass(Self))
+    }
+
     fn get_readable_version(slf: &Bound<'_, Self>) -> PyResult<PyObject> {
         let header = slf.getattr("header")?;
         if !header.is_none() {
@@ -1102,7 +1487,7 @@ pub(crate) fn header_file<'py>(
     let py = a.rom.py();
     let init = PyClassInitializer::from(base(a)?)
         .add_subclass(File)
-        .add_subclass(HeaderFile::new(a.record.clone()));
+        .add_subclass(HeaderFile::new(Some(a.record.clone())));
     let obj = if key_store {
         Bound::new(py, init.add_subclass(KeyStoreFile))?.into_any()
     } else {

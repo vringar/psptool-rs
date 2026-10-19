@@ -79,10 +79,6 @@ pub fn python(
 }
 
 /// Stdout of a successful run, or the failure with its stderr.
-#[allow(
-    dead_code,
-    reason = "used by corpus_parity, not by every test binary sharing this module"
-)]
 pub fn stdout_of(output: Output, what: &str) -> Result<String, String> {
     if !output.status.success() {
         return Err(format!(
