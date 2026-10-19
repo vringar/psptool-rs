@@ -1,6 +1,6 @@
 {
   "next_display_id": 100,
-  "next_comment_id": 139,
+  "next_comment_id": 140,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2663,11 +2663,20 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-18T22:42:56.444970501Z",
-      "updated_at": "2026-10-19T10:13:28.761553086Z",
+      "updated_at": "2026-10-19T10:41:06.219577792Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "2fda7049-c2be-4c0a-9554-05136af58855": {
+          "display_id": 139,
+          "author": "tLiK",
+          "content": "Result: d2672893. Extract -u now shares the ladder's decode: get_decompressed_body = zlib_decompress(output[:zlib_size]) (zlib_find_header priority + strict inflate + magic-free passthrough), get_decrypted_decompressed_body/decode_best_effort share one _decrypted_decompressed_body decode (still-compressed fallback), get_signed_bytes slices like Python; CLI -u warns like header_file.py:184. Live reference differential (crates/psptool-cli/tests/extract_oracle.rs): 7/7 synthetic edge cases byte-identical (6 differed before), 3225 compressed corpus HeaderFiles identical (79 'no zlib magic' errors before). Removed BodyError::{ZlibMagicMissing,ZlibSizeOutOfRange,SignedRegionOutOfRange}. Spillover #99 (rom_size-grown HeaderFile window on extract, 13 corpus entries, ignored pin).",
+          "created_at": "2026-10-19T10:41:06.182148349Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAn0yB0cYfsSuEqb+/z+aDrG9htQzr7bCT3bLcjXCJzcdwEpyh1QfM5h4wJAw+iYn6dhzTLZ167jKcfplrIP75DQ=="
+        },
         "642e679f-ba40-4687-bd65-9533fe8a94ca": {
           "display_id": 138,
           "author": "tLiK",
@@ -4546,11 +4555,16 @@
       "agent_id": "tLiK",
       "agent_seq": 299,
       "timestamp": "2026-10-19T10:25:52.077119235Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 300,
+      "timestamp": "2026-10-19T10:41:06.219577792Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T10:25:52.077119235Z",
+    "timestamp": "2026-10-19T10:41:06.219577792Z",
     "agent_id": "tLiK",
-    "agent_seq": 299
+    "agent_seq": 300
   }
 }
