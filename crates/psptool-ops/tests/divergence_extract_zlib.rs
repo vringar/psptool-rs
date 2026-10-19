@@ -69,8 +69,8 @@ fn compressed_header_file(region: &[u8], zlib_size: u32, size_signed: u32) -> Ve
 }
 
 /// Parse `body` as the single `PSP_FW_BOOT_LOADER` (HeaderFile-class) entry of
-/// a `$PSP` directory addressed via mode `10`.
-fn header_entry(body: &[u8]) -> Entry {
+/// a `$PSP` directory addressed via mode `10`: the image and the entry.
+fn header_entry(body: &[u8]) -> (SourceBytes, Entry) {
     let body_off = (DIRECTORY_HEADER_SIZE + PSP_ENTRY_SIZE) as u32;
     let mut record = [0u8; PSP_ENTRY_SIZE];
     record[0x00] = 0x01;
@@ -91,7 +91,7 @@ fn header_entry(body: &[u8]) -> Entry {
     let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO)
         .expect("synthetic entry parses");
     assert!(matches!(entry.class, EntryClass::Header(_)));
-    entry
+    (blob, entry)
 }
 
 /// `get_signed_bytes()` (`header_file.py:168-170`): `(header + ddb)[:0x100 +
@@ -117,7 +117,8 @@ fn magic_search_tries_each_magic_in_priority_order() {
     // `uncompressed + decompressed` (`utils.py:248-252`).
     let mut ddb = region[..0x40].to_vec();
     ddb.extend_from_slice(FIXTURE_PLAINTEXT);
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(got, Some(signed_bytes(&file, &ddb, size_signed)));
 }
 
@@ -131,7 +132,8 @@ fn truncated_stream_falls_back_to_the_still_compressed_body() {
     let size_signed = FIXTURE_PLAINTEXT.len();
     let file = compressed_header_file(&region, region.len() as u32 - 2, size_signed as u32);
 
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(got, Some(signed_bytes(&file, &region, size_signed)));
 }
 
@@ -144,7 +146,8 @@ fn fallback_body_shorter_than_size_signed_is_sliced_not_rejected() {
     let size_signed = 0x1000;
     let file = compressed_header_file(&region, region.len() as u32 - 2, size_signed as u32);
 
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(got, Some(signed_bytes(&file, &region, size_signed)));
 }
 
@@ -156,7 +159,8 @@ fn corrupt_stream_falls_back_to_the_still_compressed_body() {
     let size_signed = 0x10;
     let file = compressed_header_file(&region, region.len() as u32, size_signed as u32);
 
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(got, Some(signed_bytes(&file, &region, size_signed)));
 }
 
@@ -169,7 +173,8 @@ fn missing_magic_returns_the_zlib_size_prefix_unchanged() {
     let size_signed = 0x30;
     let file = compressed_header_file(&region, zlib_size as u32, size_signed as u32);
 
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(
         got,
         Some(signed_bytes(&file, &region[..zlib_size], size_signed))
@@ -185,7 +190,8 @@ fn zlib_size_past_the_data_region_reads_to_its_end() {
     let size_signed = FIXTURE_PLAINTEXT.len();
     let file = compressed_header_file(&region, 0x1000, size_signed as u32);
 
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(
         got,
         Some(signed_bytes(&file, FIXTURE_PLAINTEXT, size_signed))
@@ -203,6 +209,7 @@ fn prefixed_stream_control() {
 
     let mut ddb = region[..0x30].to_vec();
     ddb.extend_from_slice(FIXTURE_PLAINTEXT);
-    let got = extract_decompressed(&header_entry(&file)).ok();
+    let (blob, entry) = header_entry(&file);
+    let got = extract_decompressed(&entry, &blob).ok();
     assert_eq!(got, Some(signed_bytes(&file, &ddb, size_signed)));
 }

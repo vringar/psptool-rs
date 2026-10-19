@@ -50,7 +50,10 @@ byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
   - signature_len, len(header))`), `header_file.py:82`
   (`signature = NestedBuffer(self, signature_len, self.rom_size -
   signature_len)`), `header_file.py:66-69` (rom_size fallback/extend), and
-  `header_file.py:77-84` (signature_len 0x100/0x200).
+  `header_file.py:77-84` (signature_len 0x100/0x200). The slices are cut
+  from the HeaderFile buffer re-sized to `rom_size`: a `rom_size` past the
+  directory-declared size reads on into the image, as upstream's grown
+  `NestedBuffer` reads on into its parent (`header_file.py:74-75`).
 - REQ-2: **AES-128 data-region decryption with IKEK-wrapped key.** When
   `is_encrypted`, unwrap the per-entry key with AES-128-ECB under the IKEK, then
   AES-128-CBC-decrypt the data region with the header IV. The default IKEK is
@@ -155,7 +158,7 @@ byte-reversed (#78, now used plain). `verify_chain_of_trust` now verifies
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (rom_size-bounded slicing) | SHIPPED | Impl `body.rs:190` (`pub fn data_region`) + `body.rs:212` (`pub fn signature_bytes`) via `body.rs:170` (`effective_end`: `rom_size == 0 → body.len()`), sig length from `entry.rs:242` (`signature_len` → `0x100`/`0x200`). Mirrors `header_file.py:100` (`body = NestedBuffer(self, len(self) - len(self.header) - self.signature_len, len(self.header))`), `header_file.py:82` (`signature = NestedBuffer(self, self.signature_len, self.rom_size - self.signature_len)`), `header_file.py:66-69`. Non-test consumer: `psptool-ops/src/extract.rs:59` (`header.data_region(entry.body.as_bytes())`) and `psptool-ops/src/sign.rs:147` (`header.signature_bytes(body_bytes)`). Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `data_region_and_signature_bytes_honor_rom_size_truncation`. |
+| REQ-1 (rom_size-bounded slicing) | SHIPPED | Impl `body.rs:190` (`pub fn data_region`) + `body.rs:212` (`pub fn signature_bytes`) via `body.rs:170` (`effective_end`: `rom_size == 0 → body.len()`), sig length from `entry.rs:242` (`signature_len` → `0x100`/`0x200`). Mirrors `header_file.py:100` (`body = NestedBuffer(self, len(self) - len(self.header) - self.signature_len, len(self.header))`), `header_file.py:82` (`signature = NestedBuffer(self, self.signature_len, self.rom_size - self.signature_len)`), `header_file.py:66-69`. The grow (`header_file.py:72-75`) is `body.rs:859` (`pub fn Entry::header_file_window(blob)`: `rom_size` past the directory size → `blob.subslice_at(start..start + rom_size)`), the buffer every accessor is handed. Non-test consumers: `psptool-ops/src/extract.rs:86`/`:129` (`extract_decompressed` / `extract_decrypted` over `entry.header_file_window(blob)`, #99) → CLI `cmds/extract.rs`; `body.rs:832` (`decode_verification`) and `body.rs:756` (`CertifyingKeys::add_entry`); `psptool-ops/src/sign.rs:147` (`header.signature_bytes(body_bytes)`). Verification: `cargo test -p psptool-core --lib` (150 passed) incl. `data_region_and_signature_bytes_honor_rom_size_truncation`, `header_file_window_grows_to_rom_size_into_the_image`; live `psptool-cli --test extract_oracle` `corpus_grown_headerfile_window_matches_reference` (13 grown corpus HeaderFiles byte-identical to the reference's `get_signed_bytes()`). |
 | REQ-2 (AES-128 decryption) | SHIPPED | Impl `body.rs:236` (`pub fn get_decrypted_body`): ECB-unwrap the key under the IKEK (`body.rs:248-250`) then CBC-decrypt (`body.rs:255-258`); IKEK bytes at `body.rs:67`. Mirrors `utils.py:281` (`unwrapped_entry_key = decrypt_ecb(entry_key, unwrapped_ikek)`) + `utils.py:283` (`decrypt_cbd(data, iv, unwrapped_entry_key)`), `header_file.py:184-190`; constants `file.py:60`/`file.py:63` with the Zen+-default limitation faithfully mirrored from `header_file.py:203` (`return self.UNWRAPPED_IKEK_ZEN_PLUS`). Non-test consumer: `psptool-ops/src/extract.rs:79` (`header.get_decrypted_body(entry.body.as_bytes(), ikek)`) → CLI `psptool extract -d`. Verification: `cargo test -p psptool-core --lib` (146 passed) incl. `get_decrypted_body_round_trips_synthetic_fixture`, `..._rejects_non_block_aligned_ciphertext`. |
 | REQ-3 (zlib decompression) | SHIPPED | Impl `body.rs:303` (`pub fn get_decompressed_body`) = `zlib_decompress(output[:zlib_size])` via `body.rs:1100` (`pub fn zlib_decompress`: magic from `entry.rs:613` `zlib_find_header`, per-magic priority over `body.rs` `ZLIB_MAGICS`; strict inflate `body.rs:1118` `zlib_decompress_strict`, `None` on a corrupt or truncated stream; no magic → `s.to_vec()`). Mirrors `utils.py:224-232` (`for zlib_magic in ZLIB_TYPES.keys(): ... s.find(zlib_magic)`), `utils.py:248-254` (`uncompressed + decompressed` / `return s`), invoked at `header_file.py:181` (`zlib_decompress(output[:self.zlib_size])`); `flate2` per R-DEV-7. Non-test consumer: `body.rs:317` (`decode`) → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` → CLI `psptool -X -u`; and the decode-verification ladder (`decode_best_effort` → `ls`). Verification: `cargo test -p psptool-core --lib` (149 passed) incl. `zlib_find_header_*`, `get_decompressed_body_*`, `truncated_stream_fails_to_inflate_and_decodes_to_the_compressed_region`; `psptool-ops --test divergence_extract_zlib` (7 passed); `psptool-cli --test extract_oracle` (live reference: 7 synthetic edge cases + 3225 corpus compressed HeaderFiles byte-identical; #91). |
 | REQ-4 (combined decrypt+decompress) | SHIPPED | Impl `body.rs:340` (`pub fn get_decrypted_decompressed_body`) over `body.rs:317` (`decode`): decrypt iff `is_encrypted`, inflate iff `is_compressed` (a failed inflate keeps the still-compressed decrypted region), else data region verbatim — mirrors `header_file.py:172-189` (`return output, False` / `_decrypted_decompressed_body()[0]`). `decode_best_effort` (`body.rs:357`) is the same decode with the `decompress_ok` flag. Non-test consumer: `body.rs:375` (`get_signed_bytes` calls it in production). Corpus-anchored: `divergence_signature_byte_order.rs:101` (`upstream_signed`) feeds its output to RSA-PSS and the control asserts the result verifies real signatures (`correct_plain_ok == true`), proving the composition is byte-correct on real firmware. Verification: `cargo test -p psptool-core --lib` (149 passed); `cargo test -p psptool-ops --test divergence_signature_byte_order` (control passes). |
@@ -174,13 +177,16 @@ bytes, so the diff-and-patch roundtrip (R-CODE-4) is untouched. This is a
 deliberate divergence from upstream's in-place `NestedBuffer` mutation
 (`utils.py:62-68`) per R-DEV-4.
 
-**`rom_size` truncation seam.** `effective_end` (`body.rs:170`) reproduces
-`header_file.py:66-69`/`header_file.py:98`: a non-zero `rom_size` bounds the
-logical entry; `rom_size == 0` falls back to the caller's body length. Because a
-borrowed slice cannot be zero-extended, `rom_size > body.len()` returns
-`BodyTooSmall` rather than the upstream buffer-grow (`header_file.py:69`) — the
-only observable difference is an error instead of trailing zeros, which the
-corpus roundtrip never exercises.
+**`rom_size` seam.** `effective_end` (`body.rs:202`) reproduces
+`header_file.py:72-73`/`:104-105`: a non-zero `rom_size` bounds the logical
+entry; `rom_size == 0` falls back to the caller's buffer length. The grow
+(`header_file.py:74-75`) is not zero-extension: upstream sets `buffer_size =
+rom_size` and the `NestedBuffer` reads on into its parent, i.e. the image bytes
+past the directory entry. `Entry::header_file_window(blob)` (`body.rs:859`)
+cuts that window from the image, and every consumer (extract, decode
+verification, the key-store keys) hands it to the accessors. A buffer shorter
+than `rom_size` — an image that ends inside it — still returns
+`BodyTooSmall`.
 
 **Signature length taxonomy.** `signature_type` conflates three facts, matching
 upstream `crypto.py:189-196`: `0` → RSA-2048 → SHA-256 → `0x100`-byte signature;
@@ -245,13 +251,15 @@ corpus suite is a red gate, not a pass).
   `pubkey_entry_modulus_and_pubexp_extracted_from_micro_fixture`,
   `verify_signature_round_trip_rsa2048`).
 - `cargo test -p psptool-ops --test divergence_extract_zlib` (7 passed) and
-  `cargo test -p psptool-cli --test extract_oracle` (2 passed, 1 ignored = #99):
+  `cargo test -p psptool-cli --test extract_oracle` (4 passed, 0 ignored):
   the REQ-3/REQ-4/REQ-5 zlib edge cases on the `-X -u` path — magic priority,
   truncated and corrupt streams, no magic, `zlib_size` past the region, a
   fallback body shorter than `size_signed` — against expectations built from
   `utils.py`/`header_file.py`, and byte-for-byte against the live reference
-  (`PSPTOOL_REFERENCE`) on a synthetic image and on every compressed corpus
-  HeaderFile (3225 compared, #91).
+  (`PSPTOOL_REFERENCE`) on synthetic images, single- and multi-file, and on
+  every corpus HeaderFile's `-u` and `-c` output (4019 `get_signed_bytes()` +
+  256 `to_decrypted_file_bytes()`, #91/#99) — including the HeaderFiles grown
+  past their directory entry (REQ-1).
 - `cargo test -p psptool-ops --test divergence_signature_byte_order` — **2
   passed, 0 failed, 0 ignored**: control
   `real_corpus_headerfile_convention_is_nonreversed_and_full_length` (plain +
@@ -291,10 +299,12 @@ corpus suite is a red gate, not a pass).
   `zlib_decompress(output[:zlib_size])` and `get_decrypted_decompressed_body` /
   `decode_best_effort` share one `_decrypted_decompressed_body` decode, so the
   extract path and the decode-verification ladder decode identically.
-- **#99** (open) — extract hands `HeaderEntry` the directory-sized entry body;
-  upstream grows a HeaderFile to its header `rom_size` (`header_file.py:72-75`),
-  so 13 corpus `-X -u` extracts still fail `BodyTooSmall`. Pinned by the
-  ignored `extract_oracle.rs::corpus_grown_headerfile_window_matches_reference`.
+- **#99** (CLOSED) — extract handed `HeaderEntry` the directory-sized entry
+  body; upstream grows a HeaderFile to its header `rom_size`
+  (`header_file.py:72-75`), so 13 corpus `-X -u` extracts failed
+  `BodyTooSmall`. `Entry::header_file_window` is public and the extract ops read
+  it; `extract_oracle.rs::corpus_grown_headerfile_window_matches_reference` is a
+  plain `#[test]` (13/13).
 - **#93** (CLOSED) — the `verify` report checked signatures against a
   PubkeyFile-only, first-writer-wins map of one ROM with no IKEK. It now takes
   the certificate-tree rung of decode verification over

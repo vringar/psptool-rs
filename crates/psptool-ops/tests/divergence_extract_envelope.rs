@@ -72,13 +72,15 @@ fn psp_dir_with_entry(entry_type: u8, body: &[u8]) -> Vec<u8> {
     out
 }
 
-fn parse_single_psp_entry(blob_bytes: Vec<u8>) -> Entry {
+/// The image and its single parsed entry.
+fn parse_single_psp_entry(blob_bytes: Vec<u8>) -> (SourceBytes, Entry) {
     let blob = SourceBytes::from_blob(blob_bytes);
     let dir = match Directory::parse_at(&blob, FlashOffset(0)).unwrap() {
         Directory::Psp(p) => p,
         _ => unreachable!("fixture is a $PSP directory"),
     };
-    Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap()
+    let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
+    (blob, entry)
 }
 
 /// Build a compressed + signed (not encrypted) HeaderFile body wrapping the
@@ -183,7 +185,7 @@ fn divergence_decompress_envelope_matches_get_signed_bytes() {
     let size_signed: u32 = 10;
     let (body, _ss) = build_compressed_signed_body(size_signed);
     let blob = psp_dir_with_entry(0x01, &body); // PSP_FW_BOOT_LOADER -> Header
-    let entry = parse_single_psp_entry(blob);
+    let (blob, entry) = parse_single_psp_entry(blob);
     assert!(matches!(entry.class, EntryClass::Header(_)));
 
     // Upstream get_signed_bytes: header(0x100) ++ decrypted-decompressed-body,
@@ -194,7 +196,7 @@ fn divergence_decompress_envelope_matches_get_signed_bytes() {
     expected.extend_from_slice(header);
     expected.extend_from_slice(&FIXTURE_PLAINTEXT[..size_signed as usize]);
 
-    let got = extract_decompressed(&entry).expect("decompress succeeds");
+    let got = extract_decompressed(&entry, &blob).expect("decompress succeeds");
     assert_eq!(
         got, expected,
         "extract_decompressed must equal upstream get_signed_bytes() \
@@ -219,7 +221,7 @@ fn divergence_decrypt_envelope_matches_to_decrypted_file_bytes() {
     let entry_key = [0xA5u8; 16];
     let (body, _iv, sig) = build_encrypted_signed_body(plaintext, entry_key, Ikek::ZenPlus);
     let blob = psp_dir_with_entry(0x01, &body); // Header-class
-    let entry = parse_single_psp_entry(blob);
+    let (blob, entry) = parse_single_psp_entry(blob);
     let hdr = entry.class.header().expect("header entry");
     assert!(hdr.is_encrypted);
 
@@ -233,7 +235,7 @@ fn divergence_decrypt_envelope_matches_to_decrypted_file_bytes() {
     expected.extend_from_slice(plaintext); // get_decrypted_body()
     expected.extend_from_slice(&sig); // self.signature.get_bytes()
 
-    let got = extract_decrypted(&entry, Ikek::ZenPlus).expect("decrypt succeeds");
+    let got = extract_decrypted(&entry, &blob, Ikek::ZenPlus).expect("decrypt succeeds");
     assert_eq!(
         got, expected,
         "extract_decrypted must equal upstream to_decrypted_file_bytes() \

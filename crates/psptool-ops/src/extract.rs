@@ -2,7 +2,11 @@
 //! get_decrypted()` ports of the reference Python tool.
 //!
 //! Three functions take a parsed [`Entry`] and return owned bytes. No I/O —
-//! the filesystem write happens in the CLI layer (`psptool-cli`, #15).
+//! the filesystem write happens in the CLI layer (`psptool-cli`, #15). The
+//! `-u`/`-c` ops also take the image the entry was parsed from: they read the
+//! HeaderFile buffer re-sized to the header's `rom_size`
+//! ([`Entry::header_file_window`], `header_file.py:72-75`), which can extend
+//! past the directory entry.
 //!
 //! Mapping to PSPTool's `File` hierarchy — each op ports the single-file
 //! `-X` accessor the reference tool emits (the header-prefixed envelope, not
@@ -22,16 +26,16 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:41` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:137`/`:171`. |
-//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:77` `extract_decompressed` → `get_signed_bytes` (core `body.rs:375`), which decrypts then inflates through the decode-verification ladder's `_decrypted_decompressed_body` decode (`zlib_find_header` priority search, strict inflate, still-compressed fallback; #91) per upstream `header_file.py:179-186`, `utils.py:218-254`; consumer `cmds/extract.rs:135`/`:204`. Returns the full `-u` envelope (REQ-7). |
-//! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs` `extract_decrypted` (`get_decrypted_body`, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:184-190`); consumer `cmds/extract.rs:129`/`:164`. Now returns the full `-c` envelope (REQ-7). |
-//! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:58`/`:78` (`entry.class.header().ok_or(NotHeaderEntry)?`) per upstream `type(file) is HeaderFile` (`__main__.py:193`,`:195`); Header/KeyStore only. |
-//! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:22` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
-//! | REQ-6 (CLI `extract` consumer) | SHIPPED | `cmds/extract.rs` binds all three ops (`:127`/`:129`/`:137`/`:162`/`:164`/`:171`), dispatched `main.rs:82` (`-X`) / `:125` (`Command::Extract`). Boundary CLI surface (R-DEFER-1). |
-//! | REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` returns `get_signed_bytes()` (`header ++ decrypted-decompressed[..0x100+size_signed]`, `header_file.py:162-164`); `extract_decrypted` assembles `to_decrypted_file_bytes()` (`header(enc+IV cleared) ++ get_decrypted_body() ++ signature`, `header_file.py:176-182`). Consumer `cmds/extract.rs:127`/`:129` (single-file `-u`/`-c`, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`). Pins `divergence_extract_envelope.rs` (both `#[test]`, green). |
+//! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:60` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:159`/`:241`. |
+//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:86` `extract_decompressed(entry, blob)` → `get_signed_bytes` (core `body.rs:378`) over the `rom_size` HeaderFile buffer `Entry::header_file_window` (core `body.rs:859`, `header_file.py:72-75`, #99), which decrypts then inflates through the decode-verification ladder's `_decrypted_decompressed_body` decode (`zlib_find_header` priority search, strict inflate, still-compressed fallback; #91) per upstream `header_file.py:179-186`, `utils.py:218-254`; consumer `cmds/extract.rs:140`/`:214`. Returns the full `-u` envelope (REQ-7). |
+//! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs:129` `extract_decrypted(entry, blob, ikek)` (`get_decrypted_body` over the same `rom_size` buffer, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:286-292`); consumer `cmds/extract.rs:151`. Returns the full `-c` envelope (REQ-7). |
+//! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:98` (`entry.class.header().ok_or(NotHeaderEntry)?`) per upstream `type(file) is HeaderFile` (`__main__.py:193`,`:195`); Header/KeyStore only. |
+//! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:43` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
+//! | REQ-6 (CLI `extract` consumer) | SHIPPED | `cmds/extract.rs` binds all three ops (`:140`/`:151`/`:159`/`:214`/`:241`) with the image `opened.blob`, dispatched `main.rs:82` (`-X`) / `:125` (`Command::Extract`). Boundary CLI surface (R-DEFER-1). |
+//! | REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` returns `get_signed_bytes()` (`header ++ decrypted-decompressed[..0x100+size_signed]`, `header_file.py:168-170`); `extract_decrypted` assembles `to_decrypted_file_bytes()` (`header(enc+IV cleared) ++ get_decrypted_body() ++ signature`, `header_file.py:278-284`). Consumer `cmds/extract.rs:140`/`:151` (single-file `-u`/`-c`, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`). Pins `divergence_extract_envelope.rs` (both `#[test]`, green); live byte parity with the reference CLI in `psptool-cli/tests/extract_oracle.rs`. |
 
 use psptool_core::entry::HEADER_FILE_LEN;
-use psptool_core::{BodyError, Entry, Ikek};
+use psptool_core::{BodyError, Entry, HeaderEntry, Ikek, SourceBytes};
 use thiserror::Error;
 
 /// Errors returned by [`extract_decompressed`] / [`extract_decrypted`].
@@ -69,15 +73,33 @@ pub fn extract_raw(entry: &Entry) -> Vec<u8> {
 /// A zlib stream that fails to inflate leaves the still-compressed body in the
 /// envelope, as upstream's does (`header_file.py:182-185`).
 ///
+/// `blob` is the image `entry` was parsed from: the accessor reads the
+/// HeaderFile buffer, re-sized to the header's `rom_size`, which reads on into
+/// the image when `rom_size` outgrows the directory size
+/// ([`Entry::header_file_window`], `header_file.py:72-75`).
+///
 /// Returns an error when the entry is not a `HeaderFile`
 /// ([`ExtractError::NotHeaderEntry`]). The `not-compressed` guard that upstream
 /// applies before this accessor (`__main__.py:170`) lives in the CLI arg layer
 /// (`crates/psptool-cli/src/cmds/extract.rs`), not here — `get_signed_bytes`
 /// itself is defined for both compressed and uncompressed HeaderFiles.
-pub fn extract_decompressed(entry: &Entry) -> Result<Vec<u8>, ExtractError> {
-    let header = entry.class.header().ok_or(ExtractError::NotHeaderEntry)?;
-    let out = header.get_signed_bytes(entry.body.as_bytes(), Some(Ikek::ZenPlus))?;
+pub fn extract_decompressed(entry: &Entry, blob: &SourceBytes) -> Result<Vec<u8>, ExtractError> {
+    let (header, file) = header_file(entry, blob)?;
+    let out = header.get_signed_bytes(file.as_bytes(), Some(Ikek::ZenPlus))?;
     Ok(out)
+}
+
+/// The [`HeaderEntry`] of `entry` and the HeaderFile buffer it describes
+/// ([`Entry::header_file_window`]).
+fn header_file<'a>(
+    entry: &'a Entry,
+    blob: &SourceBytes,
+) -> Result<(&'a HeaderEntry, SourceBytes), ExtractError> {
+    let header = entry.class.header().ok_or(ExtractError::NotHeaderEntry)?;
+    let file = entry
+        .header_file_window(blob)
+        .ok_or(ExtractError::NotHeaderEntry)?;
+    Ok((header, file))
 }
 
 /// `HeaderFile.to_decrypted_file_bytes()` — the reference single-file `-X -c`
@@ -87,7 +109,9 @@ pub fn extract_decompressed(entry: &Entry) -> Result<Vec<u8>, ExtractError> {
 /// `0x100` header with `[0x18:0x1c]` (is_encrypted) and `[0x20:0x30]` (IV)
 /// cleared, then `get_decrypted_body()`, then the trailing signature
 /// (`header_file.py:176-182`). `signature_bytes` returns empty for unsigned
-/// HeaderFiles (per #83), so no `is_signed` conditional is needed here.
+/// HeaderFiles (per #83), so no `is_signed` conditional is needed here. Like
+/// [`extract_decompressed`], it reads the `rom_size` HeaderFile buffer of
+/// `blob`, the image `entry` was parsed from.
 ///
 /// Returns an error when the entry is not a `HeaderFile`
 /// ([`ExtractError::NotHeaderEntry`]) or when the header reports
@@ -102,9 +126,13 @@ pub fn extract_decompressed(entry: &Entry) -> Result<Vec<u8>, ExtractError> {
 /// Selecting the right [`Ikek`] is the chain-of-trust resolution work tracked
 /// by #13; until then callers pass [`Ikek::ZenPlus`] (PSPTool's default) or
 /// [`Ikek::Custom`].
-pub fn extract_decrypted(entry: &Entry, ikek: Ikek) -> Result<Vec<u8>, ExtractError> {
-    let header = entry.class.header().ok_or(ExtractError::NotHeaderEntry)?;
-    let body = entry.body.as_bytes();
+pub fn extract_decrypted(
+    entry: &Entry,
+    blob: &SourceBytes,
+    ikek: Ikek,
+) -> Result<Vec<u8>, ExtractError> {
+    let (header, file) = header_file(entry, blob)?;
+    let body = file.as_bytes();
     if body.len() < HEADER_FILE_LEN {
         return Err(BodyError::Truncated(body.len()).into());
     }
@@ -136,9 +164,15 @@ mod tests {
     /// entry-type. Mirrors the helper used in `psptool-core::entry` tests so
     /// the resulting `Entry` is parsed end-to-end (including classification).
     fn psp_dir_with_entry(entry_type: u8, body: &[u8]) -> Vec<u8> {
+        psp_dir_with_sized_entry(entry_type, body.len() as u32, body)
+    }
+
+    /// [`psp_dir_with_entry`] with a directory-declared `size` that may stop
+    /// short of `file`: the bytes past `size` lie in the image, outside the
+    /// entry.
+    fn psp_dir_with_sized_entry(entry_type: u8, size: u32, file: &[u8]) -> Vec<u8> {
         use psptool_core::directory::{DIRECTORY_HEADER_SIZE, PSP_ENTRY_SIZE};
         let body_off = (DIRECTORY_HEADER_SIZE + PSP_ENTRY_SIZE) as u32;
-        let size = body.len() as u32;
         let additional_info = (1u32 << 31) | (0b10u32 << 24);
         let mut entry = [0u8; PSP_ENTRY_SIZE];
         entry[0x00] = entry_type;
@@ -153,17 +187,19 @@ mod tests {
         out.extend_from_slice(&1u32.to_le_bytes());
         out.extend_from_slice(&additional_info.to_le_bytes());
         out.extend_from_slice(&entry);
-        out.extend_from_slice(body);
+        out.extend_from_slice(file);
         out
     }
 
-    fn parse_single_psp_entry(blob_bytes: Vec<u8>) -> Entry {
+    /// The image and its single parsed entry.
+    fn parse_single_psp_entry(blob_bytes: Vec<u8>) -> (SourceBytes, Entry) {
         let blob = SourceBytes::from_blob(blob_bytes);
         let dir = match Directory::parse_at(&blob, FlashOffset(0)).unwrap() {
             Directory::Psp(p) => p,
             _ => unreachable!(),
         };
-        Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap()
+        let entry = Entry::parse_psp(&blob, &dir, 0, RomSize::MIB_16, FlashOffset::ZERO).unwrap();
+        (blob, entry)
     }
 
     /// Build a header-file body that is BOTH `is_encrypted` and `is_signed`
@@ -248,7 +284,7 @@ mod tests {
         // Type 0x21 (WRAPPED_IKEK) → NO_HDR → Plain.
         let body = b"raw-extract-test".to_vec();
         let blob_bytes = psp_dir_with_entry(0x21, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (_, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Plain));
 
         let out = extract_raw(&entry);
@@ -259,7 +295,7 @@ mod tests {
     fn extract_raw_returns_body_bytes_verbatim_for_header_entry() {
         let body = psptool_fixtures::micro::header_signed().to_vec();
         let blob_bytes = psp_dir_with_entry(0x01, &body); // PSP_FW_BOOT_LOADER → Header
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (_, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Header(_)));
 
         let out = extract_raw(&entry);
@@ -270,7 +306,7 @@ mod tests {
     fn extract_raw_independent_of_class_works_on_pubkey() {
         let body = psptool_fixtures::micro::pubkey_v1().to_vec();
         let blob_bytes = psp_dir_with_entry(0x00, &body); // AMD_PUBLIC_KEY → Pubkey
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (_, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Pubkey(_)));
 
         let out = extract_raw(&entry);
@@ -289,13 +325,13 @@ mod tests {
         let size_signed: u32 = 17;
         let body = build_compressed_signed_body(size_signed);
         let blob_bytes = psp_dir_with_entry(0x01, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Header(_)));
 
         let mut expected = entry.body.as_bytes()[..HEADER_FILE_LEN].to_vec();
         expected.extend_from_slice(b"hello, psptool-rs");
 
-        let out = extract_decompressed(&entry).ok();
+        let out = extract_decompressed(&entry, &blob).ok();
         assert_eq!(out, Some(expected));
     }
 
@@ -303,10 +339,10 @@ mod tests {
     fn extract_decompressed_errors_for_non_header_entry() {
         let body = vec![0xAAu8; 0x10];
         let blob_bytes = psp_dir_with_entry(0x21, &body); // Plain
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Plain));
 
-        let err = extract_decompressed(&entry).unwrap_err();
+        let err = extract_decompressed(&entry, &blob).unwrap_err();
         assert!(matches!(err, ExtractError::NotHeaderEntry));
     }
 
@@ -314,9 +350,9 @@ mod tests {
     fn extract_decompressed_errors_for_pubkey_entry() {
         let body = psptool_fixtures::micro::pubkey_v1().to_vec();
         let blob_bytes = psp_dir_with_entry(0x00, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
 
-        let err = extract_decompressed(&entry).unwrap_err();
+        let err = extract_decompressed(&entry, &blob).unwrap_err();
         assert!(matches!(err, ExtractError::NotHeaderEntry));
     }
 
@@ -344,17 +380,61 @@ mod tests {
         body.extend(std::iter::repeat_n(0xBBu8, SIG_LEN));
 
         let blob_bytes = psp_dir_with_entry(0x01, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::Header(_)));
 
         let mut expected = entry.body.as_bytes()[..HEADER_FILE_LEN].to_vec();
         expected.extend_from_slice(DATA);
 
-        let out = extract_decompressed(&entry).ok();
+        let out = extract_decompressed(&entry, &blob).ok();
         assert_eq!(out, Some(expected));
     }
 
+    #[test]
+    fn extract_decompressed_reads_the_rom_size_buffer_past_the_directory_size() {
+        // `header_file.py:74-75`: a header `rom_size` past the directory size
+        // grows the HeaderFile buffer, reading on into the image (#99). The
+        // directory covers the header and 0x10 stream bytes; the rest of the
+        // stream and the signature follow in the image.
+        let size_signed: u32 = 17;
+        let file = build_compressed_signed_body(size_signed);
+        let blob_bytes = psp_dir_with_sized_entry(0x01, 0x110, &file);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
+        assert_eq!(entry.body.len(), 0x110);
+        assert!(
+            entry
+                .class
+                .header()
+                .is_some_and(|h| h.rom_size as usize == file.len())
+        );
+
+        let mut expected = file[..HEADER_FILE_LEN].to_vec();
+        expected.extend_from_slice(b"hello, psptool-rs");
+        assert_eq!(extract_decompressed(&entry, &blob).ok(), Some(expected));
+    }
+
     // -- extract_decrypted ---------------------------------------------------
+
+    #[test]
+    fn extract_decrypted_reads_the_rom_size_buffer_past_the_directory_size() {
+        // As above for `-c` (#99): the decrypted body and the signature come
+        // from the `rom_size` buffer, past the directory size.
+        let plaintext = b"sixteen bytes !!";
+        let file = build_encrypted_header_body(plaintext, [0xA5u8; 16], Ikek::ZenPlus);
+        let blob_bytes = psp_dir_with_sized_entry(0x01, 0x110, &file);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
+        assert_eq!(entry.body.len(), 0x110);
+
+        let mut expected = file[..HEADER_FILE_LEN].to_vec();
+        expected[0x18..0x1C].fill(0);
+        expected[0x20..0x30].fill(0);
+        expected.extend_from_slice(plaintext);
+        expected.extend_from_slice(&file[file.len() - 0x100..]);
+        assert_eq!(
+            extract_decrypted(&entry, &blob, Ikek::ZenPlus).ok(),
+            Some(expected)
+        );
+    }
 
     #[test]
     fn extract_decrypted_returns_to_decrypted_file_bytes_envelope() {
@@ -362,7 +442,7 @@ mod tests {
         let entry_key = [0xA5u8; 16];
         let body = build_encrypted_header_body(plaintext, entry_key, Ikek::ZenPlus);
         let blob_bytes = psp_dir_with_entry(0x01, &body); // Header-class
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(entry.class.header().is_some_and(|h| h.is_encrypted));
 
         // Upstream to_decrypted_file_bytes (`header_file.py:176-182`): header
@@ -374,7 +454,7 @@ mod tests {
         expected.extend_from_slice(plaintext);
         expected.extend(std::iter::repeat_n(0u8, 0x100)); // signature placeholder
 
-        let out = extract_decrypted(&entry, Ikek::ZenPlus).ok();
+        let out = extract_decrypted(&entry, &blob, Ikek::ZenPlus).ok();
         assert_eq!(out, Some(expected));
     }
 
@@ -386,11 +466,11 @@ mod tests {
         // documented marker.
         let body = psptool_fixtures::micro::header_encrypted().to_vec();
         let blob_bytes = psp_dir_with_entry(0x01, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         let header = entry.class.header().expect("header entry");
         assert!(header.is_encrypted);
 
-        let out = extract_decrypted(&entry, Ikek::ZenPlus).expect("decrypt succeeds");
+        let out = extract_decrypted(&entry, &blob, Ikek::ZenPlus).expect("decrypt succeeds");
         // The committed fixture's plaintext is non-empty and matches the
         // declared data-region length (one AES block multiple).
         assert!(!out.is_empty());
@@ -401,9 +481,9 @@ mod tests {
     fn extract_decrypted_errors_for_non_header_entry() {
         let body = vec![0xAAu8; 0x10];
         let blob_bytes = psp_dir_with_entry(0x21, &body); // Plain
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
 
-        let err = extract_decrypted(&entry, Ikek::ZenPlus).unwrap_err();
+        let err = extract_decrypted(&entry, &blob, Ikek::ZenPlus).unwrap_err();
         assert!(matches!(err, ExtractError::NotHeaderEntry));
     }
 
@@ -411,9 +491,9 @@ mod tests {
     fn extract_decrypted_errors_for_pubkey_entry() {
         let body = psptool_fixtures::micro::pubkey_v1().to_vec();
         let blob_bytes = psp_dir_with_entry(0x00, &body); // Pubkey
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
 
-        let err = extract_decrypted(&entry, Ikek::ZenPlus).unwrap_err();
+        let err = extract_decrypted(&entry, &blob, Ikek::ZenPlus).unwrap_err();
         assert!(matches!(err, ExtractError::NotHeaderEntry));
     }
 
@@ -421,9 +501,9 @@ mod tests {
     fn extract_decrypted_errors_when_header_not_encrypted() {
         let body = psptool_fixtures::micro::header_signed().to_vec();
         let blob_bytes = psp_dir_with_entry(0x01, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
 
-        let err = extract_decrypted(&entry, Ikek::ZenPlus).unwrap_err();
+        let err = extract_decrypted(&entry, &blob, Ikek::ZenPlus).unwrap_err();
         assert!(matches!(err, ExtractError::Body(BodyError::NotEncrypted)));
     }
 
@@ -436,7 +516,7 @@ mod tests {
         let entry_key = [0xA5u8; 16];
         let body = build_encrypted_header_body(plaintext, entry_key, Ikek::ZenPlus);
         let blob_bytes = psp_dir_with_entry(0x01, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
 
         let mut expected_right = entry.body.as_bytes()[..HEADER_FILE_LEN].to_vec();
         expected_right[0x18..0x1C].fill(0);
@@ -444,8 +524,8 @@ mod tests {
         expected_right.extend_from_slice(plaintext);
         expected_right.extend(std::iter::repeat_n(0u8, 0x100));
 
-        let wrong = extract_decrypted(&entry, Ikek::Zen).ok();
-        let right = extract_decrypted(&entry, Ikek::ZenPlus).ok();
+        let wrong = extract_decrypted(&entry, &blob, Ikek::Zen).ok();
+        let right = extract_decrypted(&entry, &blob, Ikek::ZenPlus).ok();
         assert_eq!(right, Some(expected_right));
         assert_ne!(wrong, right);
     }
@@ -461,13 +541,13 @@ mod tests {
         let size_signed: u32 = 17;
         let body = build_compressed_signed_body(size_signed);
         let blob_bytes = psp_dir_with_entry(0x50, &body);
-        let entry = parse_single_psp_entry(blob_bytes);
+        let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::KeyStore(_)));
 
         let mut expected = entry.body.as_bytes()[..HEADER_FILE_LEN].to_vec();
         expected.extend_from_slice(b"hello, psptool-rs");
 
-        let out = extract_decompressed(&entry).ok();
+        let out = extract_decompressed(&entry, &blob).ok();
         assert_eq!(out, Some(expected));
     }
 }

@@ -21,7 +21,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
-use psptool_core::{Directory, Entry, EntryClass, EntryRecord, Ikek, walk_directories};
+use psptool_core::{
+    Directory, Entry, EntryClass, EntryRecord, Ikek, SourceBytes, walk_directories,
+};
 use psptool_ops::{extract_decompressed, extract_decrypted, extract_raw, readable_type};
 use regex::RegexBuilder;
 
@@ -35,7 +37,7 @@ pub fn run(args: &ExtractArgs, out: &mut dyn Write) -> Result<()> {
     match mode {
         ExtractMode::Single(selector) => {
             let entry = resolve_single(&opened, &selector)?;
-            let bytes = transform_single(&entry, args)?;
+            let bytes = transform_single(&entry, &opened.blob, args)?;
             write_single_output(&bytes, args.outfile.as_deref(), out)?;
         }
         ExtractMode::Multi => {
@@ -122,7 +124,10 @@ fn resolve_single(opened: &OpenedRom, selector: &EntrySelector) -> Result<Entry>
     }
 }
 
-fn transform_single(entry: &Entry, args: &ExtractArgs) -> Result<Vec<u8>> {
+/// The single-file `-X` output. `blob` is the image `entry` was parsed from:
+/// a HeaderFile's `-u`/`-c` accessors read its `rom_size` buffer, which can
+/// outgrow the directory entry (`header_file.py:72-75`).
+fn transform_single(entry: &Entry, blob: &SourceBytes, args: &ExtractArgs) -> Result<Vec<u8>> {
     if args.decompress {
         // Upstream errors before extracting a non-compressed file
         // (`__main__.py:170`); `get_signed_bytes` itself is defined for
@@ -132,8 +137,8 @@ fn transform_single(entry: &Entry, args: &ExtractArgs) -> Result<Vec<u8>> {
         {
             bail!("File is not compressed {}", single_readable_type(entry));
         }
-        let bytes = extract_decompressed(entry).context("decompressing entry")?;
-        warn_if_inflate_failed(entry, &single_readable_type(entry));
+        let bytes = extract_decompressed(entry, blob).context("decompressing entry")?;
+        warn_if_inflate_failed(entry, blob, &single_readable_type(entry));
         Ok(bytes)
     } else if args.decrypt {
         // Upstream errors before decrypting a non-encrypted file
@@ -143,7 +148,7 @@ fn transform_single(entry: &Entry, args: &ExtractArgs) -> Result<Vec<u8>> {
         {
             bail!("File is not encrypted {}", single_readable_type(entry));
         }
-        Ok(extract_decrypted(entry, Ikek::ZenPlus).context("decrypting entry")?)
+        Ok(extract_decrypted(entry, blob, Ikek::ZenPlus).context("decrypting entry")?)
     } else if args.pem_key {
         let pk = match &entry.class {
             EntryClass::Pubkey(p) => p,
@@ -175,14 +180,18 @@ fn write_single_output(bytes: &[u8], outfile: Option<&Path>, out: &mut dyn Write
 /// `-u` emits the still-compressed body of a zlib stream that fails to
 /// inflate (`extract_decompressed` = `get_signed_bytes()`); upstream warns on
 /// stderr when that happens (`header_file.py:182-185`).
-fn warn_if_inflate_failed(entry: &Entry, readable_type: &str) {
-    let failed = entry.class.header().is_some_and(|h| {
-        h.is_compressed
-            && matches!(
-                h.decode_best_effort(entry.body.as_bytes(), Ikek::ZenPlus),
-                Ok((_, false))
-            )
-    });
+fn warn_if_inflate_failed(entry: &Entry, blob: &SourceBytes, readable_type: &str) {
+    let failed = entry
+        .class
+        .header()
+        .zip(entry.header_file_window(blob))
+        .is_some_and(|(h, file)| {
+            h.is_compressed
+                && matches!(
+                    h.decode_best_effort(file.as_bytes(), Ikek::ZenPlus),
+                    Ok((_, false))
+                )
+        });
     if failed {
         eprintln!("warning: ZLIB decompression failed on file {readable_type}");
     }
@@ -199,11 +208,13 @@ fn single_readable_type(entry: &Entry) -> String {
 
 fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<()> {
     let mut written = 0usize;
+    let blob = &opened.blob;
     for_each_entry(opened, |entry, dir_idx, entry_idx, is_bios| {
         let bytes = if args.decompress {
-            match extract_decompressed(entry) {
+            match extract_decompressed(entry, blob) {
                 Ok(bytes) => {
-                    warn_if_inflate_failed(entry, &readable_type(entry.entry_type(), is_bios));
+                    let name = readable_type(entry.entry_type(), is_bios);
+                    warn_if_inflate_failed(entry, blob, &name);
                     bytes
                 }
                 Err(_) => extract_raw(entry),
@@ -212,11 +223,13 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
             // Upstream multi-file `-c` writes the BARE decrypted body
             // (`__main__.py:196` `file.get_decrypted_body()`), NOT the
             // single-file `to_decrypted_file_bytes()` envelope that
-            // `extract_decrypted` produces.
+            // `extract_decrypted` produces — over the `rom_size` HeaderFile
+            // buffer (`header_file.py:72-75`, `:106`).
             entry
                 .class
                 .header()
-                .map(|h| h.get_decrypted_body(entry.body.as_bytes(), Ikek::ZenPlus))
+                .zip(entry.header_file_window(blob))
+                .map(|(h, file)| h.get_decrypted_body(file.as_bytes(), Ikek::ZenPlus))
                 .and_then(Result::ok)
                 .unwrap_or_else(|| extract_raw(entry))
         } else if args.pem_key {
