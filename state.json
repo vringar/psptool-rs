@@ -1,5 +1,5 @@
 {
-  "next_display_id": 111,
+  "next_display_id": 112,
   "next_comment_id": 155,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -86,6 +86,7 @@
     "cb8782f5-edb1-4629-9143-2a8e565fe0f6": 38,
     "cb9b69a7-1ceb-4769-94eb-df568b1e0114": 11,
     "cdc4c578-ed06-4ff6-8395-41a3b3561c31": 82,
+    "ce56520a-58fd-45d1-a30f-308d3ad8600c": 111,
     "cf133cc6-457d-4b4c-8000-bd9958a02990": 85,
     "d3ce0e1b-00bf-435e-987c-78c4119ad087": 86,
     "d434f175-a545-41e6-9748-d52c77e1eb5d": 54,
@@ -2609,6 +2610,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABASxa6k7YD8MVtSGkzyU//J/zkCqKhWevz+sjEKXHn0QdDD+QbKdRxKwlPsVQ/MIcqMrUaP8QrjmRYN/UNQeP4BQ=="
         }
       }
+    },
+    "ce56520a-58fd-45d1-a30f-308d3ad8600c": {
+      "uuid": "ce56520a-58fd-45d1-a30f-308d3ad8600c",
+      "display_id": 111,
+      "title": "Divergence: ls 'size' of a HeaderFile shows the directory size; upstream shows buffer_size, the rom_size buffer (psptool.py:249, header_file.py:104-105)",
+      "description": "Spillover from #101. ls_files_dict 'size' is file.buffer_size (psptool.py:249); for a HeaderFile/KeyStoreFile that is the buffer grown to 0x100 and re-sized to rom_size (header_file.py:32-33, :72-75, :104-105), i.e. Entry::file_bytes(blob).len() since #101. psptool-ops list.rs renders the directory-declared size (entry.body.len()), and crates/psptool-cli/tests/differential.rs tolerates the mismatch for HeaderFile entries ('size of HeaderFile entries', lines 34-38). Corpus: 16 grown + 144 shrunk HeaderFile-class files differ. Fix shape: render entry.file_bytes(blob).len() for HeaderFile-class entries in ls text + JSON, drop that differential tolerance, regenerate the list_micro and psptool-cli synthetic__list_* snapshots. Changes ls output (user-facing).",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:46:42.222925422Z",
+      "updated_at": "2026-10-19T23:46:42.222925422Z"
     },
     "cf133cc6-457d-4b4c-8000-bd9958a02990": {
       "uuid": "cf133cc6-457d-4b4c-8000-bd9958a02990",
@@ -5203,11 +5216,16 @@
       "agent_id": "tLiK",
       "agent_seq": 361,
       "timestamp": "2026-10-19T23:27:57.105325566Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 362,
+      "timestamp": "2026-10-19T23:46:42.222925422Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:27:57.105325566Z",
+    "timestamp": "2026-10-19T23:46:42.222925422Z",
     "agent_id": "tLiK",
-    "agent_seq": 361
+    "agent_seq": 362
   }
 }
