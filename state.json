@@ -823,11 +823,12 @@
       "uuid": "509a6fbd-4a92-4fcd-bb21-8ea679bfdc5d",
       "display_id": 95,
       "title": "psptool-py: pyo3/maturin Python bindings slice 1 (read API) + default.nix python attr",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-18T23:09:47.276154449Z",
-      "updated_at": "2026-10-19T00:49:40.367057547Z",
+      "updated_at": "2026-10-19T00:49:42.851628034Z",
+      "closed_at": "2026-10-19T00:49:42.851626871Z",
       "comments": {
         "90455d34-f382-47fe-be6a-471fbb16e41e": {
           "display_id": 133,
@@ -4393,11 +4394,16 @@
       "agent_id": "tLiK",
       "agent_seq": 286,
       "timestamp": "2026-10-19T00:49:40.367057547Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 287,
+      "timestamp": "2026-10-19T00:49:42.851628034Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T00:49:40.367057547Z",
+    "timestamp": "2026-10-19T00:49:42.851628034Z",
     "agent_id": "tLiK",
-    "agent_seq": 286
+    "agent_seq": 287
   }
 }
