@@ -1,6 +1,6 @@
 {
   "next_display_id": 107,
-  "next_comment_id": 150,
+  "next_comment_id": 151,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1393,11 +1393,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T20:45:07.247443235Z",
-      "updated_at": "2026-10-19T22:43:18.267791075Z",
+      "updated_at": "2026-10-19T22:55:32.354843917Z",
       "labels": [
         "blocker",
         "kaizen"
-      ]
+      ],
+      "comments": {
+        "7cd57078-5c6d-40b9-b03c-b4733c3525e3": {
+          "display_id": 150,
+          "author": "tLiK",
+          "content": "Plan: doc-only. address.rs:172 link [`from_bits`] -> [`Self::from_bits`] (item is an associated fn, not in module scope). body.rs:307, body.rs:1158/1161 and directory.rs:592 are public docs linking private helpers (zlib_find_header, zlib_decompress_strict, tertiary_actual_offset): name them as code spans instead of links. Making the helpers pub would add vocabulary-only API (R-DEFER-1), so un-linking is the fix. Gate: cargo doc -p psptool-core --no-deps 0 warnings + fmt + clippy -D warnings + cargo test --workspace.",
+          "created_at": "2026-10-19T22:55:32.349625589Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA3IGEU1x8SOLHO/eXGF66RrGM5KCUKeb9imCGe7whw/16CGB07f3BhY+cQ995fMniJaxtia4DotTCbdCQbbZwAg=="
+        }
+      }
     },
     "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": {
       "uuid": "71fbd789-f59a-4c42-aaf0-37ff9463e9c0",
@@ -4982,11 +4993,16 @@
       "agent_id": "tLiK",
       "agent_seq": 340,
       "timestamp": "2026-10-19T22:55:21.054635420Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 341,
+      "timestamp": "2026-10-19T22:55:32.354843917Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T22:55:21.054635420Z",
+    "timestamp": "2026-10-19T22:55:32.354843917Z",
     "agent_id": "tLiK",
-    "agent_seq": 340
+    "agent_seq": 341
   }
 }
