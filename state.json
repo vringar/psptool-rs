@@ -1389,7 +1389,10 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T20:45:07.247443235Z",
-      "updated_at": "2026-10-19T20:45:07.247443235Z"
+      "updated_at": "2026-10-19T20:45:12.572656272Z",
+      "labels": [
+        "blocker"
+      ]
     },
     "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": {
       "uuid": "71fbd789-f59a-4c42-aaf0-37ff9463e9c0",
@@ -4907,11 +4910,16 @@
       "agent_id": "tLiK",
       "agent_seq": 329,
       "timestamp": "2026-10-19T20:45:07.247443235Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 330,
+      "timestamp": "2026-10-19T20:45:12.572656272Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T20:45:07.247443235Z",
+    "timestamp": "2026-10-19T20:45:12.572656272Z",
     "agent_id": "tLiK",
-    "agent_seq": 329
+    "agent_seq": 330
   }
 }
