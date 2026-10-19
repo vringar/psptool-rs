@@ -2658,12 +2658,13 @@
       "display_id": 91,
       "title": "Divergence: body.rs find_zlib_start (extract path) takes the earliest of any zlib magic, upstream zlib_find_header tries magics in priority order (utils.py:224-232); get_decompressed_body accepts truncated zlib streams",
       "description": "Spillover from #89. utils.py:224-232 iterates ZLIB_TYPES in order (78DA, 789C, 785E, 7801): for each magic it checks s[0x100:0x102] then s.find(magic), returning the first magic found ANYWHERE before trying the next magic. body.rs find_zlib_start (used by get_decompressed_body -> extract -c / get_signed_bytes) returns the earliest offset of ANY magic, so '78 9C' at 0x10 beats '78 DA' at 0x200 where upstream picks 0x200. entry.rs zlib_find_header is the faithful port; the #89 decode ladder (body.rs decode_best_effort) uses it. Second gap on the same path: get_decompressed_body inflates via flate2 Read, which returns the partial output of a TRUNCATED stream as success, whereas zlib.decompress raises (utils.py:250). body.rs zlib_decompress_strict (#89) is the faithful inflate. No corpus image currently exercises either difference.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-18T22:42:56.444970501Z",
-      "updated_at": "2026-10-19T10:41:06.219577792Z",
+      "updated_at": "2026-10-19T10:41:15.104895903Z",
+      "closed_at": "2026-10-19T10:41:15.104894581Z",
       "labels": [
         "blocker"
       ],
@@ -4560,11 +4561,16 @@
       "agent_id": "tLiK",
       "agent_seq": 300,
       "timestamp": "2026-10-19T10:41:06.219577792Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 301,
+      "timestamp": "2026-10-19T10:41:15.104895903Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T10:41:06.219577792Z",
+    "timestamp": "2026-10-19T10:41:15.104895903Z",
     "agent_id": "tLiK",
-    "agent_seq": 300
+    "agent_seq": 301
   }
 }
