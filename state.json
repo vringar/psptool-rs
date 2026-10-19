@@ -1,5 +1,5 @@
 {
-  "next_display_id": 97,
+  "next_display_id": 98,
   "next_comment_id": 134,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -48,6 +48,7 @@
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "7d3e8bf4-fc86-456e-9ee3-434b2180f648": 81,
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
+    "85cb914b-5cc4-4d96-b34a-3923a29e5c94": 97,
     "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": 75,
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
@@ -1475,6 +1476,16 @@
         "bc034fa5-f3ae-4faf-99a1-18d096bf29fd",
         "e9e8d58e-9b00-4f70-b337-7ab57b2da892"
       ]
+    },
+    "85cb914b-5cc4-4d96-b34a-3923a29e5c94": {
+      "uuid": "85cb914b-5cc4-4d96-b34a-3923a29e5c94",
+      "display_id": 97,
+      "title": "psptool-py: subclassable HeaderFile (pyclass subclass, __new__ w/o ROM args), honor Python overrides of get_decrypted_body/verify_sha256 in decode_verification/plaintext_identity_ok",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T00:52:32.267419969Z",
+      "updated_at": "2026-10-19T00:52:32.267419969Z"
     },
     "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": {
       "uuid": "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065",
@@ -4400,11 +4411,16 @@
       "agent_id": "tLiK",
       "agent_seq": 288,
       "timestamp": "2026-10-19T00:49:45.555789694Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 289,
+      "timestamp": "2026-10-19T00:52:32.267419969Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T00:49:45.555789694Z",
+    "timestamp": "2026-10-19T00:52:32.267419969Z",
     "agent_id": "tLiK",
-    "agent_seq": 288
+    "agent_seq": 289
   }
 }
