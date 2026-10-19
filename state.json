@@ -1,6 +1,6 @@
 {
   "next_display_id": 106,
-  "next_comment_id": 148,
+  "next_comment_id": 149,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2809,10 +2809,21 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T20:43:28.510688252Z",
-      "updated_at": "2026-10-19T20:43:52.628857482Z",
+      "updated_at": "2026-10-19T20:44:30.431854028Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "7df8369f-38a6-4539-88a5-9908b27c52f3": {
+          "display_id": 148,
+          "author": "tLiK",
+          "content": "Spillover from #90. Upstream SignedEntity.resign_only (cert_tree.py:101-117) signs self.file.get_signed_bytes() and writes the signature into the HeaderFile's signature NestedBuffer at rom_size - signature_len (header_file.py:88), i.e. over the buffer grown by header_file.py:32-33 / :72-75. psptool-ops/src/sign.rs sign_entry_with_rng uses entry.body (header.get_signed_bytes(body_bytes), header.signature_bytes(body_bytes)), so re-signing any HeaderFile whose buffer outgrows its directory size fails: the 13 corpus HeaderFiles grown past a non-zero directory size (#99, BodyTooSmall) and, since #90, the 3 zero-size KVM_IMAGE records (ASUS_Notebook_TUF_FX505DY-AS.309 @0x1e9000, Lenovo A285 @0x3bf220, A485 @0x51f420), whose body is empty (Truncated; before #90 they were NotSignedEntry). Fix shape: sign over Entry::header_file_window(blob) and patch at window offset. Note: sign_entry has no blob parameter today; the CLI caller (psptool-cli/src/cmds/sign.rs, replace.rs) holds it.",
+          "created_at": "2026-10-19T20:44:25.911386589Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAi88gth/E/BCY/bO18jMrniEi7rTm2sbXp5z8JRbSThsgYmEmPHroAzdQijbct2TrNNf0iIBksO+EHRUch0Y3BA=="
+        }
+      }
     },
     "e08438bf-e7a4-4f28-8ab7-4367b77fb377": {
       "uuid": "e08438bf-e7a4-4f28-8ab7-4367b77fb377",
@@ -4867,11 +4878,16 @@
       "agent_id": "tLiK",
       "agent_seq": 325,
       "timestamp": "2026-10-19T20:44:00.785550252Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 326,
+      "timestamp": "2026-10-19T20:44:30.431854028Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T20:44:00.785550252Z",
+    "timestamp": "2026-10-19T20:44:30.431854028Z",
     "agent_id": "tLiK",
-    "agent_seq": 325
+    "agent_seq": 326
   }
 }
