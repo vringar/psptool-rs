@@ -1,5 +1,5 @@
 {
-  "next_display_id": 113,
+  "next_display_id": 114,
   "next_comment_id": 156,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -64,6 +64,7 @@
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": 70,
     "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de": 96,
     "9dd7969e-3f3d-417d-a67a-715c85d241ee": 110,
+    "9eae39ba-4696-46ca-8b0a-eb30b071cd1a": 113,
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
@@ -1937,6 +1938,17 @@
       "labels": [
         "kaizen"
       ]
+    },
+    "9eae39ba-4696-46ca-8b0a-eb30b071cd1a": {
+      "uuid": "9eae39ba-4696-46ca-8b0a-eb30b071cd1a",
+      "display_id": 113,
+      "title": "Divergence: ROM with 0x800 prefix — ROM row addr/size and secondary-directory addresses differ from upstream (Milan KRPA-U16)",
+      "description": "Differential vs Python PSPTool 241629b3 goldens (psptool topic #891/#920), Milan 0.13.0.50 f84f3e9e and 0.13.0.72 37dfbe71 (served on :8830, file is 0x1000800 bytes). Upstream warns 'will assume ROM size of 16M' and reports ROM Addr 0x800, Size 0x1000000; $PSP secondary 0x272000, $BHD 0x582000. psptool-rs prints Addr 0x0, Size 0x1000800, $PSP 0x272800, $BHD 0x582800. Entry addresses agree with the oracle, so this may be a presentation/ROM-bounds difference only: needs a decision on which is right for byte-exact addressing. Source: golden diff agent report, scratch in session scratchpad.",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:59:04.657998059Z",
+      "updated_at": "2026-10-19T23:59:04.657998059Z"
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -5282,11 +5294,16 @@
       "agent_id": "tLiK",
       "agent_seq": 369,
       "timestamp": "2026-10-19T23:47:57.461929799Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 370,
+      "timestamp": "2026-10-19T23:59:04.657998059Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:47:57.461929799Z",
+    "timestamp": "2026-10-19T23:59:04.657998059Z",
     "agent_id": "tLiK",
-    "agent_seq": 369
+    "agent_seq": 370
   }
 }
