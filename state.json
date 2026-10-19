@@ -1,6 +1,6 @@
 {
   "next_display_id": 100,
-  "next_comment_id": 142,
+  "next_comment_id": 143,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2965,10 +2965,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-18T22:42:36.745527215Z",
-      "updated_at": "2026-10-18T22:42:53.965685085Z",
+      "updated_at": "2026-10-19T11:04:01.528969344Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "0f9b4457-6466-4af9-98f7-ff56b85abf25": {
+          "display_id": 142,
+          "author": "tLiK",
+          "content": "Note from #93: crates/psptool-cli/tests/verify_oracle.rs ZERO_SIZE_RECORD_ECHOES tolerates the same three addresses (one extra not-signed verify row each); fixing #90 must drop that constant along with decode_verification.rs ENTRY_SET_DELTA.",
+          "created_at": "2026-10-19T11:04:01.523436288Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAqLbnzsAocsnjHwlehKm7tJM2oMHMZXsQGCpdWPDsk9mn6y1DFY3qjDF7bAYtPwqpyUlmZ6aYNQRPuhwlAQP5Dw=="
+        }
+      }
     },
     "fba50544-5971-4237-8157-aca0c67508f5": {
       "uuid": "fba50544-5971-4237-8157-aca0c67508f5",
@@ -4602,11 +4613,16 @@
       "agent_id": "tLiK",
       "agent_seq": 304,
       "timestamp": "2026-10-19T11:03:50.404100507Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 305,
+      "timestamp": "2026-10-19T11:04:01.528969344Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T11:03:50.404100507Z",
+    "timestamp": "2026-10-19T11:04:01.528969344Z",
     "agent_id": "tLiK",
-    "agent_seq": 304
+    "agent_seq": 305
   }
 }
