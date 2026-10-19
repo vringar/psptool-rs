@@ -1,6 +1,6 @@
 {
   "next_display_id": 97,
-  "next_comment_id": 133,
+  "next_comment_id": 134,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -827,8 +827,17 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-18T23:09:47.276154449Z",
-      "updated_at": "2026-10-19T00:47:54.843697917Z",
+      "updated_at": "2026-10-19T00:49:40.367057547Z",
       "comments": {
+        "90455d34-f382-47fe-be6a-471fbb16e41e": {
+          "display_id": 133,
+          "author": "tLiK",
+          "content": "Result: committed zsmwpmwl/8b9a9dc6 on top of claude-main (not pushed). crates/psptool-py: drop-in 'psptool' module (pyo3 abi3, maturin), upstream object graph/order, read + edit/re-sign API; core change: HeaderEntry::decode_best_effort made pub. Verification (nix dev shell, oracle repinned to vringar/PSPTool 241629b): cargo test --workspace exit 0; corpus_parity 108/108 (54 dump: 7169 files byte-identical incl. sha256(get_decrypted_decompressed_body) + decode verdicts; 54 edit: to_file roundtrip, no-op moves, replace+resign verified by the reference); python_api 13/13; corpus_roundtrip 54/54; differential 54/54; clippy -D warnings + fmt PASS; nix-build -A package and -A python PASS (python check phase 13 OK, imports psptool + psptool.header_file). psp-etl suite (store snapshot) 706 passed with only psptool swapped; upstream PSPTool integration suite 9/10 (mock.patch of Python-only zlib_decompress, DEVIATIONS 13); PSP-DB suite not reachable locally. Spillover #96 (CLI -h text).",
+          "created_at": "2026-10-19T00:49:40.362445079Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGRmanKIEPSfGlte6Eij7XeAc5SPGG4p8PWvErKqHz2+mngQZA41b0kV68BvWEH079Br+zr/KOsN6Lo+oDpnxAQ=="
+        },
         "feeafb34-3b39-4cb9-b691-55c64dd0762b": {
           "display_id": 132,
           "author": "tLiK",
@@ -4379,11 +4388,16 @@
       "agent_id": "tLiK",
       "agent_seq": 285,
       "timestamp": "2026-10-19T00:48:24.025733805Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 286,
+      "timestamp": "2026-10-19T00:49:40.367057547Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T00:48:24.025733805Z",
+    "timestamp": "2026-10-19T00:49:40.367057547Z",
     "agent_id": "tLiK",
-    "agent_seq": 285
+    "agent_seq": 286
   }
 }
