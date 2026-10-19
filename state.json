@@ -1,5 +1,5 @@
 {
-  "next_display_id": 109,
+  "next_display_id": 110,
   "next_comment_id": 152,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -54,6 +54,7 @@
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
     "85cb914b-5cc4-4d96-b34a-3923a29e5c94": 97,
     "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": 75,
+    "8c70f226-69d1-4f16-9468-1e51f93cf14e": 109,
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
     "93fc2cd4-92a4-4aaf-9d80-316da7c2317a": 33,
     "996f2729-3afa-46ec-9ef8-fab57cba7cd1": 17,
@@ -1676,6 +1677,18 @@
       "labels": [
         "blocker"
       ]
+    },
+    "8c70f226-69d1-4f16-9468-1e51f93cf14e": {
+      "uuid": "8c70f226-69d1-4f16-9468-1e51f93cf14e",
+      "display_id": 109,
+      "title": "Divergence: sign_entry does not refresh a stale header sha256 before re-signing; upstream resign_only rehashes (cert_tree.py:103-110)",
+      "description": "Spillover from #105. SignedEntity.resign_only first checks has_sha256_checksum and, when verify_sha256 fails, calls update_sha256 (header_file.py:119-121: _sha256_checksum[:] = sha256(get_checksummed_bytes())) before signing, so a replaced body gets a fresh checksum inside the signed header. psptool-ops/src/sign.rs sign_entry only patches the signature region, so after psptool replace -p the header keeps the old sha256 and the new signature covers it. Unmodified corpus entries are unaffected (their checksum verifies). Fix shape: in sign_entry, when has_sha256_checksum() and the stored digest != sha256(decoded body), patch header[0x20:0x40] (header_file.py:46) before computing the signed bytes, over Entry::header_file_window; pin with a replace-then-sign test.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:23:01.018140944Z",
+      "updated_at": "2026-10-19T23:23:01.018140944Z"
     },
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": {
       "uuid": "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8",
@@ -5076,11 +5089,16 @@
       "agent_id": "tLiK",
       "agent_seq": 349,
       "timestamp": "2026-10-19T23:22:43.813705332Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 350,
+      "timestamp": "2026-10-19T23:23:01.018140944Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:22:43.813705332Z",
+    "timestamp": "2026-10-19T23:23:01.018140944Z",
     "agent_id": "tLiK",
-    "agent_seq": 349
+    "agent_seq": 350
   }
 }
