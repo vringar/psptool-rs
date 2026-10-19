@@ -18,6 +18,7 @@
 //! | [`HeaderEntry::get_decrypted_decompressed_body`] | `get_decrypted_decompressed_body` |
 //! | [`HeaderEntry::decode_best_effort`]   | `_decrypted_decompressed_body`              |
 //! | [`HeaderEntry::get_signed_bytes`]     | `get_signed_bytes`                          |
+//! | [`HeaderEntry::get_key_store_signed_bytes`] | `KeyStoreFile.get_signed_bytes`       |
 //! | [`HeaderEntry::verify_signature`]     | `HeaderFile.verify_signature`               |
 //! | [`PubkeyEntry::rsa_public_key`]       | `PubkeyFile.get_public_key`                 |
 //! | [`Entry::decode_verification`]        | `HeaderFile.decode_verification`            |
@@ -50,11 +51,11 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:222` + `signature_bytes` at `body.rs:254`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; the grow half (`header_file.py:72-75`, `rom_size` past the directory size reads on into the image) is `Entry::header_file_window` at `body.rs:859`. Consumers `psptool-ops/src/extract.rs` (`extract_decompressed` / `extract_decrypted` over the window, #99) + `psptool-ops/src/sign.rs:147`. Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`; the grown window is pinned live by `psptool-cli/tests/extract_oracle.rs`. |
+//! | REQ-1 (rom_size-bounded slicing) | SHIPPED | `data_region` at `body.rs:228` + `signature_bytes` at `body.rs:260`, both gated on `is_signed()` per upstream `header_file.py:77-84,100`; the grow half (`header_file.py:72-75`, `rom_size` past the directory size reads on into the image) is `Entry::header_file_window` at `body.rs:865`. Consumers `psptool-ops/src/extract.rs` (`extract_decompressed` / `extract_decrypted` over the window, #99) + `psptool-ops/src/sign.rs:147`. Pins #81/#83 (unsigned slicing) live in `tests/divergence_body_bounds.rs`; the grown window is pinned live by `psptool-cli/tests/extract_oracle.rs`. |
 //! | REQ-2 (AES-128 decryption) | SHIPPED | `get_decrypted_body` at `body.rs:255` (ECB-unwrap key then CBC-decrypt) per upstream `utils.py:281,283`, `header_file.py:184-190`; consumer `psptool-ops/src/extract.rs:79` → CLI `extract -d`. |
 //! | REQ-3 (zlib decompression) | SHIPPED | `get_decompressed_body` at `body.rs:303` = `zlib_decompress(output[:zlib_size])` (`zlib_decompress` `body.rs:1100`: `zlib_find_header` per-magic priority search `entry.rs:613`, strict inflate `body.rs:1118`, no magic → input unchanged) per upstream `utils.py:218-254`, `header_file.py:181`; consumer `decode` `body.rs:317` → `get_signed_bytes` → `psptool-ops/src/extract.rs:77` (`-X -u`). Pins #82/#84 live; #91 pins `psptool-ops/tests/divergence_extract_zlib.rs` + `psptool-cli/tests/extract_oracle.rs`. |
 //! | REQ-4 (combined decrypt+decompress) | SHIPPED | `get_decrypted_decompressed_body` at `body.rs:340` over `decode` at `body.rs:317` (decrypt iff encrypted, inflate iff compressed, the still-compressed region when the inflate fails) per upstream `header_file.py:172-189`; production consumer `get_signed_bytes` at `body.rs:375`. |
-//! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:375` emits `header(0x100) || plaintext[..size_signed]` (a Python slice: a shorter body is covered whole) per upstream `header_file.py:168-170`; consumer `psptool-ops/src/sign.rs:157` + `psptool-ops/src/extract.rs:77` + `verify_signature` at `body.rs:395`. Closes #79. |
+//! | REQ-5 (signed-region = 0x100+size_signed) | SHIPPED | `get_signed_bytes` at `body.rs:384` emits `header(0x100) || plaintext[..size_signed]` (a Python slice: a shorter body is covered whole) per upstream `header_file.py:168-170`; consumer `psptool-ops/src/sign.rs:157` + `psptool-ops/src/extract.rs:101` + `verify_signature` at `body.rs:404`. The `KeyStoreFile` override `header(0x100) || key_store` (`key_store_file.py:50-51`) is `get_key_store_signed_bytes` at `body.rs:984`, consumer `psptool-ops/src/extract.rs:99` (`-X -u` of a key store, #100). Closes #79. |
 //! | REQ-6 (verify a real signed HeaderFile) | SHIPPED | `verify_signature` at `body.rs:395` (library API, one `PubkeyEntry`) and the certificate-tree rung `CertifyingKeys::check` at `body.rs:788` → `verify_blob` at `body.rs:1154` both use the on-disk signature **plain** (not the PubkeyFile-reversed convention) per upstream `cert_tree.py:63,78-98`, `crypto.py:247-258`; consumers `psptool-ops/src/verify.rs:229` (`decode_verification(..).signature()`) → CLI `verify`, and `ls` (`psptool-ops/src/list.rs`). Corpus-proven: `psptool verify` agrees with the reference certificate tree at all 3927 signed-file addresses (`psptool-cli/tests/verify_oracle.rs`, #93). Closes #78. |
 //! | REQ-7 (PubkeyEntry RSA extraction) | SHIPPED | `rsa_public_key` at `body.rs:499` with LE exponent/modulus per upstream `crypto.py:219-229`; production consumers `CertifyingKeys::add_entry` at `body.rs:756` (the key map of `ls` and `verify`) and `verify_signature` at `body.rs:395`. |
 
@@ -150,6 +151,11 @@ pub enum BodyError {
     /// (`utils.py:250`).
     #[error("zlib decompression failed: {0}")]
     Zlib(String),
+    /// A `KeyStoreFile`'s key store (`key_store_file.py:39-42`) ends past the
+    /// bytes it is cut from: the decoded body of a compressed store, else the
+    /// file.
+    #[error("key store ends at byte {needed}, past its {available}-byte source")]
+    KeyStoreTruncated { available: usize, needed: usize },
 }
 
 /// Errors returned by [`HeaderEntry::verify_signature`].
@@ -963,6 +969,44 @@ impl HeaderEntry {
             signature: signature_check,
             checksum,
         }
+    }
+
+    /// `KeyStoreFile.get_signed_bytes()` (`key_store_file.py:50-51`):
+    /// `header(0x100) ++ key_store` — what a `KeyStoreFile`'s signature covers
+    /// and its single-file `-X -u` output (`__main__.py:172`). It overrides the
+    /// HeaderFile envelope of [`Self::get_signed_bytes`]: the key store is the
+    /// decrypted, inflated body cut to `size_uncompressed` when compressed
+    /// (`:39-40`), else the `body_size` (`0x14`) bytes after the header
+    /// (`:41-42`). `file` is the [`Entry::header_file_window`]; `ikek` decrypts
+    /// an encrypted store. [`BodyError::KeyStoreTruncated`] when the store runs
+    /// past the bytes it is cut from, where upstream's `KeyStore` parse fails
+    /// (`key_store_file.py:144-172`).
+    pub fn get_key_store_signed_bytes(
+        &self,
+        file: &[u8],
+        ikek: Ikek,
+    ) -> Result<Vec<u8>, BodyError> {
+        let header = file
+            .get(..HEADER_FILE_LEN)
+            .ok_or(BodyError::Truncated(file.len()))?;
+        let decoded = if self.is_compressed {
+            Some(self.decode_best_effort(file, ikek)?.0)
+        } else {
+            None
+        };
+        let store = self
+            .key_store_slice(file, decoded.as_deref())
+            .ok_or_else(|| {
+                let (available, needed) = match &decoded {
+                    Some(body) => (body.len(), self.size_uncompressed as usize),
+                    None => (
+                        file.len(),
+                        HEADER_FILE_LEN.saturating_add(self.size_signed as usize),
+                    ),
+                };
+                BodyError::KeyStoreTruncated { available, needed }
+            })?;
+        Ok([header, store].concat())
     }
 
     /// `KeyStoreFile.key_store` (`key_store_file.py:36-42`): the decoded body

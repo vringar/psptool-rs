@@ -19,23 +19,27 @@
 //! | [`extract_decrypted`]     | `HeaderFile.to_decrypted_file_bytes()` — `-X -c` (`__main__.py:176`, `header_file.py:176-182`) |
 //!
 //! Decompression / decryption are only meaningful for entries that carry a
-//! [`HeaderEntry`] — i.e. [`EntryClass::Header`] or [`EntryClass::KeyStore`].
-//! Other classes produce [`ExtractError::NotHeaderEntry`].
+//! [`HeaderEntry`] — i.e. [`EntryClass::Header`] or [`EntryClass::KeyStore`]
+//! (upstream's `HeaderFile` and its `KeyStoreFile` subclass, which overrides
+//! `get_signed_bytes()`). Other classes produce [`ExtractError::NotHeaderEntry`].
+//! Multi-file `-u`/`-c` transform only exact `HeaderFile`s
+//! (`type(file) is HeaderFile`, `__main__.py:193-196`); that gate lives in the
+//! CLI.
 //!
 //! ## REQ status (per `.design/psptool-ops/extract.md`)
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:60` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:159`/`:241`. |
-//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:86` `extract_decompressed(entry, blob)` → `get_signed_bytes` (core `body.rs:378`) over the `rom_size` HeaderFile buffer `Entry::header_file_window` (core `body.rs:859`, `header_file.py:72-75`, #99), which decrypts then inflates through the decode-verification ladder's `_decrypted_decompressed_body` decode (`zlib_find_header` priority search, strict inflate, still-compressed fallback; #91) per upstream `header_file.py:179-186`, `utils.py:218-254`; consumer `cmds/extract.rs:140`/`:214`. Returns the full `-u` envelope (REQ-7). |
-//! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs:129` `extract_decrypted(entry, blob, ikek)` (`get_decrypted_body` over the same `rom_size` buffer, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:286-292`); consumer `cmds/extract.rs:151`. Returns the full `-c` envelope (REQ-7). |
-//! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:98` (`entry.class.header().ok_or(NotHeaderEntry)?`) per upstream `type(file) is HeaderFile` (`__main__.py:193`,`:195`); Header/KeyStore only. |
-//! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:43` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
-//! | REQ-6 (CLI `extract` consumer) | SHIPPED | `cmds/extract.rs` binds all three ops (`:140`/`:151`/`:159`/`:214`/`:241`) with the image `opened.blob`, dispatched `main.rs:82` (`-X`) / `:125` (`Command::Extract`). Boundary CLI surface (R-DEFER-1). |
-//! | REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` returns `get_signed_bytes()` (`header ++ decrypted-decompressed[..0x100+size_signed]`, `header_file.py:168-170`); `extract_decrypted` assembles `to_decrypted_file_bytes()` (`header(enc+IV cleared) ++ get_decrypted_body() ++ signature`, `header_file.py:278-284`). Consumer `cmds/extract.rs:140`/`:151` (single-file `-u`/`-c`, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`). Pins `divergence_extract_envelope.rs` (both `#[test]`, green); live byte parity with the reference CLI in `psptool-cli/tests/extract_oracle.rs`. |
+//! | REQ-1 (`extract_raw` verbatim) | SHIPPED | `extract.rs:64` (`entry.get_bytes().as_bytes().to_vec()`) per upstream `file.get_bytes()` (`__main__.py:180`); consumer `cmds/extract.rs:160`/`:246`. |
+//! | REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | `extract.rs:93` `extract_decompressed(entry, blob)` → `get_signed_bytes` (core `body.rs:384`) over the `rom_size` HeaderFile buffer `Entry::header_file_window` (core `body.rs:865`, `header_file.py:72-75`, #99), which decrypts then inflates through the decode-verification ladder's `_decrypted_decompressed_body` decode (`zlib_find_header` priority search, strict inflate, still-compressed fallback; #91) per upstream `header_file.py:179-186`, `utils.py:218-254`; a `KeyStoreFile` takes its override `get_key_store_signed_bytes` (core `body.rs:984`, `key_store_file.py:50-51`, #100); consumer `cmds/extract.rs:141`/`:219`. Returns the full `-u` envelope (REQ-7). |
+//! | REQ-3 (`extract_decrypted` AES) | SHIPPED | `extract.rs:143` `extract_decrypted(entry, blob, ikek)` (`get_decrypted_body` over the same `rom_size` buffer, `NotEncrypted` guard) per upstream `HeaderFile.get_decrypted_body()` (`header_file.py:286-292`); consumer `cmds/extract.rs:152`. Returns the full `-c` envelope (REQ-7). |
+//! | REQ-4 (HeaderFile-class gate) | SHIPPED | `extract.rs:112` (`entry.class.header().ok_or(NotHeaderEntry)?`): the accessors exist on `HeaderFile` and its `KeyStoreFile` subclass only; the multi-file `type(file) is HeaderFile` gate (`__main__.py:193`,`:195`) is `cmds/extract.rs:217` (#100). |
+//! | REQ-5 (typed panic-free errors) | SHIPPED | `ExtractError` at `extract.rs:47` (`NotHeaderEntry` + `Body(#[from] BodyError)`); no unwrap/expect/panic on the production path (R-CODE-2). |
+//! | REQ-6 (CLI `extract` consumer) | SHIPPED | `cmds/extract.rs` binds all three ops (`:141`/`:152`/`:160`/`:219`/`:246`) with the image `opened.blob`, dispatched `main.rs:82` (`-X`) / `:125` (`Command::Extract`). Boundary CLI surface (R-DEFER-1). |
+//! | REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` returns `get_signed_bytes()` (`header ++ decrypted-decompressed[..0x100+size_signed]`, `header_file.py:168-170`; a `KeyStoreFile`'s `header ++ key_store`, `key_store_file.py:50-51`); `extract_decrypted` assembles `to_decrypted_file_bytes()` (`header(enc+IV cleared) ++ get_decrypted_body() ++ signature`, `header_file.py:278-284`). Consumer `cmds/extract.rs:141`/`:152` (single-file `-u`/`-c`, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`). Pins `divergence_extract_envelope.rs` (both `#[test]`, green); live byte parity with the reference CLI in `psptool-cli/tests/extract_oracle.rs`. |
 
 use psptool_core::entry::HEADER_FILE_LEN;
-use psptool_core::{BodyError, Entry, HeaderEntry, Ikek, SourceBytes};
+use psptool_core::{BodyError, Entry, EntryClass, HeaderEntry, Ikek, SourceBytes};
 use thiserror::Error;
 
 /// Errors returned by [`extract_decompressed`] / [`extract_decrypted`].
@@ -71,7 +75,10 @@ pub fn extract_raw(entry: &Entry) -> Vec<u8> {
 /// only when the header advertises `is_encrypted == 1` (upstream decrypts then
 /// decompresses inside `get_decrypted_decompressed_body`, `header_file.py:166-174`).
 /// A zlib stream that fails to inflate leaves the still-compressed body in the
-/// envelope, as upstream's does (`header_file.py:182-185`).
+/// envelope, as upstream's does (`header_file.py:182-185`). A `KeyStoreFile`
+/// ([`EntryClass::KeyStore`]) overrides the envelope: its `get_signed_bytes()`
+/// is `header(0x100) ++ key_store` (`key_store_file.py:50-51`,
+/// [`HeaderEntry::get_key_store_signed_bytes`]).
 ///
 /// `blob` is the image `entry` was parsed from: the accessor reads the
 /// HeaderFile buffer, re-sized to the header's `rom_size`, which reads on into
@@ -85,7 +92,14 @@ pub fn extract_raw(entry: &Entry) -> Vec<u8> {
 /// itself is defined for both compressed and uncompressed HeaderFiles.
 pub fn extract_decompressed(entry: &Entry, blob: &SourceBytes) -> Result<Vec<u8>, ExtractError> {
     let (header, file) = header_file(entry, blob)?;
-    let out = header.get_signed_bytes(file.as_bytes(), Some(Ikek::ZenPlus))?;
+    let out = match &entry.class {
+        // `KeyStoreFile` overrides `get_signed_bytes()` with `header ++
+        // key_store` (`key_store_file.py:50-51`).
+        EntryClass::KeyStore(_) => {
+            header.get_key_store_signed_bytes(file.as_bytes(), Ikek::ZenPlus)?
+        }
+        _ => header.get_signed_bytes(file.as_bytes(), Some(Ikek::ZenPlus))?,
+    };
     Ok(out)
 }
 
@@ -530,24 +544,55 @@ mod tests {
         assert_ne!(wrong, right);
     }
 
-    // -- KeyStore handling: is also a HeaderEntry-class ---------------------
+    // -- KeyStore: `KeyStoreFile.get_signed_bytes()` -------------------------
 
     #[test]
-    fn extract_decompressed_works_on_keystore_class() {
-        // Type 0x50 → KeyStore. A KeyStore carries a HeaderEntry just like
-        // Header, so extract_decompressed reaches `get_signed_bytes` (the
-        // envelope) instead of NotHeaderEntry — proving KeyStore is treated
-        // like Header.
-        let size_signed: u32 = 17;
-        let body = build_compressed_signed_body(size_signed);
+    fn extract_decompressed_of_a_compressed_key_store_is_header_plus_key_store() {
+        // Type 0x50 → KeyStore. `KeyStoreFile.get_signed_bytes()` is
+        // `header ++ key_store` (`key_store_file.py:50-51`), the store being
+        // the inflated body cut to `size_uncompressed` (`:39-40`) — 5 bytes
+        // here — not the HeaderFile envelope cut to `size_signed` (17).
+        let mut body = build_compressed_signed_body(17);
+        body[0x50..0x54].copy_from_slice(&5u32.to_le_bytes()); // size_uncompressed
         let blob_bytes = psp_dir_with_entry(0x50, &body);
         let (blob, entry) = parse_single_psp_entry(blob_bytes);
         assert!(matches!(entry.class, EntryClass::KeyStore(_)));
 
-        let mut expected = entry.body.as_bytes()[..HEADER_FILE_LEN].to_vec();
-        expected.extend_from_slice(b"hello, psptool-rs");
+        let mut expected = body[..HEADER_FILE_LEN].to_vec();
+        expected.extend_from_slice(b"hello");
+        assert_eq!(extract_decompressed(&entry, &blob).ok(), Some(expected));
+    }
 
-        let out = extract_decompressed(&entry, &blob).ok();
-        assert_eq!(out, Some(expected));
+    #[test]
+    fn extract_decompressed_of_a_raw_key_store_is_header_plus_body_size_bytes() {
+        // Uncompressed: the key store is the `body_size` (`0x14`) bytes after
+        // the header (`key_store_file.py:41-42`), whatever `rom_size` says.
+        let mut h = [0u8; HEADER_FILE_LEN];
+        h[0x10..0x14].copy_from_slice(b"$PS1");
+        h[0x14..0x18].copy_from_slice(&0x20u32.to_le_bytes()); // body_size
+        h[0x30..0x34].copy_from_slice(&1u32.to_le_bytes());
+        h[0x34..0x38].copy_from_slice(&2u32.to_le_bytes()); // RSA-4096
+        h[0x6C..0x70].copy_from_slice(&((HEADER_FILE_LEN + 0x20 + 0x200) as u32).to_le_bytes());
+        let mut file = h.to_vec();
+        file.extend((0..0x20).map(|i| i as u8));
+        file.extend(std::iter::repeat_n(0xCCu8, 0x200));
+        let (blob, entry) = parse_single_psp_entry(psp_dir_with_entry(0x50, &file));
+        assert!(matches!(entry.class, EntryClass::KeyStore(_)));
+
+        let expected = file[..HEADER_FILE_LEN + 0x20].to_vec();
+        assert_eq!(extract_decompressed(&entry, &blob).ok(), Some(expected));
+
+        // A `body_size` past the file: upstream's `KeyStore` buffer cannot be
+        // cut (`utils.py:46-47`); a typed error here.
+        let mut overlong = file.clone();
+        overlong[0x14..0x18].copy_from_slice(&0x1000u32.to_le_bytes());
+        let (blob, entry) = parse_single_psp_entry(psp_dir_with_entry(0x50, &overlong));
+        assert!(matches!(
+            extract_decompressed(&entry, &blob),
+            Err(ExtractError::Body(BodyError::KeyStoreTruncated {
+                available: 0x320,
+                needed: 0x1100
+            }))
+        ));
     }
 }

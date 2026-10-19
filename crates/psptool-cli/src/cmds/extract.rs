@@ -12,9 +12,10 @@
 //! Transforms (`-u`/`-c`/`-k`) modify the output bytes per entry. In
 //! single-file mode, an unsuitable entry is rejected with a typed error
 //! (matching upstream's "errors if file is not compressed in single-file
-//! mode"). In multi-file mode, unsuitable entries fall back to the raw body
-//! (matches upstream's "silently ignored for non-pubkey files in `-k`" /
-//! "`get_decrypted_body()` for `-c` multi-file" behaviour).
+//! mode"). In multi-file mode, `-u`/`-c` transform only exact HeaderFiles
+//! (`type(file) is HeaderFile`, `__main__.py:193-196`) and `-k` only
+//! pubkeys; every other entry — a `KeyStoreFile` included — is written raw
+//! (`__main__.py:199-200`).
 
 use std::fs;
 use std::io::Write;
@@ -210,7 +211,11 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
     let mut written = 0usize;
     let blob = &opened.blob;
     for_each_entry(opened, |entry, dir_idx, entry_idx, is_bios| {
-        let bytes = if args.decompress {
+        // `-u`/`-c` transform only `type(file) is HeaderFile`: its
+        // `KeyStoreFile` subclass is written raw like every other file
+        // (`__main__.py:193-200`, `:216-223`).
+        let header_file = matches!(entry.class, EntryClass::Header(_));
+        let bytes = if args.decompress && header_file {
             match extract_decompressed(entry, blob) {
                 Ok(bytes) => {
                     let name = readable_type(entry.entry_type(), is_bios);
@@ -219,7 +224,7 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
                 }
                 Err(_) => extract_raw(entry),
             }
-        } else if args.decrypt {
+        } else if args.decrypt && header_file {
             // Upstream multi-file `-c` writes the BARE decrypted body
             // (`__main__.py:196` `file.get_decrypted_body()`), NOT the
             // single-file `to_decrypted_file_bytes()` envelope that

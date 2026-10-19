@@ -78,10 +78,12 @@ class-gate + error-surface pins) — plus the live reference differential
   (#99).
 - REQ-4: **Decompress/decrypt are gated to HeaderFile-class entries.** Both ops
   first resolve `entry.class.header()`; a non-`Header`/`KeyStore` class yields
-  [`ExtractError::NotHeaderEntry`]. Mirrors upstream's `type(file) is HeaderFile`
-  guards (`__main__.py:193`, `:195`) — decompression/decryption are only defined
-  for `HeaderFile` bodies. `KeyStore` is treated like `Header` (both carry a
-  [`HeaderEntry`]).
+  [`ExtractError::NotHeaderEntry`] — the accessors exist on `HeaderFile` and its
+  `KeyStoreFile` subclass only, and single-file `-u` of a `KeyStoreFile` is its
+  own `get_signed_bytes()`, `header ++ key_store` (`key_store_file.py:50-51`).
+  Multi-file `-u`/`-c` transform only exact HeaderFiles (`type(file) is
+  HeaderFile`, `__main__.py:193`, `:195`) and write a `KeyStoreFile` raw; that
+  gate lives in the CLI (#100).
 - REQ-5: **Typed, panic-free error surface.** [`ExtractError`] enumerates
   `NotHeaderEntry` and `Body(#[from] BodyError)`; all core failures (truncation,
   missing zlib magic, `NotCompressed`, `NotEncrypted`, decrypt failure) surface as
@@ -128,9 +130,10 @@ class-gate + error-surface pins) — plus the live reference differential
   (`extract.rs:229-238`), `..._for_pubkey_entry` (`extract.rs:240-248`),
   `extract_decrypted_errors_for_non_header_entry` (`extract.rs:295-303`),
   `..._for_pubkey_entry` (`extract.rs:305-313`) all yield
-  `ExtractError::NotHeaderEntry`; `extract_decompressed_works_on_keystore_class`
-  (`extract.rs:344-356`) proves `KeyStore` is treated like `Header` (it reaches
-  the `NotCompressed` gate, not `NotHeaderEntry`).
+  `ExtractError::NotHeaderEntry`;
+  `extract_decompressed_of_a_{compressed,raw}_key_store_*` pin a `KeyStore`'s
+  own `get_signed_bytes()`, `header ++ key_store` (#100); `extract_oracle.rs`
+  pins the multi-file exact-`HeaderFile` gate against the reference CLI.
 - AC-7 (REQ-6): the `extract` subcommand round-trips a synthetic ROM's raw entry
   to an outfile (`psptool-cli/tests/synthetic.rs:213`
   `extract_raw_to_outfile_on_synthetic_rom`), reachable via `main.rs:125`
@@ -146,13 +149,13 @@ class-gate + error-surface pins) — plus the live reference differential
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (`extract_raw` verbatim) | SHIPPED | Impl `extract.rs:41-43` (`pub fn extract_raw`, `entry.get_bytes().as_bytes().to_vec()`) delegates to `Entry::get_bytes` (`entry.rs:381`, returns `&self.body`); mirrors `file.get_bytes()` — the default `-X` output (`__main__.py:180` `output = file.get_bytes()`). Non-test consumer: `psptool-cli/src/cmds/extract.rs:137` (single default) and `:171`/`:162-168` (multi default + fallback), dispatched `main.rs:82`/`:125`. Verification: `extract_raw_returns_body_bytes_verbatim_for_{plain,header}_entry` + `..._works_on_pubkey` (`extract.rs:175-207`) — 3 passed. |
-| REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | Impl `extract.rs:86` (`pub fn extract_decompressed(entry, blob)`) over the `rom_size` HeaderFile buffer `Entry::header_file_window` (`body.rs:859`, `header_file.py:72-75`, #99) → `HeaderEntry::get_signed_bytes` (`body.rs:378`) → `get_decrypted_decompressed_body` (`body.rs:340`) → the shared `_decrypted_decompressed_body` decode (`body.rs:317`) → `get_decompressed_body` (`body.rs:303`, `zlib_decompress(output[:zlib_size])`: `zlib_find_header` priority search, strict inflate, magic-free passthrough; still-compressed fallback on failure) — the decode the decode-verification ladder uses (#91). Mirrors `header_file.py:179-186`, `utils.py:218-254`. Non-test consumer: `cmds/extract.rs:140` (single, + `warn_if_inflate_failed` `cmds/extract.rs:183` per `header_file.py:184`) / `:214` (multi). Verification: `psptool-ops --test divergence_extract_zlib` (7 passed: priority, truncated, corrupt, no magic, `zlib_size` past the region, short fallback, control) and `psptool-cli --test extract_oracle` (live reference, 4 passed: 9 single-file `-u` synthetic cases incl. the warning and two HeaderFiles grown past their directory entry, the same image in multi-file `-u`, and `get_signed_bytes()` of all 4019 corpus HeaderFiles byte-identical — 13 of them grown, #99). |
-| REQ-3 (`extract_decrypted` AES) | SHIPPED | Impl `extract.rs:129` (`pub fn extract_decrypted(entry, blob, ikek)`): `header.get_decrypted_body(file, ikek)` over the `rom_size` HeaderFile buffer `Entry::header_file_window` (#99; `get_decrypted_body` `body.rs:288`, `NotEncrypted` guard, key unwrap + CBC decrypt `body::decrypt`); mirrors `HeaderFile.get_decrypted_body()` encrypted branch (`header_file.py:184-190` `decrypt(self.body.get_bytes(), self.key, unwrapped_ikek, self.iv)`), not-encrypted case surfaced as `NotEncrypted` per the single-file `-c` guard (`__main__.py:174-175`). Non-test consumer: `cmds/extract.rs:151` (single-file `-c`); multi-file `-c` calls `get_decrypted_body` over the same window directly (`cmds/extract.rs:229-234`, the bare body of `__main__.py:196`). Verification: `extract_decrypted_returns_to_decrypted_file_bytes_envelope`, `..._uses_committed_encrypted_fixture`, `..._with_wrong_ikek_diverges_in_body`, `..._errors_when_header_not_encrypted`, `..._reads_the_rom_size_buffer_past_the_directory_size` (#99) — `extract.rs` unit tests; live: `extract_oracle.rs` single- and multi-file `-c` on the `header_encrypted` fixture whole and grown, and `to_decrypted_file_bytes()` of all 256 encrypted corpus HeaderFiles byte-identical. |
-| REQ-4 (HeaderFile-class gate) | SHIPPED | Impl `extract.rs:58` / `:78` (`entry.class.header().ok_or(ExtractError::NotHeaderEntry)?`) via `EntryClass::header` (`entry.rs:348-353`, returns `Some` only for `Header`/`KeyStore`); mirrors upstream `type(file) is HeaderFile` guards (`__main__.py:193`, `:195`). Non-test consumer: `cmds/extract.rs:127`/`:129` propagate the error via `?`/`context`. Verification: `extract_{decompressed,decrypted}_errors_for_{non_header,pubkey}_entry` (`extract.rs:229-248`, `:295-313`) + `extract_decompressed_works_on_keystore_class` (`extract.rs:344-356`) — 5 passed. |
-| REQ-5 (typed panic-free errors) | SHIPPED | Impl `extract.rs:22-34` (`enum ExtractError { NotHeaderEntry, Body(#[from] BodyError) }`); every failure returns typed `Err`, no `unwrap`/`expect`/`panic` on the production path. Mirrors upstream's typed `NotCompressed`/`NotEncrypted` gates (`header_file.py:185`, `header_file.py` compressed field). Non-test consumer: `cmds/extract.rs:127-129` wrap with `.context(..)`, `:162-164` `unwrap_or_else(|_| extract_raw(entry))` fallback. Verification: covered by the `..._errors_*` tests (AC-3/AC-5/AC-6); `cargo test -p psptool-ops --lib extract` 14 passed. |
-| REQ-6 (CLI `extract` consumer) | SHIPPED | Consumer `psptool-cli/src/cmds/extract.rs`: `extract_decompressed` (`:140` single, `:214` multi), `extract_decrypted` (`:151` single), `extract_raw` (`:159` default, `:220`/`:234`/`:238`/`:241` multi); imported `:27`; all pass the image `opened.blob` for the `rom_size` HeaderFile buffer (#99). Dispatched from `main.rs:82` (`cmds::extract::run` `-X` fast-path) and `main.rs:125` (`Command::Extract(args) => cmds::extract::run(args, out)`). This IS the boundary CLI surface (goal.md R-DEFER-1). Verification: `psptool-cli/tests/synthetic.rs:213` (`extract_raw_to_outfile_on_synthetic_rom`); `psptool-cli/tests/extract_oracle.rs` runs both CLIs single- and multi-file. |
-| REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` now returns `header.get_signed_bytes(body, Some(Ikek::ZenPlus))` (`extract.rs`, `get_signed_bytes` `body.rs:377`) = `header ++ decrypted-decompressed[:0x100+size_signed]` per upstream `-u` (`__main__.py:172`, `header_file.py:162-164`); `extract_decrypted` assembles `header(is_encrypted+IV cleared) ++ get_decrypted_body() ++ signature_bytes()` (`extract.rs`, `header_file.py:176-182`) per single-file `-c` (`__main__.py:176`). Non-test consumer: `cmds/extract.rs:140` (`-u`) / `:151` (`-c`) single-file path, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`. Verification: `divergence_extract_envelope.rs` — both pins `#[test]`, 2 passed; live, byte-for-byte vs the reference CLI: `extract_oracle.rs` (synthetic single-file `-u`/`-c` + every corpus HeaderFile's `get_signed_bytes()` / `to_decrypted_file_bytes()`). |
+| REQ-1 (`extract_raw` verbatim) | SHIPPED | Impl `extract.rs:64` (`pub fn extract_raw`, `entry.get_bytes().as_bytes().to_vec()`) delegates to `Entry::get_bytes` (`entry.rs:404`, returns `&self.body`); mirrors `file.get_bytes()` — the default `-X` output (`__main__.py:180` `output = file.get_bytes()`). Non-test consumer: `psptool-cli/src/cmds/extract.rs:160` (single default) and `:246` (multi default; `:225`/`:239`/`:243` fallbacks), dispatched `main.rs:82`/`:125`. Verification: `extract_raw_returns_body_bytes_verbatim_for_{plain,header}_entry` + `..._works_on_pubkey` (`extract.rs` unit tests) — 3 passed. |
+| REQ-2 (`extract_decompressed` zlib inflate) | SHIPPED | Impl `extract.rs:93` (`pub fn extract_decompressed(entry, blob)`) over the `rom_size` HeaderFile buffer `Entry::header_file_window` (`body.rs:865`, `header_file.py:72-75`, #99) → `HeaderEntry::get_signed_bytes` (`body.rs:384`) → `get_decrypted_decompressed_body` → the shared `_decrypted_decompressed_body` decode (`body.rs:326`) → `get_decompressed_body` (`zlib_decompress(output[:zlib_size])`: `zlib_find_header` priority search, strict inflate, magic-free passthrough; still-compressed fallback on failure) — the decode the decode-verification ladder uses (#91). Mirrors `header_file.py:179-186`, `utils.py:218-254`. A `KeyStoreFile` takes its own `get_signed_bytes()`, `header ++ key_store` (`key_store_file.py:50-51`): `HeaderEntry::get_key_store_signed_bytes` (`body.rs:984`, #100). Non-test consumer: `cmds/extract.rs:141` (single, + `warn_if_inflate_failed` `cmds/extract.rs:184` per `header_file.py:184`) / `:219` (multi, exact HeaderFiles only). Verification: `psptool-ops --test divergence_extract_zlib` (7 passed: priority, truncated, corrupt, no magic, `zlib_size` past the region, short fallback, control); `extract_decompressed_of_a_{compressed,raw}_key_store_*` (`extract.rs` unit tests); and `psptool-cli --test extract_oracle` (live reference, 5 passed: 11 single-file `-u` synthetic cases incl. the warning, two HeaderFiles grown past their directory entry and two compressed `KeyStoreFile`s, the same image in multi-file `-u`, `get_signed_bytes()` of all 4019 corpus HeaderFiles byte-identical — 13 of them grown, #99 — and the 12 corpus key-store files of multi-file `-u`, #100). |
+| REQ-3 (`extract_decrypted` AES) | SHIPPED | Impl `extract.rs:143` (`pub fn extract_decrypted(entry, blob, ikek)`): `header.get_decrypted_body(file, ikek)` over the `rom_size` HeaderFile buffer `Entry::header_file_window` (#99; `get_decrypted_body` `body.rs:293`, `NotEncrypted` guard, key unwrap + CBC decrypt `body::decrypt`); mirrors `HeaderFile.get_decrypted_body()` encrypted branch (`header_file.py:286-292` `decrypt(self.body.get_bytes(), self.key, unwrapped_ikek, self.iv)`), not-encrypted case surfaced as `NotEncrypted` per the single-file `-c` guard (`__main__.py:174-175`). Non-test consumer: `cmds/extract.rs:152` (single-file `-c`); multi-file `-c` calls `get_decrypted_body` over the same window directly, for exact HeaderFiles only (`cmds/extract.rs:234-239`, the bare body of `__main__.py:196`). Verification: `extract_decrypted_returns_to_decrypted_file_bytes_envelope`, `..._uses_committed_encrypted_fixture`, `..._with_wrong_ikek_diverges_in_body`, `..._errors_when_header_not_encrypted`, `..._reads_the_rom_size_buffer_past_the_directory_size` (#99) — `extract.rs` unit tests; live: `extract_oracle.rs` single- and multi-file `-c` on the `header_encrypted` fixture whole and grown and on an encrypted `KeyStoreFile`, and `to_decrypted_file_bytes()` of all 256 encrypted corpus HeaderFiles byte-identical. |
+| REQ-4 (HeaderFile-class gate) | SHIPPED | Impl `extract.rs:112` (`entry.class.header().ok_or(ExtractError::NotHeaderEntry)?`) via `EntryClass::header` (`entry.rs:371`, returns `Some` only for `Header`/`KeyStore`): the accessors exist on `HeaderFile` and its `KeyStoreFile` subclass only. The multi-file `type(file) is HeaderFile` gate (`__main__.py:193`, `:195`) is `cmds/extract.rs:217` (`matches!(entry.class, EntryClass::Header(_))`, #100): a `KeyStoreFile` is written raw. Non-test consumer: `cmds/extract.rs:141`/`:152` propagate the error via `?`/`context`. Verification: `extract_{decompressed,decrypted}_errors_for_{non_header,pubkey}_entry` (`extract.rs` unit tests) — 4 passed; the multi-file gate by `extract_oracle.rs` (synthetic plain / compressed / encrypted `KeyStoreFile`s under `-u` and `-c`, and the 12 corpus key-store files). |
+| REQ-5 (typed panic-free errors) | SHIPPED | Impl `extract.rs:47` (`enum ExtractError { NotHeaderEntry, Body(#[from] BodyError) }`); every failure returns typed `Err` (a key store past its source: `BodyError::KeyStoreTruncated`, #100), no `unwrap`/`expect`/`panic` on the production path. Mirrors upstream's typed `NotCompressed`/`NotEncrypted` gates (`__main__.py:170`, `:174`). Non-test consumer: `cmds/extract.rs:141`/`:152` wrap with `.context(..)`, `:225` falls back to `extract_raw(entry)`. Verification: covered by the `..._errors_*` tests (AC-3/AC-5/AC-6) and `extract_decompressed_of_a_raw_key_store_is_header_plus_body_size_bytes`; `cargo test -p psptool-ops --lib extract` 17 passed. |
+| REQ-6 (CLI `extract` consumer) | SHIPPED | Consumer `psptool-cli/src/cmds/extract.rs`: `extract_decompressed` (`:141` single, `:219` multi), `extract_decrypted` (`:152` single), `extract_raw` (`:160` default, `:225`/`:239`/`:243`/`:246` multi); imported `:28`; all pass the image `opened.blob` for the `rom_size` HeaderFile buffer (#99). Dispatched from `main.rs:82` (`cmds::extract::run` `-X` fast-path) and `main.rs:125` (`Command::Extract(args) => cmds::extract::run(args, out)`). This IS the boundary CLI surface (goal.md R-DEFER-1). Verification: `psptool-cli/tests/synthetic.rs:213` (`extract_raw_to_outfile_on_synthetic_rom`); `psptool-cli/tests/extract_oracle.rs` runs both CLIs single- and multi-file. |
+| REQ-7 (`-u`/`-c` envelope parity) | SHIPPED | `extract_decompressed` returns `header.get_signed_bytes(file, Some(Ikek::ZenPlus))` (`extract.rs:101`, `get_signed_bytes` `body.rs:384`) = `header ++ decrypted-decompressed[:0x100+size_signed]` per upstream `-u` (`__main__.py:172`, `header_file.py:168-170`), and for a `KeyStoreFile` `header ++ key_store` (`extract.rs:99`, `key_store_file.py:50-51`, #100); `extract_decrypted` assembles `header(is_encrypted+IV cleared) ++ get_decrypted_body() ++ signature_bytes()` (`extract.rs`, `header_file.py:176-182`) per single-file `-c` (`__main__.py:176`). Non-test consumer: `cmds/extract.rs:141` (`-u`) / `:152` (`-c`) single-file path, with the not-compressed/not-encrypted guards mirroring `__main__.py:170`/`:174`. Verification: `divergence_extract_envelope.rs` — both pins `#[test]`, 2 passed; live, byte-for-byte vs the reference CLI: `extract_oracle.rs` (synthetic single-file `-u`/`-c` incl. `KeyStoreFile`s + every corpus HeaderFile's `get_signed_bytes()` / `to_decrypted_file_bytes()`). |
 
 ## Architecture
 
@@ -160,17 +163,19 @@ class-gate + error-surface pins) — plus the live reference differential
 no I/O. Each function resolves a `psptool-core` primitive and copies the result
 into a fresh `Vec<u8>`:
 
-- `extract_raw` (`extract.rs:60`) → `Entry::get_bytes` (`entry.rs:404`) →
+- `extract_raw` (`extract.rs:64`) → `Entry::get_bytes` (`entry.rs:404`) →
   `SourceBytes::as_bytes().to_vec()`. Class-independent (the raw body is defined
   for every entry class).
-- `extract_decompressed(entry, blob)` (`extract.rs:86`) →
-  `Entry::header_file_window` (`body.rs:859`) → `HeaderEntry::get_signed_bytes`
-  (`body.rs:378`), which decrypts then inflates
+- `extract_decompressed(entry, blob)` (`extract.rs:93`) →
+  `Entry::header_file_window` (`body.rs:865`) → `HeaderEntry::get_signed_bytes`
+  (`body.rs:384`), which decrypts then inflates
   (`get_decrypted_decompressed_body`, `header_file.py:172-189`) and slices the
-  envelope (`header_file.py:168-170`).
-- `extract_decrypted(entry, blob, ikek)` (`extract.rs:129`) →
+  envelope (`header_file.py:168-170`) — or, for a `KeyStoreFile`,
+  `HeaderEntry::get_key_store_signed_bytes` (`body.rs:984`), `header ++
+  key_store` (`key_store_file.py:50-51`).
+- `extract_decrypted(entry, blob, ikek)` (`extract.rs:143`) →
   `Entry::header_file_window` → the cleared header, `HeaderEntry::get_decrypted_body`
-  (`body.rs:287`) and `signature_bytes` (`header_file.py:278-284`). The
+  (`body.rs:293`) and `signature_bytes` (`header_file.py:278-284`). The
   key-unwrap (AES-128-ECB with the [`Ikek`]) + CBC-decrypt live entirely in the
   vetted core (`body::decrypt`).
 
@@ -183,8 +188,8 @@ ladder reads — instead of `Entry::body`, which stops at the directory-declared
 size. The CLI passes `opened.blob`.
 
 **IKEK selection is caller-supplied, not resolved here.** `extract_decrypted`
-takes an [`Ikek`] parameter; the CLI passes `Ikek::ZenPlus` (`cmds/extract.rs:151`,
-`:232`), mirroring upstream's hard-coded Zen+ default (`get_unwrapped_ikek`
+takes an [`Ikek`] parameter; the CLI passes `Ikek::ZenPlus` (`cmds/extract.rs:152`,
+`:237`), mirroring upstream's hard-coded Zen+ default (`get_unwrapped_ikek`
 `header_file.py:192-203`, which returns `UNWRAPPED_IKEK_ZEN_PLUS` with the
 per-file MD5 discrimination commented out). Chain-of-trust IKEK resolution is
 out of scope for this unit (tracked separately by #13, referenced in the module
@@ -195,10 +200,10 @@ doc-comment `extract.rs:74-76`).
 decompress/decrypt reject them before touching the body. The `NotCompressed` /
 `NotEncrypted` gates are content-driven (the header's `is_compressed` /
 `is_encrypted` fields). The CLI distinguishes single-file mode (propagate the
-typed error, `cmds/extract.rs:127-129`) from multi-file mode (fall back to the
-raw body, `cmds/extract.rs:162-168`), matching upstream's "error in single-file
-mode, silently raw in multi-file mode" split (`__main__.py:169-180` vs
-`:193-200`).
+typed error, `cmds/extract.rs:141`/`:152`) from multi-file mode, which
+transforms only exact HeaderFiles (`type(file) is HeaderFile`,
+`cmds/extract.rs:217`) and writes everything else — a `KeyStoreFile` included —
+raw, matching upstream's split (`__main__.py:169-180` vs `:193-200`).
 
 **What lives in the CLI, not here.** The `-T` type-regex selector
 (`cmds/extract.rs:87-122`, port of `find_files_by_type_regex`
@@ -224,18 +229,28 @@ returns bytes. The ops now read `Entry::header_file_window(blob)`; pinned live b
 `extract_oracle.rs::corpus_grown_headerfile_window_matches_reference` (13/13) and
 the `grown-*` synthetic cases.
 
+**#100 — `KeyStoreFile` extracted like a `HeaderFile` — RESOLVED.** Multi-file
+`-u`/`-c` applied the HeaderFile transforms to every `HeaderEntry` class, so the
+12 corpus `KeyStoreFile`s were written as `header ++ store` instead of their raw
+bytes; single-file `-u` of a compressed one used the HeaderFile envelope instead
+of `KeyStoreFile.get_signed_bytes()`. The CLI gates multi-file on
+`EntryClass::Header`, and `extract_decompressed` takes
+`HeaderEntry::get_key_store_signed_bytes` for a `KeyStore`; pinned live by
+`extract_oracle.rs::corpus_multi_file_key_store_matches_reference` (12/12) and
+the `key-store-*` synthetic cases.
+
 ## Verification
 
 The list below IS the gauntlet for this module; run inside `nix-shell` so
 `PSPTOOL_REFERENCE` + `PSPTOOL_TEST_CORPUS` are set (a skipped suite is a red
 gate, not a pass).
 
-- `cargo test -p psptool-ops --lib extract` — **16 passed, 0 failed, 0 ignored**.
+- `cargo test -p psptool-ops --lib extract` — **17 passed, 0 failed, 0 ignored**.
   This is the module's self-oracle (`parity_ops = []`): `extract_raw_*` (REQ-1, 3
   tests), `extract_decompressed_*` (REQ-2/REQ-4, 4 tests), `extract_decrypted_*`
-  (REQ-3/REQ-4, 6 tests), `extract_decompressed_works_on_keystore_class` (REQ-4,
-  1 test), and the two `..._reads_the_rom_size_buffer_past_the_directory_size`
-  pins (REQ-2/REQ-3, #99).
+  (REQ-3/REQ-4, 6 tests), the two `..._reads_the_rom_size_buffer_past_the_directory_size`
+  pins (REQ-2/REQ-3, #99) and the two `extract_decompressed_of_a_*_key_store_*`
+  pins (REQ-2/REQ-4, #100).
 - `cargo test -p psptool-ops --lib` — full crate lib suite (the extract ops share
   the crate with `sign`/`verify`/`list`/`replace`).
 - `cargo test -p psptool-cli --test synthetic` — exercises the CLI consumer
@@ -248,10 +263,13 @@ gate, not a pass).
   parity vs reference PSPTool; does **not** exercise the `-X` extract surface
   (read-only listing). `parity_ops` for this route is `[]`.
 
-- `cargo test -p psptool-cli --test extract_oracle` — **4 passed, 0 ignored**
+- `cargo test -p psptool-cli --test extract_oracle` — **5 passed, 0 ignored**
   (needs `PSPTOOL_REFERENCE`; the corpus tests also `PSPTOOL_TEST_CORPUS`):
   both CLIs single- and multi-file on synthetic `-u`/`-c` images (zlib edge
-  cases, HeaderFiles grown past their directory entry), and every corpus
-  HeaderFile's `-u`/`-c` bytes vs the reference's `get_signed_bytes()` /
-  `to_decrypted_file_bytes()` — the 13 grown ones separately
-  (`corpus_grown_headerfile_window_matches_reference`, #99).
+  cases, HeaderFiles grown past their directory entry, plain / compressed /
+  encrypted `KeyStoreFile`s), every corpus HeaderFile's `-u`/`-c` bytes vs the
+  reference's `get_signed_bytes()` / `to_decrypted_file_bytes()` — the 13 grown
+  ones separately (`corpus_grown_headerfile_window_matches_reference`, #99) —
+  and both CLIs' multi-file `-u` key-store files on the corpus ROMs holding
+  `KeyStoreFile`s (`corpus_multi_file_key_store_matches_reference`, 12 files,
+  #100).

@@ -1,25 +1,29 @@
-//! `-X -u` / `-X -c` differential vs the reference Python PSPTool (#91, #99).
+//! `-X -u` / `-X -c` differential vs the reference Python PSPTool (#91, #99,
+//! #100).
 //!
 //! Single-file `-X -d D -e E -u` is `file.get_signed_bytes()` and `-c` is
-//! `file.to_decrypted_file_bytes()` in both tools (`__main__.py:169-176`);
-//! multi-file `-X -u` / `-c` writes `get_signed_bytes()` /
-//! `get_decrypted_body()` for every HeaderFile and `get_bytes()` for every
-//! other file (`__main__.py:191-213`). The same argv must produce the same
-//! bytes.
+//! `file.to_decrypted_file_bytes()` in both tools (`__main__.py:169-176`) —
+//! for a `KeyStoreFile`, its own `get_signed_bytes()` (`key_store_file.py:
+//! 50-51`); multi-file `-X -u` / `-c` writes `get_signed_bytes()` /
+//! `get_decrypted_body()` only when `type(file) is HeaderFile`, and
+//! `get_bytes()` for every other file, `KeyStoreFile` included
+//! (`__main__.py:191-213`). The same argv must produce the same bytes.
 //!
-//! Two shapes the corpus barely reaches get a synthetic image with one entry
-//! per edge case, run through both binaries in single-file
+//! Shapes the corpus barely reaches get a synthetic image with one entry per
+//! edge case, run through both binaries in single-file
 //! ([`synthetic_rom_matches_reference`]) and multi-file
 //! ([`synthetic_rom_multi_file_matches_reference`]) mode: the zlib step behind
 //! `-u` — `_decrypted_decompressed_body` (`header_file.py:172-189`) over
-//! `utils.zlib_decompress` (`utils.py:218-254`) — and HeaderFiles whose header
+//! `utils.zlib_decompress` (`utils.py:218-254`) — HeaderFiles whose header
 //! `rom_size` outgrows their directory entry, which upstream reads on into the
-//! image (`header_file.py:72-75`).
-//! [`corpus_get_signed_bytes_matches_reference`] compares the `-u` and `-c`
-//! bytes of every corpus HeaderFile against the reference's
+//! image (`header_file.py:72-75`), and `KeyStoreFile`s (plain, compressed,
+//! encrypted). [`corpus_get_signed_bytes_matches_reference`] compares the `-u`
+//! and `-c` bytes of every corpus HeaderFile against the reference's
 //! `get_signed_bytes()` / `to_decrypted_file_bytes()`;
 //! [`corpus_grown_headerfile_window_matches_reference`] does the same for the
-//! ones whose `rom_size` outgrows their directory entry (#99).
+//! ones whose `rom_size` outgrows their directory entry (#99);
+//! [`corpus_multi_file_key_store_matches_reference`] compares both CLIs'
+//! multi-file `-u` key-store files (#100).
 //!
 //! Gating mirrors `differential.rs`: every test skips (with a note on stderr)
 //! when `PSPTOOL_REFERENCE` is unset, the corpus tests also when
@@ -29,6 +33,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use psptool_core::body::decrypt;
 use psptool_core::{
     Directory, Entry, EntryClass, Ikek, SourceBytes, detect_rom_layout, scan_fet_candidates,
     walk_directories,
@@ -139,6 +144,15 @@ impl Placed {
         }
     }
 
+    /// A `BL_PUBLIC_KEY` entry — a `KeyStoreFile` (`file.py:244`, `:262-263`).
+    fn key_store(file: Vec<u8>) -> Self {
+        Self {
+            entry_type: 0x50,
+            size: file.len(),
+            file,
+        }
+    }
+
     /// The directory declares only `size` bytes of the file; its header
     /// `rom_size` still spans all of it, so upstream grows the HeaderFile past
     /// the directory entry into the image (`header_file.py:74-75`).
@@ -146,6 +160,121 @@ impl Placed {
         self.size = size;
         self
     }
+}
+
+/// `KeyStoreFile` signature length: `KeyStoreFileHeader` asserts the
+/// `(1, 2)` constants at 0x30/0x34 (`key_store_file.py:84-86`), i.e. signed
+/// with `signature_type` 2, RSA-4096 (`header_file.py:86-87`).
+const KEY_STORE_SIG_LEN: usize = 0x200;
+
+/// A `$KDB` key store (`key_store_file.py:140-231`): the 0x50-byte store
+/// header, then one RSA-2048 key — a 0x50-byte key header and a 0x100-byte
+/// modulus. No byte is `0x78`, so no zlib magic hides in it.
+fn kdb() -> Vec<u8> {
+    let key_len = 0x50 + 0x100;
+    let mut store = vec![0u8; 0x50 + key_len];
+    let total = store.len() as u32;
+    store[0x00..0x04].copy_from_slice(&total.to_le_bytes()); // `:151`
+    store[0x04..0x08].copy_from_slice(&1u32.to_le_bytes()); // `:154`
+    store[0x08..0x0C].copy_from_slice(b"$KDB"); // `:157`
+    let k = 0x50;
+    store[k..k + 4].copy_from_slice(&(key_len as u32).to_le_bytes()); // `:209`
+    store[k + 0x04..k + 0x08].copy_from_slice(&1u32.to_le_bytes()); // `:212`
+    store[k + 0x0C..k + 0x10].copy_from_slice(&0x10001u32.to_le_bytes()); // `:218`
+    store[k + 0x10..k + 0x20].fill(0x4B); // key id, `:220`
+    store[k + 0x20..k + 0x24].copy_from_slice(&2048u32.to_le_bytes()); // `:223`
+    store[k + 0x50..].copy_from_slice(&filler(0x100));
+    store
+}
+
+/// A `KeyStoreFile` around `body` (the store, or a zlib stream of it): the
+/// header fields `KeyStoreFileHeader` reads (`key_store_file.py:71-89`) —
+/// `body_size` (0x14), the `(1, 2)` constants, packed size (0x6c, also
+/// `rom_size`), key-store type 0x50 (0x7c) — then a 0x200-byte signature at
+/// `0x100 + body_size` (`signature_size = packed - 0x100 - body_size`,
+/// `:126-130`).
+fn key_store_file(body: &[u8]) -> Vec<u8> {
+    let mut h = [0u8; HEADER_LEN];
+    h[0x10..0x14].copy_from_slice(b"$PS1");
+    h[0x14..0x18].copy_from_slice(&(body.len() as u32).to_le_bytes());
+    h[0x30..0x34].copy_from_slice(&1u32.to_le_bytes());
+    h[0x34..0x38].copy_from_slice(&2u32.to_le_bytes());
+    let packed = (HEADER_LEN + body.len() + KEY_STORE_SIG_LEN) as u32;
+    h[0x6C..0x70].copy_from_slice(&packed.to_le_bytes());
+    h[0x7C..0x80].copy_from_slice(&0x50u32.to_le_bytes());
+    let mut file = h.to_vec();
+    file.extend_from_slice(body);
+    file.extend(std::iter::repeat_n(0xCC, KEY_STORE_SIG_LEN));
+    file
+}
+
+/// One stored (uncompressed) deflate block in a zlib wrapper — RFC 1950/1951,
+/// magic `78 01` (`utils.py:213`).
+fn zlib_stored(data: &[u8]) -> Vec<u8> {
+    let len = u16::try_from(data.len()).expect("stored block <= 0xFFFF");
+    let mut s = vec![0x78, 0x01, 0x01];
+    s.extend_from_slice(&len.to_le_bytes());
+    s.extend_from_slice(&(!len).to_le_bytes());
+    s.extend_from_slice(data);
+    let (mut a, mut b) = (1u32, 0u32);
+    for &x in data {
+        a = (a + u32::from(x)) % 65521;
+        b = (b + a) % 65521;
+    }
+    s.extend_from_slice(&((b << 16) | a).to_be_bytes());
+    s
+}
+
+/// Wrapped entry key of the encrypted key store (non-zero, as
+/// `header_file.py:102` asserts).
+const WRAPPED_KEY: [u8; 16] = [0x3C; 16];
+
+/// AES-128-CBC encryption of the block-aligned `plain` under the key the Zen+
+/// IKEK unwraps from [`WRAPPED_KEY`]: `(iv, ciphertext)`. This crate has no
+/// AES dependency, so it is solved from `body::decrypt` alone: CBC decryption
+/// is `P[i] = D(C[i]) ^ C[i-1]` with `C[-1] = IV`, so fixing the last cipher
+/// block and solving backwards, `C[i-1] = D(C[i]) ^ P[i]`, yields a ciphertext
+/// that decrypts to `plain`. The reference parsing the result as a
+/// `KeyStoreFile` checks the construction.
+fn cbc_encrypt(plain: &[u8]) -> ([u8; 16], Vec<u8>) {
+    let mut cipher = vec![0u8; plain.len()];
+    let mut block = [0xA7u8; 16];
+    for (i, p) in plain.chunks_exact(16).enumerate().rev() {
+        cipher[i * 16..i * 16 + 16].copy_from_slice(&block);
+        // One block under a zero IV decrypts to `D(C[i])`.
+        let d = decrypt(&block, &WRAPPED_KEY, Ikek::ZenPlus, &[0; 16]).expect("one AES block");
+        for (b, (d, p)) in block.iter_mut().zip(d.iter().zip(p)) {
+            *b = d ^ p;
+        }
+    }
+    (block, cipher)
+}
+
+/// A compressed `KeyStoreFile` (`key_store_file.py:39-40`) whose zlib stream
+/// inflates to the [`kdb`] store followed by 0x20 more bytes: upstream's
+/// `get_signed_bytes()` is `header ++ key_store` (`:50-51`), the store cut to
+/// `size_uncompressed` — not the HeaderFile envelope, which keeps the tail.
+/// Encrypted under [`WRAPPED_KEY`] when `encrypted` (decrypted, then inflated,
+/// `header_file.py:177-181`).
+fn compressed_key_store_file(encrypted: bool) -> Vec<u8> {
+    let store = kdb();
+    let mut inflated = store.clone();
+    inflated.extend_from_slice(&filler(0x20));
+    let stream = zlib_stored(&inflated);
+    let mut body = stream.clone();
+    body.resize(stream.len().next_multiple_of(16), 0);
+    let mut file = key_store_file(&body);
+    file[0x48..0x4C].copy_from_slice(&1u32.to_le_bytes());
+    file[0x50..0x54].copy_from_slice(&(store.len() as u32).to_le_bytes());
+    file[0x54..0x58].copy_from_slice(&(stream.len() as u32).to_le_bytes());
+    if encrypted {
+        let (iv, cipher) = cbc_encrypt(&body);
+        file[0x18..0x1C].copy_from_slice(&1u32.to_le_bytes());
+        file[0x20..0x30].copy_from_slice(&iv);
+        file[0x80..0x90].copy_from_slice(&WRAPPED_KEY);
+        file[HEADER_LEN..HEADER_LEN + cipher.len()].copy_from_slice(&cipher);
+    }
+    file
 }
 
 /// `-u` cases: one HeaderFile per zlib edge case of `utils.zlib_decompress`,
@@ -200,6 +329,15 @@ fn decompress_cases() -> Vec<(&'static str, Placed)> {
             "grown-unsigned",
             file(&prefixed, prefixed.len(), 0x30 + plain).declaring(HEADER_LEN + 0x10),
         ),
+        // `KeyStoreFile.get_signed_bytes()` (#100).
+        (
+            "key-store-compressed",
+            Placed::key_store(compressed_key_store_file(false)),
+        ),
+        (
+            "key-store-encrypted",
+            Placed::key_store(compressed_key_store_file(true)),
+        ),
     ]
 }
 
@@ -221,6 +359,11 @@ fn decrypt_cases() -> Vec<(&'static str, Placed)> {
             "grown-body",
             Placed::header_file(encrypted).declaring(HEADER_LEN),
         ),
+        // `to_decrypted_file_bytes()` of a `KeyStoreFile` (#100).
+        (
+            "key-store-encrypted",
+            Placed::key_store(compressed_key_store_file(true)),
+        ),
     ]
 }
 
@@ -229,11 +372,14 @@ fn flags() -> [(&'static str, Vec<(&'static str, Placed)>); 2] {
     [("-u", decompress_cases()), ("-c", decrypt_cases())]
 }
 
-/// The image of `cases` plus a trailing plain entry (multi-file only: a
-/// single-file `-u`/`-c` of it is an error in both tools, `__main__.py:170`).
+/// The image of `cases` plus trailing entries a single-file `-u`/`-c` rejects
+/// in both tools (`__main__.py:170`, `:174`), so only multi-file reaches them:
+/// a plain file and an uncompressed, unencrypted `KeyStoreFile` — the corpus'
+/// shape (#100).
 fn image_of(cases: &[(&str, Placed)]) -> Vec<u8> {
     let mut entries: Vec<Placed> = cases.iter().map(|(_, p)| p.clone()).collect();
     entries.push(Placed::plain(filler(0x40)));
+    entries.push(Placed::key_store(key_store_file(&kdb())));
     image(&entries)
 }
 
@@ -397,6 +543,95 @@ fn synthetic_rom_multi_file_matches_reference() {
 // ---------------------------------------------------------------------------
 // Corpus
 // ---------------------------------------------------------------------------
+
+/// Corpus ROMs whose ROM 0 — what multi-file extract walks by default
+/// (`__main__.py:187`) — holds a `KeyStoreFile`, per the reference.
+const KEY_STORE_ROMS: &str = r#"
+import sys
+from psptool import PSPTool
+from psptool.key_store_file import KeyStoreFile
+for path in sys.argv[1:]:
+    rom = PSPTool.from_file(path).blob.roms[0]
+    if any(type(f) is KeyStoreFile for d in rom.directories for f in d.files):
+        print(path)
+"#;
+
+/// Multi-file `-u` writes a `KeyStoreFile`'s `get_bytes()`, not an envelope:
+/// it applies `get_signed_bytes()` only when `type(file) is HeaderFile`
+/// (`__main__.py:193`, #100). Runs both CLIs on every corpus ROM holding one
+/// and compares the key-store files (`BL_PUBLIC_KEY~0x50`,
+/// `TOS_PUBLIC_KEY~0x51`, `file.py:244`) by name without the `dNN_` prefix —
+/// the directory index differs (#104) — and content.
+#[test]
+fn corpus_multi_file_key_store_matches_reference() {
+    let Some(reference) = reference() else { return };
+    let roms = psptool_fixtures::corpus_rom_paths();
+    if roms.is_empty() {
+        eprintln!("PSPTOOL_TEST_CORPUS unset or empty — skipping the corpus differential");
+        return;
+    }
+    let listed = Command::new(&reference)
+        .arg("-c")
+        .arg(KEY_STORE_ROMS)
+        .args(&roms)
+        .output()
+        .unwrap_or_else(|e| panic!("spawning {}: {e}", reference.display()));
+    assert!(
+        listed.status.success(),
+        "reference oracle failed: {}",
+        String::from_utf8_lossy(&listed.stderr)
+    );
+    let with_key_store: Vec<String> = String::from_utf8_lossy(&listed.stdout)
+        .lines()
+        .map(str::to_string)
+        .collect();
+    assert!(
+        !with_key_store.is_empty(),
+        "no corpus ROM holds a KeyStoreFile"
+    );
+
+    let key_store_files = |dir: &Path| {
+        let mut files = BTreeMap::<(String, String), usize>::new();
+        for (name, bytes) in files_in(dir) {
+            if !(name.contains("~0x50") || name.contains("~0x51")) {
+                continue;
+            }
+            let name = name.split_once('_').map_or(name.clone(), |(_, n)| n.into());
+            *files
+                .entry((name, format!("{:x}", Sha256::digest(&bytes))))
+                .or_default() += 1;
+        }
+        files
+    };
+    let mut failures = Vec::new();
+    let mut compared = 0;
+    for (i, rom) in with_key_store.iter().enumerate() {
+        let (mine_dir, theirs_dir) = (
+            Temp::new(&format!("key_store_ours_{i}")),
+            Temp::new(&format!("key_store_theirs_{i}")),
+        );
+        let mine = run(ours(), &["-X", "-u", "-o", mine_dir.path(), rom]);
+        let theirs = run(
+            &reference,
+            &["-m", "psptool", "-X", "-u", "-o", theirs_dir.path(), rom],
+        );
+        assert!(theirs.status.success(), "[{rom}] reference failed");
+        assert!(mine.status.success(), "[{rom}] ours failed");
+        let (mine, theirs) = (key_store_files(&mine_dir.0), key_store_files(&theirs_dir.0));
+        compared += theirs.values().sum::<usize>();
+        if mine != theirs {
+            failures.push(format!(
+                "{rom}:\n  ours      {mine:?}\n  reference {theirs:?}"
+            ));
+        }
+    }
+    eprintln!(
+        "compared {compared} key-store files over {} ROMs",
+        with_key_store.len()
+    );
+    assert!(compared > 0, "the reference extracted no key-store file");
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
 
 /// Reference side, for every `HeaderFile` (exact type, as the multi-file
 /// `-u`/`-c` path tests it, `__main__.py:193-196`) of every directory of every
