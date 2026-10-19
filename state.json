@@ -1,5 +1,5 @@
 {
-  "next_display_id": 98,
+  "next_display_id": 99,
   "next_comment_id": 136,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -95,6 +95,7 @@
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
+    "f68dfb32-8ad2-4064-9530-a2e786b1a249": 98,
     "f7dd168c-f826-4ad4-adec-395534c077bf": 90,
     "fba50544-5971-4237-8157-aca0c67508f5": 32,
     "ff3a9562-e292-4ffb-8f75-0c1d07d85917": 59,
@@ -2865,6 +2866,16 @@
         "68f7ee46-7bae-4a64-8d9a-81f8c443a46d"
       ]
     },
+    "f68dfb32-8ad2-4064-9530-a2e786b1a249": {
+      "uuid": "f68dfb32-8ad2-4064-9530-a2e786b1a249",
+      "display_id": 98,
+      "title": "psptool-py: memory leak across ROMs (RSS grows unbounded in full-corpus ingest)",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T02:28:52.549286644Z",
+      "updated_at": "2026-10-19T02:28:52.549286644Z"
+    },
     "f7dd168c-f826-4ad4-adec-395534c077bf": {
       "uuid": "f7dd168c-f826-4ad4-adec-395534c077bf",
       "display_id": 90,
@@ -4452,11 +4463,16 @@
       "agent_id": "tLiK",
       "agent_seq": 292,
       "timestamp": "2026-10-19T01:26:04.847474255Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 293,
+      "timestamp": "2026-10-19T02:28:52.549286644Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T01:26:04.847474255Z",
+    "timestamp": "2026-10-19T02:28:52.549286644Z",
     "agent_id": "tLiK",
-    "agent_seq": 292
+    "agent_seq": 293
   }
 }
