@@ -1,5 +1,5 @@
 {
-  "next_display_id": 112,
+  "next_display_id": 113,
   "next_comment_id": 155,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -15,6 +15,7 @@
     "2d160374-3435-423c-8649-a766236f51ac": 67,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
+    "31bf0b30-eae6-49c8-973c-1bf41ed7f4c0": 112,
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
@@ -634,6 +635,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAGyXpD3PiYSRWY7lNoKqMfel64qRllMgDRMlgDSwnqsl6VTDGnqT70wMMG7YL5fF7dX9cF8ywb6TBSK/cllCSDw=="
         }
       }
+    },
+    "31bf0b30-eae6-49c8-973c-1bf41ed7f4c0": {
+      "uuid": "31bf0b30-eae6-49c8-973c-1bf41ed7f4c0",
+      "display_id": 112,
+      "title": "Divergence (decision): upstream -X -T without -e also runs the multi-file extraction into ./{filename}_extracted (__main__.py:183-190); ours extracts only the match",
+      "description": "Observed while closing #101 (extract_oracle.rs synthetic_type_regex_compares_the_rom_size_buffers had to run the reference in a scratch cwd). After the -T single-file branch (__main__.py:149-180), 'if args.file_index is None:' (:183) is still true, so upstream writes every file of ROM 0 to args.outfile or ./{psp.filename}_extracted as well (with -o, the same path as the single-file output). Looks unintended (no upstream issue found yet), so R-DEV-6 needs an upstream issue/PR cite before deviating; otherwise mirror it. Needs a user call.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:47:06.481948972Z",
+      "updated_at": "2026-10-19T23:47:06.481948972Z"
     },
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": {
       "uuid": "31f3c0b3-cdf0-4a17-b213-93e38140f828",
@@ -5235,11 +5248,16 @@
       "agent_id": "tLiK",
       "agent_seq": 364,
       "timestamp": "2026-10-19T23:46:55.032852153Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 365,
+      "timestamp": "2026-10-19T23:47:06.481948972Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:46:55.032852153Z",
+    "timestamp": "2026-10-19T23:47:06.481948972Z",
     "agent_id": "tLiK",
-    "agent_seq": 364
+    "agent_seq": 365
   }
 }
