@@ -1481,11 +1481,12 @@
       "uuid": "85cb914b-5cc4-4d96-b34a-3923a29e5c94",
       "display_id": 97,
       "title": "psptool-py: subclassable HeaderFile (pyclass subclass, __new__ w/o ROM args), honor Python overrides of get_decrypted_body/verify_sha256 in decode_verification/plaintext_identity_ok",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-19T00:52:32.267419969Z",
-      "updated_at": "2026-10-19T01:26:01.982115945Z",
+      "updated_at": "2026-10-19T01:26:04.847474255Z",
+      "closed_at": "2026-10-19T01:26:04.847472992Z",
       "comments": {
         "b1d8e06c-0a96-4e19-8cd6-629364b15d14": {
           "display_id": 135,
@@ -4446,11 +4447,16 @@
       "agent_id": "tLiK",
       "agent_seq": 291,
       "timestamp": "2026-10-19T01:26:01.982115945Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 292,
+      "timestamp": "2026-10-19T01:26:04.847474255Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T01:26:01.982115945Z",
+    "timestamp": "2026-10-19T01:26:04.847474255Z",
     "agent_id": "tLiK",
-    "agent_seq": 291
+    "agent_seq": 292
   }
 }
