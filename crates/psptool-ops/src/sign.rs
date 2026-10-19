@@ -26,15 +26,15 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (signed-region computation) | SHIPPED | `sign.rs:143` (`header.get_signed_bytes(body_bytes, ikek)?`) delegates to `HeaderEntry::get_signed_bytes` (`header(0x100) || plaintext[..size_signed]`) per upstream `header_file.py:162-164`, `cert_tree.py:113`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
-//! | REQ-2 (PSS params per signature_type) | SHIPPED | `sign.rs:151-167`: type 0 → `SigningKey::<Sha256>` (salt 32), type 2 → `SigningKey::<Sha384>` (salt 48) per upstream `crypto.py:189-203`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
-//! | REQ-3 (fresh valid PSS signature) | SHIPPED | `sign.rs:155-163` (`sign_with_rng`), `sign_entry` seeds `thread_rng` at `sign.rs:100` per upstream `crypto.py:302-307`, `cert_tree.py:113`; verified by `verify::tests::sign_then_verify_round_trip_via_blob_editor`. |
-//! | REQ-4 (key-size / type validation) | SHIPPED | `sign.rs:121-138`: `UnsupportedSignatureType`, `KeySizeMismatch` (`sign.rs:135`) per upstream `crypto.py:265`, `cert_tree.py:111-112`; verified by `sign_entry_rejects_wrong_key_size`. |
-//! | REQ-5 (reject non-signed entries) | SHIPPED | `sign.rs:121` (`NotSignedEntry`) + `sign.rs:124` (`NotSignedFlag`) per upstream `__main__.py:254-257`, `header_file.py:124-129`; consumer `psptool-cli/src/cmds/sign.rs:16-18`; verified by `sign_entry_rejects_plain_entry`. |
-//! | REQ-6 (signature-region locality) | SHIPPED | `sign.rs` `editor.patch(FlashOffset(sig_start), ..)` writes only the trailing `sig_len` bytes per upstream `cert_tree.py:117`; verified by `sign_entry_patches_only_signature_region`. |
-//! | REQ-7 (bounds-safe trailing region) | SHIPPED | `sign.rs:145+` uses `HeaderEntry::signature_bytes` (rom_size-normalised, `BodyTooSmall` on overflow) per upstream `header_file.py:82,66-69`; verified by `sign_entry_rejects_rom_size_larger_than_body`. |
-//! | REQ-8 (on-disk byte-order / upstream verify fidelity) | SHIPPED | The signature is written **plain** (big-endian I2OSP), NOT reversed, matching upstream's plain HeaderFile `Signature` (`cert_tree.py:63,98`); the reversed `ReversedSignature` (`crypto.py:386-409`) is PubkeyFile-only. Corpus-proven by `tests/divergence_signature_byte_order.rs` (2993 real signatures verify plain + full-length; reversed/short controls fail). Closes #78. |
-//! | REQ-9 (CLI `sign` subcommand consumer) | SHIPPED | `psptool-cli/src/cmds/sign.rs:13-32` parses the entry, loads a PKCS#8 PEM key, drives `sign_entry` through a `BlobEditor`, writes the ROM; dispatched from `main.rs:127` per upstream `__main__.py:238-262`. Boundary CLI surface (R-DEFER-1). |
+//! | REQ-1 (signed-region computation) | SHIPPED | `sign.rs:164-168` (`entry.header_file_window(editor.original())`, then `header.get_signed_bytes(file, ikek)?`) delegates to `HeaderEntry::get_signed_bytes` (`header(0x100) || plaintext[..size_signed]`) over the HeaderFile buffer grown to the header and to `rom_size` (`header_file.py:32-33`, `:72-75`; #105), per upstream `header_file.py:168-170`, `cert_tree.py:113`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
+//! | REQ-2 (PSS params per signature_type) | SHIPPED | `sign.rs:178-194`: type 0 → `SigningKey::<Sha256>` (salt 32), type 2 → `SigningKey::<Sha384>` (salt 48) per upstream `crypto.py:183-203`; consumer `psptool-cli/src/cmds/sign.rs:21`. |
+//! | REQ-3 (fresh valid PSS signature) | SHIPPED | `sign.rs:180-191` (`sign_with_rng`), `sign_entry` seeds `thread_rng` at `sign.rs:123` per upstream `crypto.py:302-307`, `cert_tree.py:113`; verified by `verify::tests::sign_then_verify_round_trip_via_blob_editor`. |
+//! | REQ-4 (key-size / type validation) | SHIPPED | `sign.rs:144-157`: `UnsupportedSignatureType` (`sign.rs:147`, `:193`), `KeySizeMismatch` (`sign.rs:152`) per upstream `crypto.py:265`, `cert_tree.py:111-112`; verified by `sign_entry_rejects_wrong_key_size`. |
+//! | REQ-5 (reject non-signed entries) | SHIPPED | `sign.rs:138` (`NotSignedEntry`) + `sign.rs:141` (`NotSignedFlag`) per upstream `__main__.py:254-257`, `header_file.py:130-135`; consumer `psptool-cli/src/cmds/sign.rs:16-18`; verified by `sign_entry_rejects_plain_entry`. |
+//! | REQ-6 (signature-region locality) | SHIPPED | `sign.rs:203-204` `editor.patch(FlashOffset(sig_start), ..)` writes only the trailing `sig_len` bytes per upstream `cert_tree.py:117`; verified by `sign_entry_patches_only_signature_region` and, for grown buffers, `sign_entry_signs_the_buffer_grown_to_rom_size` / `sign_entry_signs_a_zero_size_record`. |
+//! | REQ-7 (bounds-safe trailing region) | SHIPPED | `sign.rs:174-176` uses `HeaderEntry::signature_bytes` over the HeaderFile buffer (`rom_size`-normalised, `BodyTooSmall` when `rom_size` runs past the image) per upstream `header_file.py:88`, `:72-75`; verified by `sign_entry_rejects_rom_size_past_the_image`. |
+//! | REQ-8 (on-disk byte-order / upstream verify fidelity) | SHIPPED | The signature is written **plain** (big-endian I2OSP), NOT reversed, matching upstream's plain HeaderFile `Signature` (`cert_tree.py:63,98`); the reversed `ReversedSignature` (`crypto.py:386-409`) is PubkeyFile-only. Corpus-proven by `tests/divergence_signature_byte_order.rs` (real signatures verify plain + full-length; reversed/short controls fail) and by the live reference: `psptool-cli/tests/sign_oracle.rs` re-signs the 16 corpus HeaderFiles whose buffer outgrows their directory entry plus 16 controls, and upstream's `SignedEntity.verify_with_pubkey` (`cert_tree.py:97-98`) accepts all 32. Closes #78, #105. |
+//! | REQ-9 (CLI `sign` subcommand consumer) | SHIPPED | `psptool-cli/src/cmds/sign.rs:13-32` parses the entry, loads a PKCS#8 PEM key, drives `sign_entry` through a `BlobEditor`, writes the ROM; dispatched from `main.rs:131` per upstream `__main__.py:238-262`. Boundary CLI surface (R-DEFER-1). |
 
 use rsa::RsaPrivateKey;
 use rsa::pss::SigningKey;
@@ -95,15 +95,18 @@ pub enum SignError {
 ///      `is_signed != 0`. Both predicates exist in PSPTool's reference flow
 ///      too — we don't synthesise a signature for an unsigned entry.
 ///   2. The canonical signed bytes (`header || decrypted_decompressed_body[..size_signed]`)
-///      are computed via [`HeaderEntry::get_signed_bytes`]. `ikek` is
-///      forwarded — required iff the entry is encrypted.
+///      are computed via [`HeaderEntry::get_signed_bytes`] over the
+///      HeaderFile buffer, [`Entry::header_file_window`] — the entry grown to
+///      its header and to `rom_size`, read from the image `editor` wraps,
+///      which must be the one `entry` was parsed from. `ikek` is forwarded —
+///      required iff the entry is encrypted.
 ///   3. We build a [`SigningKey`] over SHA-256 (sig type 0) or SHA-384
 ///      (sig type 2) and produce a fresh PSS signature with `rng`. Salt
 ///      length defaults to the digest length, matching PSPTool's
 ///      `cryptography.hazmat`-based path.
 ///   4. The signature is patched **plain** (big-endian I2OSP, matching
 ///      upstream's plain HeaderFile `Signature`, `cert_tree.py:63`) into the
-///      entry body's trailing `signature_len()` bytes via
+///      buffer's trailing `signature_len()` bytes before `rom_size` via
 ///      [`BlobEditor::patch`]. Bytes outside the signature region are
 ///      untouched — a `serialize()` call after this function changes only
 ///      the signature region.
@@ -153,16 +156,24 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
         });
     }
 
-    let body_bytes = entry.body.as_bytes();
-    let signed = header.get_signed_bytes(body_bytes, ikek)?;
+    // Upstream signs and patches the HeaderFile buffer, which is grown to the
+    // header (`header_file.py:32-33`) and then to `rom_size` (`:74-75`), so it
+    // reads on past the directory entry into the image (`cert_tree.py:113`,
+    // `:117` over `header_file.py:88`). Cut that window from the image the
+    // editor wraps.
+    let window = entry
+        .header_file_window(editor.original())
+        .ok_or(SignError::NotSignedEntry)?;
+    let file = window.as_bytes();
+    let signed = header.get_signed_bytes(file, ikek)?;
     // Locate (and validate) the trailing signature region via the vetted
     // core helper. signature_bytes() honours `rom_size`: it falls back to
-    // body.len() when rom_size==0, and rejects rom_size > body.len() as
-    // BodyTooSmall — handling the truncation/extension corner cases that an
-    // ad-hoc offset computation would have to re-derive.
-    let sig_slice = header.signature_bytes(body_bytes)?;
+    // the window length when rom_size==0, and rejects a rom_size past the
+    // image as BodyTooSmall — handling the truncation/extension corner cases
+    // that an ad-hoc offset computation would have to re-derive.
+    let sig_slice = header.signature_bytes(file)?;
     let sig_len = sig_slice.len();
-    let offset_in_body = sig_slice.as_ptr() as usize - body_bytes.as_ptr() as usize;
+    let offset_in_file = sig_slice.as_ptr() as usize - file.as_ptr() as usize;
 
     let sig_be: Vec<u8> = match header.signature_type {
         0 => {
@@ -179,7 +190,7 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
                 .to_bytes()
                 .into_vec()
         }
-        _ => unreachable!("signature_type validated above"),
+        other => return Err(SignError::UnsupportedSignatureType(other)),
     };
     if sig_be.len() != sig_len {
         return Err(SignError::SignatureLengthMismatch {
@@ -189,7 +200,7 @@ pub fn sign_entry_with_rng<R: rand::CryptoRng + rand::RngCore>(
     }
     // On-disk HeaderFile signature is PLAIN big-endian (I2OSP), not reversed —
     // matches upstream's plain `Signature` (cert_tree.py:63).
-    let sig_start = entry.body.offset().get() + offset_in_body as u64;
+    let sig_start = window.offset().get() + offset_in_file as u64;
     editor.patch(psptool_core::FlashOffset(sig_start), sig_be)?;
     Ok(())
 }
@@ -290,6 +301,80 @@ mod tests {
         assert!(any_changed, "signing did not change the signature region");
     }
 
+    /// Shrink the signed HeaderFile's directory record to `record_size` bytes
+    /// (its header `rom_size` still covers header + payload + signature),
+    /// zero the signature, re-sign, and check the signature lands where
+    /// upstream's lives — `rom_size - signature_len` into the buffer grown to
+    /// `rom_size` (`header_file.py:32-33`, `:74-75`, `:88`) — and verifies.
+    fn resign_record_declaring(record_size: u32) {
+        use crate::verify::{VerificationStatus, verify_chain_of_trust};
+
+        let (priv_key, pub_key) = generate_test_keypair();
+        let pk = SyntheticPubkey::from_key(&pub_key, [0x9A; 16], [0x9A; 16]);
+        let (mut rom, _, header_off, sig_off) =
+            build_synthetic_rom_with_signed_entry(&priv_key, &pk, b"grown-buffer");
+        let record = {
+            let blob = SourceBytes::from_blob(rom.clone());
+            let fet = parse_fet(&blob);
+            let dirs = walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset(0));
+            let psptool_core::Directory::Psp(dir) = &dirs[0].directory else {
+                panic!("synthetic ROM starts with a $PSP directory");
+            };
+            let record = dir
+                .entries
+                .iter()
+                .find(|r| r.offset.get() as usize == header_off)
+                .expect("record of the signed HeaderFile");
+            record.source.offset().get() as usize
+        };
+        rom[record + 4..record + 8].copy_from_slice(&record_size.to_le_bytes());
+        rom[sig_off..sig_off + 0x100].fill(0);
+        let original = rom.clone();
+
+        let blob = SourceBytes::from_blob(rom);
+        let entry = signed_entry_in(&blob);
+        assert_eq!(entry.body.len(), record_size as usize);
+        let fet = parse_fet(&blob);
+        let status = |blob: &SourceBytes| {
+            verify_chain_of_trust(blob, &fet, RomSize::MIB_16, FlashOffset(0), Ikek::ZenPlus)
+                .into_iter()
+                .find(|row| row.body_offset == FlashOffset(header_off as u64))
+                .expect("verify row of the signed HeaderFile")
+                .status
+        };
+        assert_eq!(status(&blob), VerificationStatus::BadSignature);
+
+        let mut editor = BlobEditor::from_blob(blob.clone());
+        sign_entry(&mut editor, &entry, &priv_key, None).expect("sign the grown buffer");
+        let out = editor.serialize();
+        for (i, (a, b)) in out.iter().zip(&original).enumerate() {
+            if !(sig_off..sig_off + 0x100).contains(&i) {
+                assert_eq!(a, b, "byte {i:#06x} differs but is outside sig region");
+            }
+        }
+        assert_eq!(
+            status(&SourceBytes::from_blob(out)),
+            VerificationStatus::Verified,
+            "re-signed HeaderFile does not verify"
+        );
+    }
+
+    #[test]
+    fn sign_entry_signs_the_buffer_grown_to_rom_size() {
+        // `header_file.py:74-75`: a `rom_size` past the directory size grows
+        // the buffer; the 13 such corpus HeaderFiles failed `BodyTooSmall`
+        // (#105).
+        resign_record_declaring(0x100);
+    }
+
+    #[test]
+    fn sign_entry_signs_a_zero_size_record() {
+        // `header_file.py:32-33` grows a zero-size record to the header, then
+        // `:74-75` to `rom_size`; the 3 such corpus KVM_IMAGE records failed
+        // `Truncated` (#105).
+        resign_record_declaring(0);
+    }
+
     #[test]
     fn sign_entry_rejects_wrong_key_size() {
         // Sign a 2048-bit-typed entry with a 4096-bit key — KeySizeMismatch.
@@ -313,21 +398,20 @@ mod tests {
     }
 
     #[test]
-    fn sign_entry_rejects_rom_size_larger_than_body() {
-        // Locks in the round-1 fix: sign_entry must delegate to
-        // HeaderEntry::signature_bytes for the trailing-region offset, so
-        // rom_size > body.len() is rejected as BodyTooSmall (not silently
-        // patched out-of-bounds). Mutate rom_size in the synthetic ROM to
-        // exceed the entry body length, re-parse, and assert the error
-        // surfaces as SignError::Body(BodyError::BodyTooSmall { .. }).
+    fn sign_entry_rejects_rom_size_past_the_image() {
+        // sign_entry must delegate to HeaderEntry::signature_bytes for the
+        // trailing-region offset, so a rom_size the image cannot cover is
+        // rejected as BodyTooSmall (not silently patched out-of-bounds).
+        // Mutate rom_size in the synthetic ROM to run past the image,
+        // re-parse, and assert the error surfaces as
+        // SignError::Body(BodyError::BodyTooSmall { .. }).
         use psptool_core::BodyError;
         let (priv_key, pub_key) = generate_test_keypair();
         let pk = SyntheticPubkey::from_key(&pub_key, [0xF6; 16], [0xF6; 16]);
         let (mut rom_bytes, _, header_body_off, _) =
             build_synthetic_rom_with_signed_entry(&priv_key, &pk, b"oversized-rom");
-        // rom_size lives at header[0x6C..0x70]. Set it to a value larger than
-        // the entry body length (header_total_len). Pick a value clearly past
-        // the body but inside the ROM so the entry_body slice still parses.
+        // rom_size lives at header[0x6C..0x70]. Set it far past the 0x1000-byte
+        // image; the directory record is unchanged, so the entry still parses.
         let rom_size_off = header_body_off + 0x6C;
         let oversized = u32::MAX / 2;
         rom_bytes[rom_size_off..rom_size_off + 4].copy_from_slice(&oversized.to_le_bytes());
@@ -338,7 +422,7 @@ mod tests {
         let err = sign_entry(&mut editor, &entry, &priv_key, None).unwrap_err();
         assert!(
             matches!(err, SignError::Body(BodyError::BodyTooSmall { .. })),
-            "expected BodyTooSmall for rom_size > body.len(), got {err:?}"
+            "expected BodyTooSmall for a rom_size past the image, got {err:?}"
         );
         assert!(editor.is_clean(), "rejected sign must record no patch");
     }
