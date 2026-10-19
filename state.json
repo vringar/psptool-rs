@@ -1,6 +1,6 @@
 {
   "next_display_id": 111,
-  "next_comment_id": 153,
+  "next_comment_id": 154,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2913,7 +2913,7 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T20:43:28.510688252Z",
-      "updated_at": "2026-10-19T23:23:57.354513886Z",
+      "updated_at": "2026-10-19T23:24:02.861712501Z",
       "labels": [
         "blocker",
         "kaizen"
@@ -2936,6 +2936,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABARA7U+UKRvJM5f2DJ6rTEstSDu9fKw6iugG9OkYOY87F6oNlnKDnHPHz4twEAyRKXTXd4t2x6XpqGgUCu6IVrBw=="
+        },
+        "e94c1de4-5d8a-4eae-aefe-5127e10b843a": {
+          "display_id": 153,
+          "author": "tLiK",
+          "content": "Result: sign_entry signs and patches Entry::header_file_window of the editor's image. Pre-fix the two new unit tests failed exactly as reported (Body(BodyTooSmall { body: 256, needed: 528 }), Body(Truncated(0))); now both pass and the patch lands only in [rom_size - 0x100, rom_size). Live reference (sign_oracle.rs): re-signed 32 HeaderFiles (16 grown: 13 past a non-zero directory size + 3 zero-size KVM_IMAGE records, + 16 controls) over 16 images; upstream SignedEntity.verify_with_pubkey verifies all 32. Production unreachable! in the hash match replaced by UnsupportedSignatureType. Gauntlet: cargo test --workspace 604 passed / 0 failed / 3 ignored (unchanged #48 pins + doc block), corpus_roundtrip 54/0/0, differential 54/0/0, clippy --workspace --all-targets --all-features -D warnings PASS, fmt PASS. Spillovers: #108 (CLI passes no IKEK: 256 encrypted corpus HeaderFiles cannot be re-signed), #109 (no sha256 refresh before re-sign, cert_tree.py:103-110), #110 (latent: KeyStore re-sign uses the HeaderFile convention; coincides on all 12 corpus key stores).",
+          "created_at": "2026-10-19T23:24:02.857100702Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA0ITXazJYVzgfTFlpjg5exDACFZPFkb49DzOPZalse6BJXhXtXkxzm3zSEhrb5pAyRjcS9/8q5LfASGH48yA3DQ=="
         }
       }
     },
@@ -5157,11 +5166,16 @@
       "agent_id": "tLiK",
       "agent_seq": 356,
       "timestamp": "2026-10-19T23:23:57.354513886Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 357,
+      "timestamp": "2026-10-19T23:24:02.861712501Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:23:57.354513886Z",
+    "timestamp": "2026-10-19T23:24:02.861712501Z",
     "agent_id": "tLiK",
-    "agent_seq": 356
+    "agent_seq": 357
   }
 }
