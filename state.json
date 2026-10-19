@@ -1,5 +1,5 @@
 {
-  "next_display_id": 110,
+  "next_display_id": 111,
   "next_comment_id": 152,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -62,6 +62,7 @@
     "9b196228-1911-43b8-9662-c9d1dde70cda": 64,
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": 70,
     "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de": 96,
+    "9dd7969e-3f3d-417d-a67a-715c85d241ee": 110,
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
@@ -1904,6 +1905,18 @@
       "labels": [
         "bug"
       ]
+    },
+    "9dd7969e-3f3d-417d-a67a-715c85d241ee": {
+      "uuid": "9dd7969e-3f3d-417d-a67a-715c85d241ee",
+      "display_id": 110,
+      "title": "Divergence (latent): sign_entry re-signs a KeyStoreFile with the HeaderFile convention; upstream signs header || key_store and writes at 0x100 + body_size (key_store_file.py:44-51)",
+      "description": "Spillover from #105. sign_entry accepts EntryClass::KeyStore but signs HeaderEntry::get_signed_bytes (header || decoded[..size_signed]) and patches signature_bytes (rom_size - signature_len). Upstream KeyStoreFile.get_signed_bytes is header || key_store, key_store = decoded body cut to size_uncompressed when compressed (key_store_file.py:39-42, :50-51), signature at [0x100 + body_size, packed_size) (:44-47, :126-130). Reference probe over the corpus (241629b): all 12 KeyStoreFiles are uncompressed and both conventions give the same signed bytes and signature address, so nothing diverges today; a compressed key store would. Fix shape: for KeyStore use HeaderEntry::get_key_store_signed_bytes (body.rs) and the key_store_signature region (needs a pub accessor whose consumer is sign_entry).",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-19T23:23:24.077850409Z",
+      "updated_at": "2026-10-19T23:23:24.077850409Z"
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -5108,11 +5121,16 @@
       "agent_id": "tLiK",
       "agent_seq": 352,
       "timestamp": "2026-10-19T23:23:17.941972306Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 353,
+      "timestamp": "2026-10-19T23:23:24.077850409Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:23:17.941972306Z",
+    "timestamp": "2026-10-19T23:23:24.077850409Z",
     "agent_id": "tLiK",
-    "agent_seq": 352
+    "agent_seq": 353
   }
 }
