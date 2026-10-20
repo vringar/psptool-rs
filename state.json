@@ -3193,12 +3193,13 @@
       "display_id": 111,
       "title": "Divergence: ls 'size' of a HeaderFile shows the directory size; upstream shows buffer_size, the rom_size buffer (psptool.py:249, header_file.py:104-105)",
       "description": "Spillover from #101. ls_files_dict 'size' is file.buffer_size (psptool.py:249); for a HeaderFile/KeyStoreFile that is the buffer grown to 0x100 and re-sized to rom_size (header_file.py:32-33, :72-75, :104-105), i.e. Entry::file_bytes(blob).len() since #101. psptool-ops list.rs renders the directory-declared size (entry.body.len()), and crates/psptool-cli/tests/differential.rs tolerates the mismatch for HeaderFile entries ('size of HeaderFile entries', lines 34-38). Corpus: 16 grown + 144 shrunk HeaderFile-class files differ. Fix shape: render entry.file_bytes(blob).len() for HeaderFile-class entries in ls text + JSON, drop that differential tolerance, regenerate the list_micro and psptool-cli synthetic__list_* snapshots. Changes ls output (user-facing).",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:46:42.222925422Z",
-      "updated_at": "2026-10-20T04:23:00.712860984Z",
+      "updated_at": "2026-10-20T04:23:06.274389191Z",
+      "closed_at": "2026-10-20T04:23:06.274387959Z",
       "labels": [
         "blocker",
         "kaizen"
@@ -6561,11 +6562,16 @@
       "agent_id": "tLiK",
       "agent_seq": 446,
       "timestamp": "2026-10-20T04:23:00.712860984Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 447,
+      "timestamp": "2026-10-20T04:23:06.274389191Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T04:23:00.712860984Z",
+    "timestamp": "2026-10-20T04:23:06.274389191Z",
     "agent_id": "tLiK",
-    "agent_seq": 446
+    "agent_seq": 447
   }
 }
