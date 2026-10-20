@@ -1,6 +1,6 @@
 {
   "next_display_id": 125,
-  "next_comment_id": 181,
+  "next_comment_id": 182,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -483,7 +483,7 @@
       "priority": "high",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:25:40.895223856Z",
-      "updated_at": "2026-10-20T01:55:54.197487832Z",
+      "updated_at": "2026-10-20T02:31:29.016042774Z",
       "labels": [
         "blocker"
       ],
@@ -510,6 +510,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA+jOmblfVNNLzrWr34dXvdvgLjSvjg60g5r6X3iQy139YHhu3GPCV5Hc6Hm0wqDxuWmvkNyHVnyNckP9tozpHCA=="
+        },
+        "ab357059-69a3-4dfd-a952-1c53b684fced": {
+          "display_id": 181,
+          "author": "tLiK",
+          "content": "Result: fixed in 1365c023 (psptool-core walk_directories threads DirectoryRef::generations; psptool-ops list.rs renders upstream labels one per line, table.rs multi-line cells). All 7 divergence_generation_threading.rs pins un-ignored and green incl. both live-reference corpus pins; exact Generation cell text equals the reference for all 433 directories (vendor corpus + 5 local Zen 4/5), None read as empty (#122 filed). Workspace 626 passed / 0 failed / 5 ignored; corpus_roundtrip 54/0/0; differential 54/0/0; clippy + fmt + core rustdoc clean. Consumer-visible: ls text Generation column only; ls -j unchanged; psptool-py unaffected.",
+          "created_at": "2026-10-20T02:31:29.009609579Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAOqq20S00wDbKmGXm/kdwYUgDg6Sefioe4lK4ctvSOp/bizTuJeYFfDM/6oOjv6Gi9FSA3KyJkUV4WKMZpxjbDg=="
         },
         "c9c8530b-467d-4ff9-bb97-3055fe3abcd9": {
           "display_id": 164,
@@ -5950,11 +5959,16 @@
       "agent_id": "tLiK",
       "agent_seq": 397,
       "timestamp": "2026-10-20T02:17:34.067016588Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 398,
+      "timestamp": "2026-10-20T02:31:29.016042774Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:17:34.067016588Z",
+    "timestamp": "2026-10-20T02:31:29.016042774Z",
     "agent_id": "tLiK",
-    "agent_seq": 397
+    "agent_seq": 398
   }
 }
