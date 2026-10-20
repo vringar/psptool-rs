@@ -3876,12 +3876,13 @@
       "display_id": 122,
       "title": "Divergence: ls Generation cell is empty for a directory without a generation; upstream prints None (psptool.py:84)",
       "description": "Upstream PSPTool 241629b ls prints directory.zen_generation verbatim (psptool.py:84); for a directory only FET slots reach it is None (fet.py:88-89, directory.py:124), so PrettyTable renders the string 'None' (e.g. AORUS_X570_X57AOXT2.FCd $BHD 0x2a0000 / 0x40f000). psptool-ops list.rs directory_generation renders an empty cell. Spotted while fixing #116/#117/#57: the exact Generation cell text otherwise matches the reference for all 433 directories of the vendor corpus + 5 local Zen 4/5 images. Fix shape: render 'None' when DirectoryRef::generations is empty (non-combo), regenerate list_micro + psptool-cli synthetic__list_* snapshots. Text-only, changes ls output.",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T02:16:56.424005552Z",
-      "updated_at": "2026-10-20T03:50:09.651615012Z",
+      "updated_at": "2026-10-20T03:50:17.072634996Z",
+      "closed_at": "2026-10-20T03:50:17.072633663Z",
       "labels": [
         "blocker"
       ],
@@ -6293,11 +6294,16 @@
       "agent_id": "tLiK",
       "agent_seq": 427,
       "timestamp": "2026-10-20T03:50:09.651615012Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 428,
+      "timestamp": "2026-10-20T03:50:17.072634996Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:50:09.651615012Z",
+    "timestamp": "2026-10-20T03:50:17.072634996Z",
     "agent_id": "tLiK",
-    "agent_seq": 427
+    "agent_seq": 428
   }
 }
