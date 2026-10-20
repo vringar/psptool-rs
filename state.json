@@ -1,6 +1,6 @@
 {
   "next_display_id": 135,
-  "next_comment_id": 196,
+  "next_comment_id": 197,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1978,10 +1978,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T04:12:58.253613040Z",
-      "updated_at": "2026-10-20T04:13:17.641568557Z",
+      "updated_at": "2026-10-20T04:14:27.940806289Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "55a14515-486b-44bc-b196-dbc0cb3c6878": {
+          "display_id": 196,
+          "author": "tLiK",
+          "content": "psptool oracle ruling (board #1035): psptool-rs is right, upstream reuses cached ANOTHER_FET~0x46 object (offset-cache echo). Treat as tolerated equivalent difference: extend differential.rs echo tolerance to type, then close.",
+          "created_at": "2026-10-20T04:14:27.935360785Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABANJgxgBCzke5Y9BiJVRomTwGsEMWyE7ZoGvEuFcm9HCnL6hZwY8W5pCZn20fByAEXAUCv6G2juLZtOsKvc1mbBg=="
+        }
+      }
     },
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": {
       "uuid": "7c5ec29a-d96d-4643-89c6-90b347dcfe44",
@@ -6479,11 +6490,16 @@
       "agent_id": "tLiK",
       "agent_seq": 440,
       "timestamp": "2026-10-20T04:13:17.641568557Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 441,
+      "timestamp": "2026-10-20T04:14:27.940806289Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T04:13:17.641568557Z",
+    "timestamp": "2026-10-20T04:14:27.940806289Z",
     "agent_id": "tLiK",
-    "agent_seq": 440
+    "agent_seq": 441
   }
 }
