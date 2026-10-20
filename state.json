@@ -1,5 +1,5 @@
 {
-  "next_display_id": 122,
+  "next_display_id": 123,
   "next_comment_id": 181,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -120,6 +120,7 @@
     "edf5e059-b0a2-493d-892d-58409910d47f": 16,
     "f68dfb32-8ad2-4064-9530-a2e786b1a249": 98,
     "f7dd168c-f826-4ad4-adec-395534c077bf": 90,
+    "fa789c6d-f19b-46ee-8398-4a70e6a40669": 122,
     "fba50544-5971-4237-8157-aca0c67508f5": 32,
     "ff3a9562-e292-4ffb-8f75-0c1d07d85917": 59,
     "ff92bee9-e6df-4936-9845-a74200067d0b": 48
@@ -3665,6 +3666,18 @@
         }
       }
     },
+    "fa789c6d-f19b-46ee-8398-4a70e6a40669": {
+      "uuid": "fa789c6d-f19b-46ee-8398-4a70e6a40669",
+      "display_id": 122,
+      "title": "Divergence: ls Generation cell is empty for a directory without a generation; upstream prints None (psptool.py:84)",
+      "description": "Upstream PSPTool 241629b ls prints directory.zen_generation verbatim (psptool.py:84); for a directory only FET slots reach it is None (fet.py:88-89, directory.py:124), so PrettyTable renders the string 'None' (e.g. AORUS_X570_X57AOXT2.FCd $BHD 0x2a0000 / 0x40f000). psptool-ops list.rs directory_generation renders an empty cell. Spotted while fixing #116/#117/#57: the exact Generation cell text otherwise matches the reference for all 433 directories of the vendor corpus + 5 local Zen 4/5 images. Fix shape: render 'None' when DirectoryRef::generations is empty (non-combo), regenerate list_micro + psptool-cli synthetic__list_* snapshots. Text-only, changes ls output.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T02:16:56.424005552Z",
+      "updated_at": "2026-10-20T02:16:56.424005552Z"
+    },
     "fba50544-5971-4237-8157-aca0c67508f5": {
       "uuid": "fba50544-5971-4237-8157-aca0c67508f5",
       "display_id": 32,
@@ -5872,11 +5885,16 @@
       "agent_id": "tLiK",
       "agent_seq": 391,
       "timestamp": "2026-10-20T01:56:23.917040599Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 392,
+      "timestamp": "2026-10-20T02:16:56.424005552Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:56:23.917040599Z",
+    "timestamp": "2026-10-20T02:16:56.424005552Z",
     "agent_id": "tLiK",
-    "agent_seq": 391
+    "agent_seq": 392
   }
 }
