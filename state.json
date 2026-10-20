@@ -1,6 +1,6 @@
 {
   "next_display_id": 133,
-  "next_comment_id": 186,
+  "next_comment_id": 187,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3881,10 +3881,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T02:16:56.424005552Z",
-      "updated_at": "2026-10-20T02:17:02.668930135Z",
+      "updated_at": "2026-10-20T03:49:28.887451471Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "712cc11d-7619-4464-a974-80c60f8a8cd6": {
+          "display_id": 186,
+          "author": "tLiK",
+          "content": "Plan: directory_generation (psptool-ops/src/list.rs) renders NO_GENERATION = \"None\" for a $PSP/$BHD DirectoryRef with empty generations, upstream str(directory.zen_generation) printed by PrettyTable (psptool.py:84; fet.py:89 passes no generation, directory.py:58/:124 default+store None, :82 L2 inherits it). Combo rows unchanged (upstream does not list them). Pins in divergence_generation_threading.rs: synthetic FET-slot $PSP + $PL2 render None; exact-text corpus pin vs reference str(zen_generation) for every directory (shared OnceLock reference pass for all three corpus pins). Regenerate list_micro + psptool-cli synthetic__list_* snapshots; update list.md REQ-10 + AC-3.",
+          "created_at": "2026-10-20T03:49:28.882627244Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAPk/T9a2yUDqSGlMTIOIWs0ibWP59NSrHDUja1Fegv+RyWtrbs7QLMkhwt+vxmltgt3ozgpN7wqaWOLWi8kahBA=="
+        }
+      }
     },
     "fba50544-5971-4237-8157-aca0c67508f5": {
       "uuid": "fba50544-5971-4237-8157-aca0c67508f5",
@@ -6263,11 +6274,16 @@
       "agent_id": "tLiK",
       "agent_seq": 425,
       "timestamp": "2026-10-20T03:48:48.093227996Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 426,
+      "timestamp": "2026-10-20T03:49:28.887451471Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:48:48.093227996Z",
+    "timestamp": "2026-10-20T03:49:28.887451471Z",
     "agent_id": "tLiK",
-    "agent_seq": 425
+    "agent_seq": 426
   }
 }
