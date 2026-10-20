@@ -1,5 +1,5 @@
 {
-  "next_display_id": 134,
+  "next_display_id": 135,
   "next_comment_id": 196,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -62,6 +62,7 @@
     "79977ea4-13a2-4642-be11-632dbd1123bd": 28,
     "7a4a2989-01cd-495a-b276-b9d163275fa5": 126,
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
+    "7bbbcfff-7683-4b9e-b069-fa2f6c50059f": 134,
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "7d3e8bf4-fc86-456e-9ee3-434b2180f648": 81,
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
@@ -1966,6 +1967,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAx8A2cz9+lr0316ALMApTTFYbVr5+dvW5m4PlJDdYvAAWhRPNTUrBkLYJqmjKZKJ85KSGrfb5blytDstd7EK6CA=="
         }
       }
+    },
+    "7bbbcfff-7683-4b9e-b069-fa2f6c50059f": {
+      "uuid": "7bbbcfff-7683-4b9e-b069-fa2f6c50059f",
+      "display_id": 134,
+      "title": "Divergence: second dir record at a shared offset reports S0I3_DRIVER~0x2d where upstream echoes ANOTHER_FET~0x46 from an earlier directory (likely cache-echo; differential.rs only tolerates size, not type)",
+      "description": "Bulk differential vs PSPTool 241629b (checkout dcfec1f), 21/1350 ROMs fail crates/psptool-cli/tests/differential.rs-equivalent projection on the same row. Dir @0x2f9800 (or @0x2f1800 in 6 ROMs) entry idx 23: ours address 0x5c8800 size 0x40000 type S0I3_DRIVER~0x2d (ls -v: magic 00000000); reference address 0x5c8800 size 0x40000 type ANOTHER_FET~0x46. Upstream also lists idx 24 as ANOTHER_FET at the same address; ours lists idx 24 ANOTHER_FET~0x46 and idx 23 S0I3_DRIVER. An earlier directory in the same ROM has ANOTHER_FET~0x46 at 0x5c8800 (ls row 31 of the first /$PSP dir), so this looks like upstream files_by_offset cache echo (file.py:47-54) seeded from that dir, same class as #40/#41/#77, but the size-only dedup tolerance in compare_structure does not cover a type echo, so the test would flag it. Decide: extend the tolerance to type with a seed check (same discriminator as the cross-ROM rule), or treat as real. Example shas: 061aea81bb75330269144e7ee8358c96d3a468c01c83f20d26d07da425adb793, 0d91316defc03abd0aa930521fd674836a896dd5705994d57173d46103ddfb9b, 0f18e9b7343ac0f604b7a2e813dbbd918d160957deec8ebf4782fcd5dd22026a; all 21: dir@0x2f9800: 061aea81 0d91316d 0f18e9b7 210e76f2 2a902489 442f2cfd 828d9a5e 898433e8 bb244ba7 c238f683 d0a2d869 e86aece5 f083965f f916f2ab fd6b914f; dir@0x2f1800: 0f676ccc 4604ce70 50a43479 674c90d9 794b3dcd 7b6843dc. Only the first mismatching row per ROM is recorded by the harness.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T04:12:58.253613040Z",
+      "updated_at": "2026-10-20T04:12:58.253613040Z"
     },
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": {
       "uuid": "7c5ec29a-d96d-4643-89c6-90b347dcfe44",
@@ -6453,11 +6466,16 @@
       "agent_id": "tLiK",
       "agent_seq": 438,
       "timestamp": "2026-10-20T04:12:52.461194444Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 439,
+      "timestamp": "2026-10-20T04:12:58.253613040Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T04:12:52.461194444Z",
+    "timestamp": "2026-10-20T04:12:58.253613040Z",
     "agent_id": "tLiK",
-    "agent_seq": 438
+    "agent_seq": 439
   }
 }
