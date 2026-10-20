@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 161,
+  "next_comment_id": 162,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1750,10 +1750,19 @@
       "priority": "low",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:39:05.013796842Z",
-      "updated_at": "2026-10-20T00:39:15.746559305Z",
+      "updated_at": "2026-10-20T00:39:50.909637055Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "6b2f399a-a40f-44b6-b284-be5dd7cd92c7": {
+          "display_id": 161,
+          "author": "anon-b19d58ac",
+          "content": "Failing tests at crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs: divergence_file_info_has_only_upstream_outcome_tokens (synthetic) and divergence_corpus_headerfile_file_info_matches_reference (live reference ls -v, 4024 rows). #[ignore]d with this issue; control_file_info_outcome_tags_present passes.",
+          "created_at": "2026-10-20T00:39:50.909631414Z",
+          "kind": "observation"
+        }
+      }
     },
     "85cb914b-5cc4-4d96-b34a-3923a29e5c94": {
       "uuid": "85cb914b-5cc4-4d96-b34a-3923a29e5c94",
@@ -5553,11 +5562,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 17,
       "timestamp": "2026-10-20T00:39:40.975524280Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 18,
+      "timestamp": "2026-10-20T00:39:50.909637055Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:39:40.975524280Z",
+    "timestamp": "2026-10-20T00:39:50.909637055Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 17
+    "agent_seq": 18
   }
 }
