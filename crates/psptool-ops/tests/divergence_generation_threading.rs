@@ -172,6 +172,25 @@ fn psp_chain(ids: &[u32]) -> Vec<u8> {
     buf
 }
 
+/// FET slot → L1 `$PSP` (no combo) → `0x40` → L2 `$PL2`.
+fn fet_direct_psp_chain() -> Vec<u8> {
+    let mut buf = vec![0u8; ROM_BYTES];
+    write_fet(&mut buf, L1_OFF);
+    write_dir(
+        &mut buf, L1_OFF, b"$PSP", PSP_ENTRY, PSP_L2_PTR, L2_OFF, 0x400,
+    );
+    write_dir(
+        &mut buf,
+        L2_OFF,
+        b"$PL2",
+        PSP_ENTRY,
+        WRAPPED_IKEK,
+        LEAF_BODY_OFF,
+        0x10,
+    );
+    buf
+}
+
 /// FET → `2BHD` combo → L1 `$BHD` → `0x70` → L2 `$BL2`.
 fn bios_chain(id: u32) -> Vec<u8> {
     let mut buf = vec![0u8; ROM_BYTES];
@@ -271,6 +290,20 @@ fn zen_tokens(text: &str) -> BTreeSet<String> {
         i = k.min(text.len());
     }
     out
+}
+
+/// The exact Generation cell of a directory block: column 4 of its first body
+/// line plus that column of every further line that has one (a multi-line
+/// cell), `'\n'`-joined like upstream's accumulated `zen_generation`.
+fn generation_cell(block: &str) -> String {
+    let mut lines = Vec::new();
+    for (i, line) in block.lines().enumerate() {
+        let cell = line.split('|').nth(4).map(str::trim).unwrap_or_default();
+        if i == 0 || !cell.is_empty() {
+            lines.push(cell.to_string());
+        }
+    }
+    lines.join("\n")
 }
 
 fn tokens_of(rendered: &str, addr: usize) -> BTreeSet<String> {
@@ -405,11 +438,36 @@ fn divergence_generation_label_includes_psp_id() {
     );
 }
 
+/// A directory only a FET slot reaches has no generation: `fet.py:89` calls
+/// `create_directories_if_not_exist(rom_addr, self)` without one, so
+/// `zen_generation` keeps its `None` default (`directory.py:58`, stored at
+/// `:124`) and its L2 child inherits that `None` (`:82`). `psptool.py:84`
+/// hands it to PrettyTable, which prints `str(None)`: `None`.
+///
+/// Tracking: #122
+#[test]
+fn divergence_fet_only_directory_generation_is_none() {
+    let out = render_synthetic(fet_direct_psp_chain());
+    let blocks = directory_blocks(&out);
+    for addr in [L1_OFF, L2_OFF] {
+        let block = blocks
+            .get(&(addr as u64))
+            .unwrap_or_else(|| panic!("directory @{addr:#x} not rendered:\n{out}"));
+        assert_eq!(
+            generation_cell(block),
+            "None",
+            "divergence #122: directory @{addr:#x} is reached without a generation; \
+             upstream prints str(None) (psptool.py:84)\n{out}"
+        );
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Corpus-gated differential against the live reference (PSPTOOL_REFERENCE)
 // ---------------------------------------------------------------------------
 
-/// Prints `{"<dir address>": zen_generation-or-null, …}` for every ROM.
+/// Prints `{"<dir address>": str(zen_generation), …}` for every ROM — the
+/// exact text PrettyTable renders in the Generation column (`psptool.py:84`).
 const REFERENCE_SCRIPT: &str = r#"
 import sys, json, io, contextlib
 from psptool import PSPTool
@@ -418,14 +476,45 @@ with contextlib.redirect_stderr(io.StringIO()):
 out = {}
 for rom in pt.blob.roms:
     for d in rom.directories:
-        out.setdefault(str(d.get_address()), d.zen_generation)
+        out.setdefault(str(d.get_address()), str(d.zen_generation))
 print(json.dumps(out))
 "#;
+
+/// One corpus image: its file name, the reference's Generation cell text per
+/// directory address and ours.
+type CorpusGenerations = (String, BTreeMap<u64, String>, BTreeMap<u64, String>);
+
+/// Both tools' Generation cells over the corpus, computed once for every
+/// corpus pin; `None` when the corpus or the reference is not wired up.
+fn corpus_generations() -> Option<&'static [CorpusGenerations]> {
+    static CELLS: std::sync::OnceLock<Option<Vec<CorpusGenerations>>> = std::sync::OnceLock::new();
+    CELLS
+        .get_or_init(|| {
+            let reference = std::env::var_os("PSPTOOL_REFERENCE").filter(|v| !v.is_empty())?;
+            let reference = std::path::PathBuf::from(reference);
+            let roms = psptool_fixtures::corpus_rom_paths();
+            if roms.is_empty() {
+                return None;
+            }
+            Some(
+                roms.iter()
+                    .map(|rom| {
+                        (
+                            rom.file_name().unwrap().to_string_lossy().into_owned(),
+                            reference_generations(&reference, rom),
+                            our_generations(rom),
+                        )
+                    })
+                    .collect(),
+            )
+        })
+        .as_deref()
+}
 
 fn reference_generations(
     reference: &std::path::Path,
     rom: &std::path::Path,
-) -> BTreeMap<u64, BTreeSet<String>> {
+) -> BTreeMap<u64, String> {
     let out = std::process::Command::new(reference)
         .args(["-I", "-c", REFERENCE_SCRIPT])
         .arg(rom)
@@ -444,13 +533,13 @@ fn reference_generations(
         .map(|(k, g)| {
             (
                 k.parse::<u64>().expect("address"),
-                g.as_str().map(zen_tokens).unwrap_or_default(),
+                g.as_str().expect("str(zen_generation)").to_string(),
             )
         })
         .collect()
 }
 
-fn our_generations(rom: &std::path::Path) -> BTreeMap<u64, BTreeSet<String>> {
+fn our_generations(rom: &std::path::Path) -> BTreeMap<u64, String> {
     let blob = SourceBytes::from_blob(std::fs::read(rom).expect("read ROM"));
     let mut out = BTreeMap::new();
     let layouts: Vec<_> = scan_fet_candidates(&blob)
@@ -469,36 +558,31 @@ fn our_generations(rom: &std::path::Path) -> BTreeMap<u64, BTreeSet<String>> {
             sparse: false,
         };
         for (addr, block) in directory_blocks(&list_default(&listing)) {
-            out.entry(addr).or_insert_with(|| zen_tokens(&block));
+            out.entry(addr).or_insert_with(|| generation_cell(&block));
         }
     }
     out
 }
 
-/// Compare every corpus directory whose upstream generation set satisfies
-/// `select`; returns the mismatch report lines.
-fn corpus_generation_mismatches(select: fn(&BTreeSet<String>) -> bool) -> Option<Vec<String>> {
-    let reference = std::env::var_os("PSPTOOL_REFERENCE").filter(|v| !v.is_empty())?;
-    let reference = std::path::PathBuf::from(reference);
-    let roms = psptool_fixtures::corpus_rom_paths();
-    if roms.is_empty() {
-        return None;
-    }
+/// Compare every corpus directory whose upstream generation tokens satisfy
+/// `select`, by `project` of both cells; returns the mismatch report lines.
+fn corpus_generation_mismatches<T: PartialEq + std::fmt::Debug>(
+    select: fn(&BTreeSet<String>) -> bool,
+    project: fn(&str) -> T,
+) -> Option<Vec<String>> {
     let mut bad = Vec::new();
-    for rom in roms {
-        let theirs = reference_generations(&reference, &rom);
-        let ours = our_generations(&rom);
-        for (addr, up) in &theirs {
-            if !select(up) {
+    for (name, theirs, ours) in corpus_generations()? {
+        for (addr, up) in theirs {
+            if !select(&zen_tokens(up)) {
                 continue;
             }
             // Directories only one tool surfaces are the differential's
             // business, not this pin's.
             let Some(mine) = ours.get(addr) else { continue };
+            let (up, mine) = (project(up), project(mine));
             if mine != up {
                 bad.push(format!(
-                    "{} dir {addr:#x}: reference {up:?}, ours {mine:?}",
-                    rom.file_name().unwrap().to_string_lossy()
+                    "{name} dir {addr:#x}: reference {up:?}, ours {mine:?}"
                 ));
             }
         }
@@ -513,7 +597,7 @@ fn corpus_generation_mismatches(select: fn(&BTreeSet<String>) -> bool) -> Option
 /// Tracking: #116
 #[test]
 fn divergence_corpus_single_generation_matches_reference() {
-    let Some(bad) = corpus_generation_mismatches(|g| g.len() <= 1) else {
+    let Some(bad) = corpus_generation_mismatches(|g| g.len() <= 1, zen_tokens) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");
         return;
     };
@@ -532,7 +616,7 @@ fn divergence_corpus_single_generation_matches_reference() {
 /// Tracking: #117
 #[test]
 fn divergence_corpus_multi_generation_matches_reference() {
-    let Some(bad) = corpus_generation_mismatches(|g| g.len() > 1) else {
+    let Some(bad) = corpus_generation_mismatches(|g| g.len() > 1, zen_tokens) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");
         return;
     };
@@ -540,6 +624,27 @@ fn divergence_corpus_multi_generation_matches_reference() {
         bad.is_empty(),
         "divergence #117: {} multi-generation directories differ from the \
          reference (directory.py:61-62, 243-249):\n{}",
+        bad.len(),
+        bad.join("\n")
+    );
+}
+
+/// Exact-text corpus pin: every directory's Generation cell is the reference's
+/// `str(zen_generation)` (`psptool.py:84`) — label, PSP id, line order, and
+/// `None` for the FET-only directories of most Zen 1/2 images (e.g.
+/// `Tesla_zen-recovery.bin` `$PSP` 0x30000 / `$BHD` 0x152000).
+///
+/// Tracking: #122
+#[test]
+fn divergence_corpus_generation_cell_text_matches_reference() {
+    let Some(bad) = corpus_generation_mismatches(|_| true, str::to_string) else {
+        eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");
+        return;
+    };
+    assert!(
+        bad.is_empty(),
+        "divergence #122: {} directories' Generation cell text differs from the \
+         reference's str(zen_generation) (psptool.py:84):\n{}",
         bad.len(),
         bad.join("\n")
     );
