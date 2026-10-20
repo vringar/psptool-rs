@@ -1,6 +1,6 @@
 {
   "next_display_id": 125,
-  "next_comment_id": 183,
+  "next_comment_id": 184,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1425,7 +1425,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T21:56:27.526959772Z",
-      "updated_at": "2026-10-20T01:56:23.917040599Z",
+      "updated_at": "2026-10-20T02:32:05.254990277Z",
       "labels": [
         "feature"
       ],
@@ -1443,6 +1443,15 @@
           "content": "Not a future feature: the pinned oracle (PSPTool 241629b) ALREADY renders the full PSP ID — fet.py:117-123 (combo) and directory.py:89-95 (tertiary) build 'Zen 3 (PSP ID 0xbc0c0140)', and psptool.py:84 prints it; unknown ids render 'unknown (PSP ID 0x...)'. Ours renders 'Zen3' (psptool-ops list.rs zen_label). Failing pin: crates/psptool-ops/tests/divergence_generation_threading.rs::divergence_generation_label_includes_psp_id (#[ignore] tracking #57). Generation ATTRIBUTION divergences are separate: #116 (L2 inheritance), #117 (multi-combo accumulation).",
           "created_at": "2026-10-20T00:28:54.757934717Z",
           "kind": "observation"
+        },
+        "dceea988-cec1-4f55-894d-084dc3f62758": {
+          "display_id": 183,
+          "author": "tLiK",
+          "content": "Result: fixed in 1365c023 (psptool-core walk_directories threads DirectoryRef::generations; psptool-ops list.rs renders upstream labels one per line, table.rs multi-line cells). All 7 divergence_generation_threading.rs pins un-ignored and green incl. both live-reference corpus pins; exact Generation cell text equals the reference for all 433 directories (vendor corpus + 5 local Zen 4/5), None read as empty (#122 filed). Workspace 626 passed / 0 failed / 5 ignored; corpus_roundtrip 54/0/0; differential 54/0/0; clippy + fmt + core rustdoc clean. Consumer-visible: ls text Generation column only; ls -j unchanged; psptool-py unaffected.",
+          "created_at": "2026-10-20T02:32:05.250171434Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAOqq20S00wDbKmGXm/kdwYUgDg6Sefioe4lK4ctvSOp/bizTuJeYFfDM/6oOjv6Gi9FSA3KyJkUV4WKMZpxjbDg=="
         },
         "eb34e9fc-0395-4ddf-93ef-58c52e46c5eb": {
           "display_id": 180,
@@ -5991,11 +6000,16 @@
       "agent_id": "tLiK",
       "agent_seq": 402,
       "timestamp": "2026-10-20T02:31:58.706286780Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 403,
+      "timestamp": "2026-10-20T02:32:05.254990277Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:31:58.706286780Z",
+    "timestamp": "2026-10-20T02:32:05.254990277Z",
     "agent_id": "tLiK",
-    "agent_seq": 402
+    "agent_seq": 403
   }
 }
