@@ -1,5 +1,5 @@
 {
-  "next_display_id": 115,
+  "next_display_id": 116,
   "next_comment_id": 156,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -107,6 +107,7 @@
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
     "e91fb96d-6532-4b2f-b117-a86283030074": 68,
+    "e9c199a2-3175-4b09-ad49-f8c76d383a0d": 115,
     "e9dc2315-17b2-4030-abc0-3685a51ca70e": 80,
     "e9e8d58e-9b00-4f70-b337-7ab57b2da892": 9,
     "ed64c804-a22c-4f59-a590-784292ddd2a0": 37,
@@ -3178,6 +3179,17 @@
         }
       }
     },
+    "e9c199a2-3175-4b09-ad49-f8c76d383a0d": {
+      "uuid": "e9c199a2-3175-4b09-ad49-f8c76d383a0d",
+      "display_id": 115,
+      "title": "Divergence: ABL0 size column 0x864f0/0x8c370 vs upstream 0x3a0 on Milan KRPA-U16",
+      "description": "Golden diff (#920): ABL0 size ours 0x864f0 (.50) / 0x8c370 (.72), upstream 0x3a0 on both, with verified(289A), sha256_ok. Probably the known HeaderFile size difference (#111) but a ~100x gap: confirm it is the same mechanism (directory-table size vs header-derived buffer) before closing.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T00:00:22.258551382Z",
+      "updated_at": "2026-10-20T00:00:22.258551382Z"
+    },
     "e9dc2315-17b2-4030-abc0-3685a51ca70e": {
       "uuid": "e9dc2315-17b2-4030-abc0-3685a51ca70e",
       "display_id": 80,
@@ -5316,11 +5328,16 @@
       "agent_id": "tLiK",
       "agent_seq": 371,
       "timestamp": "2026-10-20T00:00:08.345151685Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 372,
+      "timestamp": "2026-10-20T00:00:22.258551382Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:00:08.345151685Z",
+    "timestamp": "2026-10-20T00:00:22.258551382Z",
     "agent_id": "tLiK",
-    "agent_seq": 371
+    "agent_seq": 372
   }
 }
