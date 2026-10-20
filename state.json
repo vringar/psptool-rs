@@ -1,6 +1,6 @@
 {
   "next_display_id": 133,
-  "next_comment_id": 195,
+  "next_comment_id": 196,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3827,10 +3827,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T03:48:26.563107750Z",
-      "updated_at": "2026-10-20T03:48:48.093227996Z",
+      "updated_at": "2026-10-20T03:53:38.226633825Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "99618ac4-31b3-4169-acde-e1f04b8361a4": {
+          "display_id": 195,
+          "author": "tLiK",
+          "content": "Failing tests at crates/psptool-cli/tests/divergence_multi_rom.rs::json_listing_covers_every_rom and ::table_listing_covers_every_rom demonstrate divergence (commit b251eab, worktree agent-ae041f807583f6b85; run in the nix dev shell: cargo test -p psptool-cli --test divergence_multi_rom -- --ignored)",
+          "created_at": "2026-10-20T03:53:38.221699780Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAve1IEyA279TLK12qYIz5mYyv/88iztfLItiCF4D4U2WTBJHYJj66oWOGNlzHGYNPxKleHnQulXXmqQG4IRYbCg=="
+        }
+      }
     },
     "ed64c804-a22c-4f59-a590-784292ddd2a0": {
       "uuid": "ed64c804-a22c-4f59-a590-784292ddd2a0",
@@ -6411,11 +6422,16 @@
       "agent_id": "tLiK",
       "agent_seq": 435,
       "timestamp": "2026-10-20T03:53:30.338627579Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 436,
+      "timestamp": "2026-10-20T03:53:38.226633825Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:53:30.338627579Z",
+    "timestamp": "2026-10-20T03:53:38.226633825Z",
     "agent_id": "tLiK",
-    "agent_seq": 435
+    "agent_seq": 436
   }
 }
