@@ -1,5 +1,5 @@
 {
-  "next_display_id": 135,
+  "next_display_id": 136,
   "next_comment_id": 205,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -98,6 +98,7 @@
     "bddcb556-0ffa-485a-95fa-a61221162ed9": 79,
     "c3c8670f-9fe0-4508-8196-90362d7f2528": 73,
     "c7d5f1c5-752a-43ef-aac3-121ccea81c72": 102,
+    "c819ae29-5ece-4f69-be3b-a3d4b945cf46": 135,
     "ca40b6c9-0483-40ff-accd-e46128d5e601": 3,
     "ca74b297-d703-4ae4-b2b2-0769a8ebc969": 77,
     "cb86d5a6-ebd3-4390-808f-264383839f29": 103,
@@ -3053,6 +3054,18 @@
       "labels": [
         "blocker"
       ]
+    },
+    "c819ae29-5ece-4f69-be3b-a3d4b945cf46": {
+      "uuid": "c819ae29-5ece-4f69-be3b-a3d4b945cf46",
+      "display_id": 135,
+      "title": "Divergence: ls Magic/ID and File Version cells of a HeaderFile differ in format from upstream (Milan ABL0 ours 00000000 / 00.00.00.00, upstream '' / 0.0.0.0)",
+      "description": "Spotted while fixing #115 on Milan KRPA-U16 0.13.0.50 (f84f3e9e). Upstream HeaderFile.get_readable_version is '.'.join(hex(b)[2:].upper() for b in header[0x63:0x5f:-1]) (header_file.py:56, :137-138): no zero padding, upper-case, e.g. PSP_FW_BOOT_LOADER '0.13.0.50' where psptool-ops list.rs version_string prints '00.13.00.50'. get_readable_magic (header_file.py:146-163) decodes the magic as ASCII and drops unprintable characters, so an all-zero magic is '' where list.rs magic_id_string prints '00000000'. list.md REQ-6 classifies these cells as self-oracle (differential-tolerated JSON keys), but the ls text cells are user-facing (R-DEV-2). Fix shape: port both upstream formatters in list.rs (text + JSON magic/version), regenerate list_micro + psptool-cli synthetic snapshots, add a live-reference corpus pin like divergence_list_text_headerfile_cells.rs. Changes ls output.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T05:40:34.181423646Z",
+      "updated_at": "2026-10-20T05:40:34.181423646Z"
     },
     "ca40b6c9-0483-40ff-accd-e46128d5e601": {
       "uuid": "ca40b6c9-0483-40ff-accd-e46128d5e601",
@@ -6639,11 +6652,16 @@
       "agent_id": "tLiK",
       "agent_seq": 453,
       "timestamp": "2026-10-20T05:35:51.534514830Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 454,
+      "timestamp": "2026-10-20T05:40:34.181423646Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T05:35:51.534514830Z",
+    "timestamp": "2026-10-20T05:40:34.181423646Z",
     "agent_id": "tLiK",
-    "agent_seq": 453
+    "agent_seq": 454
   }
 }
