@@ -1,5 +1,5 @@
 {
-  "next_display_id": 126,
+  "next_display_id": 127,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -56,6 +56,7 @@
     "71fbd789-f59a-4c42-aaf0-37ff9463e9c0": 66,
     "77177c3c-4f43-4530-8d66-62aff66597e9": 108,
     "79977ea4-13a2-4642-be11-632dbd1123bd": 28,
+    "7a4a2989-01cd-495a-b276-b9d163275fa5": 126,
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": 46,
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "7d3e8bf4-fc86-456e-9ee3-434b2180f648": 81,
@@ -1803,6 +1804,18 @@
         "hater-review",
         "refactor"
       ]
+    },
+    "7a4a2989-01cd-495a-b276-b9d163275fa5": {
+      "uuid": "7a4a2989-01cd-495a-b276-b9d163275fa5",
+      "display_id": 126,
+      "title": "Divergence: psptool-py extracts BIOS entry destination as i64 - OverflowError for destination >= 2**63 in repr(), get_readable_destination_address(), ls(), ls_json() (entry.py:140, file.py:366,413)",
+      "description": "Upstream destinations are Python ints (PSPTool 241629b):\n  entry.py:139-140  return super().__repr__()[:-1] + f', {self.destination=:#x})'\n  file.py:365-366   def get_readable_destination_address(self): return hex(self.entry.destination)\n  file.py:412-413   (BiosFile) return hex(self.destination)\n  used by psptool.py:149-158 (ls: BIOS + APOB File Info) and psptool.py:257-258 (ls_json destinationAddress).\npsptool-py extracts the u64 through i64: crates/psptool-py/src/directory.rs:447 'let destination: i64 = slf.getattr(\"destination\")?.extract()?;', file.rs:190 (File.get_readable_destination_address), file.rs:302 (BiosFile.__repr__), file.rs:311 (BiosFile.get_readable_destination_address via py_hex(i64), buffer.rs:528), file.rs:1418 (MicrocodeFile.__repr__).\nCorpus: 2523 BiosDirectoryEntry records of the 54-ROM corpus carry destination 0xffffffffffffffff (types 0x5, 0x7, 0x60, 0x63-0x68, 0x6a, 0x70): repr(entry) raises OverflowError; get_readable_destination_address() raises for 954 BiosFile, 1096 HeaderFile, 404 MicrocodeFile, 69 PubkeyFile; repr() of those BiosFile/MicrocodeFile raises. Reference renders '0xffffffffffffffff'.\nListing: with the first 0x62 BIOS entry's destination set to 0xffffffffffffffff (ASRock-A520M-HSV-1.31.ROM), upstream ls() prints destination(0xffffffffffffffff) and ls_json() emits destinationAddress '0xffffffffffffffff'; the bindings raise OverflowError from both (ls() also for a 0x61 APOB entry).\nFailing tests: crates/psptool-py/tests/divergence.rs::destination_renders_as_unsigned_hex (H12SSW9.719) and ::destination_listing_survives_u64_max (ASRock-A520M-HSV-1.31.ROM).",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:45:26.284487292Z",
+      "updated_at": "2026-10-20T03:45:26.284487292Z"
     },
     "7adf7f29-b848-4dcd-89cf-bd53f779986a": {
       "uuid": "7adf7f29-b848-4dcd-89cf-bd53f779986a",
@@ -6081,11 +6094,16 @@
       "agent_id": "tLiK",
       "agent_seq": 411,
       "timestamp": "2026-10-20T03:45:11.791292478Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 412,
+      "timestamp": "2026-10-20T03:45:26.284487292Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:45:11.791292478Z",
+    "timestamp": "2026-10-20T03:45:26.284487292Z",
     "agent_id": "tLiK",
-    "agent_seq": 411
+    "agent_seq": 412
   }
 }
