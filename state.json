@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 175,
+  "next_comment_id": 176,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3278,7 +3278,7 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:01.852764762Z",
-      "updated_at": "2026-10-20T01:08:15.990755474Z",
+      "updated_at": "2026-10-20T01:28:39.796585924Z",
       "labels": [
         "blocker"
       ],
@@ -3305,6 +3305,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAnOI7bHec+tVASBETSxMXAyYKX6AUDf1PkDic4NjqAFGsqNuz0xyD99lRTFh+hiUQ3bbOLXXVCymPLKXlTxb2Cg=="
+        },
+        "ea50a0b6-d3ff-47dc-9fc8-12e1be8650e9": {
+          "display_id": 175,
+          "author": "tLiK",
+          "content": "Result: fixed in 6a2e6a59 (psptool-ops list.rs packed_size). Three #118 pins un-ignored and green incl. the live-reference corpus pin. Workspace 615 passed / 0 failed / 14 ignored; corpus_roundtrip 54/0/0; differential 54/0/0; clippy + fmt clean. Consumer-visible: ls -v size_packed / ls -j -v sizes.packed of rom_size-0 headers.",
+          "created_at": "2026-10-20T01:28:39.785290813Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAuQFFHD5TUNqUiHxinQcadjmhAFzj7cp9X15Z/xNSgUFtdP3yBC7JV7Mt5e8Zu978Wt9JeeQzhO0jSmG2nQ9bAg=="
         }
       }
     },
@@ -5756,11 +5765,16 @@
       "agent_id": "tLiK",
       "agent_seq": 379,
       "timestamp": "2026-10-20T01:08:15.990755474Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 380,
+      "timestamp": "2026-10-20T01:28:39.796585924Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:08:15.990755474Z",
+    "timestamp": "2026-10-20T01:28:39.796585924Z",
     "agent_id": "tLiK",
-    "agent_seq": 379
+    "agent_seq": 380
   }
 }
