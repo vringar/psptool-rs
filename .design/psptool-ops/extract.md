@@ -255,8 +255,8 @@ long, and `-T` compared the wrong bytes (`__main__.py:52-56`). `extract_raw`
 now takes the image and returns `Entry::file_bytes`; pinned live by
 `extract_oracle.rs` (raw synthetic cases, the `-T` case, and `get_bytes()` of
 every corpus HeaderFile-class file). The `ls` `size` column, upstream's
-`buffer_size` (`psptool.py:249`), still shows the directory size; it is
-tolerated in `differential.rs` and tracked separately.
+`buffer_size` (`psptool.py:249`), shows the same re-sized length since #111
+(`list.rs` `file_size`), and `differential.rs` compares it strictly.
 
 **#100 — `KeyStoreFile` extracted like a `HeaderFile` — RESOLVED.** Multi-file
 `-u`/`-c` applied the HeaderFile transforms to every `HeaderEntry` class, so the

@@ -37,18 +37,18 @@
 //! |---|---|---|
 //! | REQ-1 | SHIPPED | `render_text` `list.rs:177` composes ROM/header/entry tables per `psptool.py:68`/`:79`/`:103`; consumer `psptool-cli/src/cmds/list.rs:53`/`:55` |
 //! | REQ-2 | SHIPPED | `list_json` `list.rs:148` emits directory objects per `psptool.py:208`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-3 | SHIPPED | `entry_to_json` `list.rs:426` inserts `index`/`address`/`size`/`sectionType` per `psptool.py:246`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-3 | SHIPPED | `entry_to_json` `list.rs:426` inserts `index`/`address`/`size`/`sectionType` per `psptool.py:246`; `size` (and the text `Size`, `list.rs:315`) is `file_size` `list.rs:544`, upstream's `file.buffer_size` (`psptool.py:172`/`:249`) — a HeaderFile's normalised header `rom_size` (`header_file.py:104-105`; #111, #115); consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:316`/`:441` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:490` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:553` + `version_string` `list.rs:572` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-7 | SHIPPED | `info_list` `list.rs:596` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:336` + `entry_to_json` `list.rs:467` per `psptool.py:104`/`:183`; `MD5`/`md5` is `entry_md5` `list.rs:683`, upstream `md5()` — a HeaderFile hashes its `self.body` (`header_file.py:106`/`:312-315`, #119); `size_packed`/`sizes.packed` is `packed_size` `list.rs:532`, the normalised `rom_size` (`header_file.py:72-73`, #118); the text size cells only for an exact HeaderFile, not a KeyStoreFile (`psptool.py:183`, #121); consumer `psptool-cli/src/cmds/list.rs:53` |
+//! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:565` + `version_string` `list.rs:584` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-7 | SHIPPED | `info_list` `list.rs:608` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:336` + `entry_to_json` `list.rs:467` per `psptool.py:104`/`:183`; `MD5`/`md5` is `entry_md5` `list.rs:695`, upstream `md5()` — a HeaderFile hashes its `self.body` (`header_file.py:106`/`:312-315`, #119); `size_packed`/`sizes.packed` is `packed_size` `list.rs:532`, the normalised `rom_size` (`header_file.py:72-73`, #118); the text size cells only for an exact HeaderFile, not a KeyStoreFile (`psptool.py:183`, #121); consumer `psptool-cli/src/cmds/list.rs:53` |
 //! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `MD5`=`entry_md5(..)[..4]` upper-cased) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
-//! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:785` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-10 | SHIPPED | `directory_generation` `list.rs:746` renders the ids core `walk_directories` threads into `DirectoryRef::generations` (combo entry, L2 inheritance `directory.py:81-82`, accumulation + cascade `:61-62`/`:243-249`; #116/#117) as `generation_label` `list.rs:772` (`Zen N (PSP ID 0x..)`, `fet.py:117-123`; #57), one per line, per `psptool.py:84`; a directory only FET slots reach renders `None`, upstream's `str(None)` (`fet.py:89`, `directory.py:124`; #122); consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-11 | SHIPPED | a tertiary-reached directory's `generations` hold the `block[20:24]` id (`directory.py:89`/`94`, #70), rendered by `directory_generation` `list.rs:746` per `psptool.py:84`; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:797` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-10 | SHIPPED | `directory_generation` `list.rs:758` renders the ids core `walk_directories` threads into `DirectoryRef::generations` (combo entry, L2 inheritance `directory.py:81-82`, accumulation + cascade `:61-62`/`:243-249`; #116/#117) as `generation_label` `list.rs:784` (`Zen N (PSP ID 0x..)`, `fet.py:117-123`; #57), one per line, per `psptool.py:84`; a directory only FET slots reach renders `None`, upstream's `str(None)` (`fet.py:89`, `directory.py:124`; #122); consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-11 | SHIPPED | a tertiary-reached directory's `generations` hold the `block[20:24]` id (`directory.py:89`/`94`, #70), rendered by `directory_generation` `list.rs:758` per `psptool.py:84`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:197` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
-//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:596` renders `signature_tag` (`list.rs:643`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:657`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
+//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:608` renders `signature_tag` (`list.rs:655`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:669`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
 //! | REQ-14 | SHIPPED | `entry_to_json` `list.rs:459` emits `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry per `psptool.py:267-271` (PSPTool `241629b`), from the `_verify_decode` port `verify_decode` (core `body.rs:937`, `header_file.py:198-243`) over the image-wide `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`) built by `Verifier::new` `list.rs:112`; consumer `psptool-cli/src/cmds/list.rs:49` (closes #89) |
 
 use md5::{Digest, Md5};
@@ -312,7 +312,7 @@ fn build_entry_row(
     blob: &SourceBytes,
 ) -> Vec<String> {
     let address = format_hex_u64(e.body.offset().get());
-    let size = format_hex_u64(e.body.len() as u64);
+    let size = format_hex_u64(file_size(e));
     let type_name = readable_type(e.entry_type(), is_bios);
     let (subprogram, instance) = subprogram_and_instance(&e.record);
     let magic_id = magic_id_string(&e.class);
@@ -435,7 +435,7 @@ fn entry_to_json(
     let mut obj = serde_json::Map::new();
     obj.insert("index".into(), json!(idx));
     obj.insert("address".into(), json!(e.body.offset().get()));
-    obj.insert("size".into(), json!(e.body.len()));
+    obj.insert("size".into(), json!(file_size(e)));
     obj.insert(
         "sectionType".into(),
         json!(readable_type(e.entry_type(), is_bios)),
@@ -533,6 +533,18 @@ fn packed_size(e: &Entry, h: &HeaderEntry) -> u64 {
     match h.rom_size {
         0 => e.body.len().max(HEADER_FILE_LEN) as u64,
         rom_size => u64::from(rom_size),
+    }
+}
+
+/// Upstream `File.buffer_size`, the `Size` / `size` of every listed file
+/// (`psptool.py:172`, `:249`). A HeaderFile / KeyStoreFile re-sizes its buffer
+/// to the normalised header `rom_size` (`header_file.py:104-105`), which may be
+/// shorter or longer than the directory-declared entry (Milan ABL0: `0x3a0`
+/// of `0x864f0`); every other file keeps its entry body.
+fn file_size(e: &Entry) -> u64 {
+    match e.class.header() {
+        Some(h) => packed_size(e, h),
+        None => e.body.len() as u64,
     }
 }
 

@@ -43,6 +43,17 @@
 //! `93B4`. The #87 pin (`divergence_list_columns.rs`) only checked length/case
 //! on a non-HeaderFile. Fixed by #119 (`list.rs` `entry_md5`).
 //!
+//! ## #111 / #115 — `Size` / `size` of a HeaderFile is its buffer size
+//!
+//! `ls` prints `hex(file.buffer_size)` (`psptool.py:172`) and `ls -j`
+//! `'size': file.buffer_size` (`psptool.py:249`). `HeaderFile._parse` re-sizes
+//! the buffer to the normalised header `rom_size` (`header_file.py:72-75`,
+//! `:104-105` `self.buffer_size = self.rom_size`), shorter or longer than the
+//! directory-declared entry. psptool-rs printed the directory-declared size.
+//! Milan KRPA-U16 0.13.0.50 / .72 ABL0: header `rom_size` `0x3a0`, directory
+//! `0x864f0` / `0x8c370` (#115); corpus: 16 grown + 144 shrunk HeaderFiles,
+//! which `differential.rs` tolerated until #111.
+//!
 //! Expected values come from the fixture's named constants through the quoted
 //! upstream rules, or from the live reference for the corpus pins (R-CHAR-3).
 
@@ -191,6 +202,44 @@ fn control_size_packed_nonzero_rom_size() {
         row.get("size_packed").map(String::as_str),
         Some(expected.as_str())
     );
+}
+
+/// Header `rom_size` below the directory-declared `ENTRY_SIZE`, the Milan
+/// KRPA-U16 ABL0 value (#115).
+const SHRUNK_ROM_SIZE: u32 = 0x3a0;
+/// Header `rom_size` past the directory-declared `ENTRY_SIZE`.
+const GROWN_ROM_SIZE: u32 = ENTRY_SIZE + 0x1000;
+
+/// #111 / #115: the `Size` cell and JSON `size` of a HeaderFile are
+/// `file.buffer_size` (`psptool.py:172`, `:249`) = the normalised header
+/// `rom_size` (`header_file.py:72-75`, `:104-105`), whether it is below or
+/// past the directory-declared `ENTRY_SIZE`, and `ENTRY_SIZE` when the header
+/// field is 0. Ours printed `ENTRY_SIZE` throughout.
+///
+/// Tracking: #111, #115
+#[test]
+fn divergence_headerfile_size_is_its_buffer_size() {
+    for (rom_size, expected) in [
+        (SHRUNK_ROM_SIZE, SHRUNK_ROM_SIZE),
+        (GROWN_ROM_SIZE, GROWN_ROM_SIZE),
+        (0, ENTRY_SIZE),
+    ] {
+        let row = verbose_row(image(rom_size));
+        let want = format!("{expected:#x}");
+        assert_eq!(
+            row.get("Size").map(String::as_str),
+            Some(want.as_str()),
+            "divergence #111: ls Size of a HeaderFile with header rom_size {rom_size:#x} \
+             must be hex(buffer_size) = {want} (header_file.py:104-105); row = {row:?}"
+        );
+        let entry = json_entry(image(rom_size));
+        assert_eq!(
+            entry["size"].as_u64(),
+            Some(u64::from(expected)),
+            "divergence #111: ls -j size of a HeaderFile with header rom_size \
+             {rom_size:#x} must be buffer_size {want}; entry = {entry}"
+        );
+    }
 }
 
 /// #119: the sparse `MD5` cell of a HeaderFile is `md5(self.body)[:4].upper()`

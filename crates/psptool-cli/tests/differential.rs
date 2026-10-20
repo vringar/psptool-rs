@@ -31,12 +31,6 @@
 //!   our tool additionally surfaces the combo node. Combos are dropped from
 //!   the projection (see [`COMBO_MAGICS`]) so leaf directories line up.
 //!
-//! * **`size` of HeaderFile entries.** Ours is the directory table's
-//!   allocation size; upstream's is the file `buffer_size`, which for a
-//!   *HeaderFile* (signed/compressed firmware) is the size encoded in the
-//!   file's own header — a different quantity that can legitimately disagree.
-//!   `size` is compared strictly only for non-HeaderFile entries.
-//!
 //! * **Entries sharing a flash offset.** Upstream caches `File` objects by
 //!   flash offset and reuses the first parse everywhere that offset is
 //!   referenced — masking the real type and size of any *later* directory
@@ -70,9 +64,13 @@
 //!   `address` to 0 while we report the raw directory field. `address` is not
 //!   compared when both tools report `size == 0`.
 //!
+//! `size` is upstream's `File.buffer_size` on both sides — for a HeaderFile /
+//! KeyStoreFile the buffer re-sized to its header's normalised `rom_size`
+//! (`header_file.py:104-105`), not the directory table's allocation (#111) —
+//! and is compared for every entry.
+//!
 //! Raw per-entry `extract` is not tested here: `get_bytes()` is the file's
-//! buffer — for a HeaderFile re-sized to its header's `rom_size`, the
-//! `size` this test tolerates — and the `-X -d` directory index space
+//! buffer of that `size`, and the `-X -d` directory index space
 //! differs between the tools (ours numbers combo directories, upstream's
 //! does not), so a naive `-d N` extract comparison is ill-defined.
 //! `extract_oracle.rs` compares `get_bytes()` by flash address instead, and
@@ -239,11 +237,6 @@ struct EntryModel {
     address: u64,
     size: u64,
     section_type: String,
-    /// True when the reference classified the entry as a HeaderFile — it
-    /// emitted a `sizes` object. For such entries the two tools source the
-    /// `size` field from different structures, so it is not compared. Always
-    /// `false` on our side (our `-E -j` emits no `sizes` object).
-    is_header_file: bool,
 }
 
 /// Compare the identity fields of two entry projections — `index`, `address`,
@@ -389,9 +382,6 @@ fn parse_json_dirs(stdout: &[u8], out: &mut BTreeMap<u64, DirModel>) -> Result<(
                     .and_then(|v| v.as_str())
                     .ok_or("entry missing string `sectionType`")?
                     .to_owned(),
-                // The reference emits `sizes` exactly for HeaderFile entries;
-                // our side never does, so this stays false there.
-                is_header_file: entry.get("sizes").is_some(),
             });
         }
         // A directory shared across ROMs lands at the same address with
@@ -510,9 +500,8 @@ fn compare_structure(
                     oe.index,
                 )));
             }
-            // `size`: skipped for HeaderFile entries (different provenance);
-            // a mismatch elsewhere is tolerated only as upstream's dedup echo.
-            if !re.is_header_file && oe.size != re.size {
+            // `size`: a mismatch is tolerated only as upstream's dedup echo.
+            if oe.size != re.size {
                 let dedup_echo = our_sizes_by_offset
                     .get(&re.address)
                     .is_some_and(|sizes| sizes.contains(&re.size));
