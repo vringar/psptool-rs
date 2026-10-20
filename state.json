@@ -1,6 +1,6 @@
 {
   "next_display_id": 137,
-  "next_comment_id": 206,
+  "next_comment_id": 207,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1897,7 +1897,7 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:22:30.647914459Z",
-      "updated_at": "2026-10-20T06:02:30.932651227Z",
+      "updated_at": "2026-10-20T06:02:46.469340481Z",
       "labels": [
         "blocker",
         "kaizen"
@@ -1911,6 +1911,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAqvgP+asDdBIYlUgV1T8/4j8vFKJMjZb8ZmF3/7uiRerlxfkFWLDPhoRnL62sL2j91yRybNzlL07H2F3SNRzaDg=="
+        },
+        "d0de8df2-de87-4698-a9db-4e8caf345906": {
+          "display_id": 206,
+          "author": "tLiK",
+          "content": "Result: commit 27679dee2490. cmds/sign.rs:24 and cmds/replace.rs:61 pass Some(Ikek::ZenPlus); both files routed. cli_resigns_an_encrypted_headerfile_under_reference: psptool sign and -R -p re-sign AORUS_B450AE.F40 @0x520400 (encrypted) and the reference verifies both. Workspace 638 passed/0 failed/3 ignored; roundtrip 54/0/0; differential 54/0/0; sign_oracle 2/0; clippy+fmt clean. Spillover: #136 (misleading NotEncrypted message).",
+          "created_at": "2026-10-20T06:02:46.464149254Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAZy6V797IolFA4uPrwi5BW+6Hsusfv+y4v4ww87E8E42e/ro4WtBID8K+HNIZ87fKWhpOuJ8EUpo/km5Cxx1NBQ=="
         }
       }
     },
@@ -6707,11 +6716,16 @@
       "agent_id": "tLiK",
       "agent_seq": 458,
       "timestamp": "2026-10-20T06:02:30.932651227Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 459,
+      "timestamp": "2026-10-20T06:02:46.469340481Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T06:02:30.932651227Z",
+    "timestamp": "2026-10-20T06:02:46.469340481Z",
     "agent_id": "tLiK",
-    "agent_seq": 458
+    "agent_seq": 459
   }
 }
