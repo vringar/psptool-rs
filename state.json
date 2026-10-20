@@ -479,11 +479,12 @@
       "display_id": 116,
       "title": "Divergence: ls Generation of L2 ($PL2/$BL2) directories is blank; upstream passes the L1 zen_generation into the 0x40/0x70 recursion (directory.py:81-82)",
       "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/directory.py:81-82):\n    for secondary_directory_offset in directory.secondary_directory_offsets:\n        secondary_directories = cls.create_directories_if_not_exist(secondary_directory_offset, fet, zen_generation)\nThe L1 directory's zen_generation is passed into the recursion and stored on every L2 ($PL2/$BL2) directory reached through a 0x40/0x49/0x70 pointer (directory.py:68,124), then printed in the ls Generation column (psptool.py:84).\n\nTarget: psptool-core walk_directories (directory.rs) gives an L2 directory DirectoryProvenance::L2Pointer, and psptool-ops list.rs directory_generation (list.rs:702-747) only labels ComboEntry / Tertiary provenance; L2Pointer hits `_ => String::new()` -> blank Generation cell.\n\nRepro: psptool AORUS_X570_X57AOXT2.FCd -E  -> $PL2 0x7f0000 / 0x670000, $BL2 0x950000 / 0x7d0000 Generation blank; upstream `python -m psptool ... -E` prints 'Zen 3 (PSP ID 0xbc0c0140)' / 'Zen 3 (PSP ID 0xbc0c0000)'.\n\nImpact (corpus, 55 directories): Zen 3 Vermeer/Cezanne L2 dirs of AORUS_X570_X57AOXT2.FCd and ASRock-A520M-HSV-1.31.ROM; Zen 2 (PSP ID 0xbc0b0500) $PL2 of every B450/X470 image (AORUS_B450AE, AORUS_X470AG7W, ASRock_B450/X470, ASUS PRIME/ROG/TUF B450/X470, Gigabyte AX370G3/X470AG7W, MSI ...); Zen 1 $PL2 of Summit-Ridge parts. These L2 directories hold the 0x2 TRUSTED_OS / 0x28 DRIVER_ENTRIES / 0x24 SEC_GASKET / 0x39 SEV_CODE HeaderFiles on those parts, so their generation attribution is lost. EPYC Milan (H12SSW9.719) is unaffected: single FET -> $PSP, upstream also None.\n\nFailing tests: crates/psptool-ops/tests/divergence_generation_threading.rs::divergence_psp_l2_inherits_combo_generation, ::divergence_bios_l2_inherits_combo_generation (synthetic) and ::divergence_corpus_single_generation_matches_reference (live reference, 55 mismatches). Generation compared as Zen-digit tokens (format-agnostic; label format is #57).",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:25:40.895223856Z",
-      "updated_at": "2026-10-20T02:31:29.016042774Z",
+      "updated_at": "2026-10-20T02:31:34.663176681Z",
+      "closed_at": "2026-10-20T02:31:34.663175068Z",
       "labels": [
         "blocker"
       ],
@@ -5964,11 +5965,16 @@
       "agent_id": "tLiK",
       "agent_seq": 398,
       "timestamp": "2026-10-20T02:31:29.016042774Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 399,
+      "timestamp": "2026-10-20T02:31:34.663176681Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:31:29.016042774Z",
+    "timestamp": "2026-10-20T02:31:34.663176681Z",
     "agent_id": "tLiK",
-    "agent_seq": 398
+    "agent_seq": 399
   }
 }
