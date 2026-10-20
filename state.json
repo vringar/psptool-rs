@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 167,
+  "next_comment_id": 168,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3227,11 +3227,18 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:01.852764762Z",
-      "updated_at": "2026-10-20T00:28:35.639030264Z",
+      "updated_at": "2026-10-20T00:44:25.473276752Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "692aed71-fa34-42a2-8588-d940927cf763": {
+          "display_id": 167,
+          "author": "anon-b19d58ac",
+          "content": "Pins committed as c89f4ae on local branch critic/divergence-898 (parent claude-main e2890e0), not pushed.",
+          "created_at": "2026-10-20T00:44:25.473271031Z",
+          "kind": "observation"
+        },
         "828b6a5a-686b-4298-b3b1-e6f72d89df4d": {
           "display_id": 158,
           "author": "anon-b19d58ac",
@@ -5629,11 +5636,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 23,
       "timestamp": "2026-10-20T00:44:20.024321892Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 24,
+      "timestamp": "2026-10-20T00:44:25.473276752Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:44:20.024321892Z",
+    "timestamp": "2026-10-20T00:44:25.473276752Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 23
+    "agent_seq": 24
   }
 }
