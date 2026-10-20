@@ -1,5 +1,5 @@
 {
-  "next_display_id": 129,
+  "next_display_id": 130,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -21,6 +21,7 @@
     "31bf0b30-eae6-49c8-973c-1bf41ed7f4c0": 112,
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
+    "39fdab98-8c42-447e-b4f2-a335125d7d04": 129,
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": 117,
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
     "437add46-7714-4f3c-9669-57b286c9709d": 128,
@@ -850,6 +851,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvhUGBamJGSYGUcKsCxlXq8AojdSvWY+iAsubBeCK8XJDVZptV4h9dhrFyrp5EP/2f5AKNT7KrYXlMMSjNbfRBA=="
         }
       }
+    },
+    "39fdab98-8c42-447e-b4f2-a335125d7d04": {
+      "uuid": "39fdab98-8c42-447e-b4f2-a335125d7d04",
+      "display_id": 129,
+      "title": "Divergence: psptool-py ls()/ls_files() pad a cell holding tab/CR/VT/FF by character count; prettytable sizes it as wcswidth -1 (psptool.py:200)",
+      "description": "HeaderFile.get_readable_magic keeps every string.printable character (PSPTool 241629b header_file.py:155-159), and string.printable includes '\\t\\n\\r\\x0b\\x0c'. psptool.py:200 'print(t.get_string(fields=fields))' renders with prettytable 3.17 (the reference env), whose _str_block_width(val) is wcwidth.wcswidth(...) == -1 for a cell containing such a control character, so the column width ignores the cell and its padding is width+1.\npsptool-py crates/psptool-py/src/listing.rs:26-35 (render widths) and :66-70 (justify) use text.chars().count().\nInput: ASRock-A520M-HSV-1.31.ROM, first HeaderFile of type 0x1 with header magic (+0x10) set to b'A\\tB\\x0b'. Both get_readable_magic() return 'A\\tB\\x0b', but ls() pads the Magic/ID cell differently (reference '|          A\\tB\\x0b |', bindings '|     A\\tB\\x0b |'). Same mechanism for an AGESA string with a tab.\nFailing test: crates/psptool-py/tests/divergence.rs::listing_pads_control_whitespace_like_prettytable.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:46:47.155095697Z",
+      "updated_at": "2026-10-20T03:46:47.155095697Z"
     },
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": {
       "uuid": "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b",
@@ -6159,11 +6172,16 @@
       "agent_id": "tLiK",
       "agent_seq": 417,
       "timestamp": "2026-10-20T03:46:12.199548931Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 418,
+      "timestamp": "2026-10-20T03:46:47.155095697Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:46:12.199548931Z",
+    "timestamp": "2026-10-20T03:46:47.155095697Z",
     "agent_id": "tLiK",
-    "agent_seq": 417
+    "agent_seq": 418
   }
 }
