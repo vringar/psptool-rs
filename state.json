@@ -1,5 +1,5 @@
 {
-  "next_display_id": 131,
+  "next_display_id": 132,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -73,6 +73,7 @@
     "996f2729-3afa-46ec-9ef8-fab57cba7cd1": 17,
     "99e1710e-053d-417e-802e-e1c86fb8cb62": 88,
     "9b196228-1911-43b8-9662-c9d1dde70cda": 64,
+    "9bfa569a-cc08-4b5e-8fe1-62aafbf6ba50": 131,
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": 70,
     "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de": 96,
     "9dd7969e-3f3d-417d-a67a-715c85d241ee": 110,
@@ -2233,6 +2234,18 @@
       "labels": [
         "blocker"
       ]
+    },
+    "9bfa569a-cc08-4b5e-8fe1-62aafbf6ba50": {
+      "uuid": "9bfa569a-cc08-4b5e-8fe1-62aafbf6ba50",
+      "display_id": 131,
+      "title": "Divergence: psptool-py entry/directory field setters reject or re-type out-of-range values (entry.py:100-102,178-180; struct.pack setters entry.py:76-164, directory.py:179)",
+      "description": "Upstream PSPTool 241629b:\n  entry.py:100-102 (DirectoryEntry.instance setter)   self.flags = self.flags | ((value & 0xF) << 3)\n  entry.py:178-180 (BiosDirectoryEntry.instance setter) self.flags = self.flags | ((value & 0xF) << 4)\naccept any int (the mask drops the excess). The struct.pack setters (type/subprogram/flags/size/offset/rsv0 entry.py:76-126, destination/region_type/flags entry.py:146-164, Directory.count directory.py:174-180) raise struct.error for an out-of-range value.\npsptool-py extracts fixed-width ints before masking: crates/psptool-py/src/directory.rs:381 'fn set_instance(slf, value: u16)', :494 (BIOS), and the u8/u16/u32/u64 setters (directory.rs:116, :349-472) raise OverflowError.\nLive oracle on ASRock-A520M-HSV-1.31.ROM first PSP 0x1 / BIOS 0x62 entries: instance = 0x10013 -> reference flags 24, bindings OverflowError; instance = -1 -> 120 vs OverflowError; BIOS instance = 0x10001 -> 27 vs OverflowError; subprogram = 0x1FF, flags = -1, size = 1<<32, destination = 1<<64, Directory.count = -1 -> struct.error vs builtins.OverflowError (an 'except struct.error' no longer catches).\nFailing test: crates/psptool-py/tests/divergence.rs::entry_setters_match_upstream.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:48:02.547678261Z",
+      "updated_at": "2026-10-20T03:48:02.547678261Z"
     },
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": {
       "uuid": "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1",
@@ -6211,11 +6224,16 @@
       "agent_id": "tLiK",
       "agent_seq": 421,
       "timestamp": "2026-10-20T03:47:48.865196232Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 422,
+      "timestamp": "2026-10-20T03:48:02.547678261Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:47:48.865196232Z",
+    "timestamp": "2026-10-20T03:48:02.547678261Z",
     "agent_id": "tLiK",
-    "agent_seq": 421
+    "agent_seq": 422
   }
 }
