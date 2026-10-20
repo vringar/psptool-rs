@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 177,
+  "next_comment_id": 178,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2246,7 +2246,7 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:13.422491960Z",
-      "updated_at": "2026-10-20T01:29:56.964849020Z",
+      "updated_at": "2026-10-20T01:54:33.703875086Z",
       "labels": [
         "blocker"
       ],
@@ -2273,6 +2273,15 @@
           "kind": "plan",
           "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAfvzQq75QL+RRFJaS9BGs6mS6HbiKEsOwLqm3lO48Y3ivQFDog38Z5G0ApJRVCC5pizwa7nO2vu9WVIMNVqibDg=="
+        },
+        "de212710-60d3-4b15-8154-dc757a5a4869": {
+          "display_id": 177,
+          "author": "tLiK",
+          "content": "Result: fixed in d110eaae4554 (psptool-ops list.rs entry_md5). Both #119 pins un-ignored and green incl. the live-reference corpus pin (4147 HeaderFiles' md5()[:4].upper() equal the reference). Workspace 617 passed / 0 failed / 12 ignored; corpus_roundtrip 54/0/0; differential 54/0/0; clippy + fmt clean. Consumer-visible: ls -v MD5 (sparse and default) and ls -j -v md5 of HeaderFile/KeyStoreFile entries.",
+          "created_at": "2026-10-20T01:54:33.586887817Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAy9j9NyjJBUKu/ivGDNmeKi2nP43eAAIL7+dd+ijhbMe6/eAPQrHdrnCHOqqGqrUzJ9//CcGEzbW06MyGdE0VAA=="
         }
       }
     },
@@ -5800,11 +5809,16 @@
       "agent_id": "tLiK",
       "agent_seq": 384,
       "timestamp": "2026-10-20T01:29:56.964849020Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 385,
+      "timestamp": "2026-10-20T01:54:33.703875086Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:29:56.964849020Z",
+    "timestamp": "2026-10-20T01:54:33.703875086Z",
     "agent_id": "tLiK",
-    "agent_seq": 384
+    "agent_seq": 385
   }
 }
