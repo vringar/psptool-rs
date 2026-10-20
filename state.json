@@ -1,5 +1,5 @@
 {
-  "next_display_id": 118,
+  "next_display_id": 119,
   "next_comment_id": 156,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -105,6 +105,7 @@
     "da50c96c-a24f-41d2-ad91-4fd0c92d0a7f": 20,
     "da718d13-3f0f-4f02-ba1f-f5f9b99d0ee9": 105,
     "e08438bf-e7a4-4f28-8ab7-4367b77fb377": 91,
+    "e344a032-c88e-48fd-a660-f46361a0227b": 118,
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": 52,
     "e6030e67-e9e4-4aa2-9dc7-3d66de67151d": 19,
     "e89d998e-2423-42a3-963e-6bce82925de7": 36,
@@ -3090,6 +3091,17 @@
         }
       }
     },
+    "e344a032-c88e-48fd-a660-f46361a0227b": {
+      "uuid": "e344a032-c88e-48fd-a660-f46361a0227b",
+      "display_id": 118,
+      "title": "Divergence: ls -v size_packed / ls -j sizes.packed print the raw header rom_size 0; upstream normalises rom_size to buffer_size (header_file.py:72-73)",
+      "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/header_file.py:72-73):\n    if self.rom_size == 0:\n        self.rom_size = self.buffer_size\nThe HeaderFile attribute rom_size is normalised to the file buffer size (the directory entry size, file.py:297-299, grown to 0x100 at header_file.py:32-33). Both listings print the normalised value: ls -v `hex(file.rom_size)` in size_packed (psptool.py:183-189) and ls -j `'packed': file.rom_size` (psptool.py:261-265).\n\nTarget: psptool-ops/src/list.rs:355 (text, `format_hex_u64(h.rom_size as u64)`) and :463 (JSON, `\"packed\": h.rom_size`) render the RAW header field HeaderEntry::rom_size (entry.rs:199), so a header with rom_size == 0 prints 0x0 / 0.\n\nRepro: psptool AORUS_X370G5.23d -E -v -> PSP_FW_BOOT_LOADER~0x1 @0x268000 size_packed 0x0 (upstream 0x8000); SMU_OFFCHIP_FW~0x8 @0x270000 0x0 (upstream 0x14000).\n\nImpact (corpus, 147 HeaderFiles): 39 0x1/0x8 entries of the Summit-Ridge combo directories (Acer_R01-A4, AORUS_X370G5, ASRock A320/B350/X370, ASUS PRIME A320/B350/X370/X470, ROG STRIX B350/X370/X470), plus 0x3/0xc/0x10/0x12/0x14 entries and 0x2e PREMIUM_CHIPSET_MP0_DXIO_FW on AORUS_X570_X57AOXT2.FCd (Zen 2/3). Note Entry::file_bytes(blob).len() already equals upstream's normalised value on the whole corpus.\n\nFailing tests: crates/psptool-ops/tests/divergence_headerfile_list_values.rs::divergence_size_packed_normalises_zero_rom_size, ::divergence_json_sizes_packed_normalises_zero_rom_size (synthetic) and ::divergence_corpus_sizes_packed_matches_reference (live reference, 147 mismatches). Control control_size_packed_nonzero_rom_size passes.",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "anon-b19d58ac",
+      "created_at": "2026-10-20T00:27:01.852764762Z",
+      "updated_at": "2026-10-20T00:27:01.852764762Z"
+    },
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": {
       "uuid": "e5722ead-8cd4-4006-8598-6cb24d15adbd",
       "display_id": 52,
@@ -5383,11 +5395,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 4,
       "timestamp": "2026-10-20T00:26:27.934557939Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 5,
+      "timestamp": "2026-10-20T00:27:01.852764762Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:26:27.934557939Z",
+    "timestamp": "2026-10-20T00:27:01.852764762Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 4
+    "agent_seq": 5
   }
 }
