@@ -1,6 +1,6 @@
 {
   "next_display_id": 133,
-  "next_comment_id": 194,
+  "next_comment_id": 195,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2301,10 +2301,21 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T03:48:02.547678261Z",
-      "updated_at": "2026-10-20T03:48:11.358952619Z",
+      "updated_at": "2026-10-20T03:53:30.338627579Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "8f6183bc-b1da-47a2-b542-dcddab6912b6": {
+          "display_id": 194,
+          "author": "tLiK",
+          "content": "Failing test at crates/psptool-py/tests/divergence.rs::entry_setters_match_upstream demonstrates divergence (commit b251eab, worktree agent-ae041f807583f6b85; run in the nix dev shell: cargo test -p psptool-py --test divergence -- --ignored)",
+          "created_at": "2026-10-20T03:53:30.332935578Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAw3J7BsfAi+6YIWTNQidqC5FFKiu0AKKH46/kxAEFs3PB4g0bOeEQRZtT5rs7Aa5yK+2sQCTMSD4uUMeGVowtDg=="
+        }
+      }
     },
     "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1": {
       "uuid": "9c32a167-2ee4-47d4-ac8b-e4aebbeee0e1",
@@ -6395,11 +6406,16 @@
       "agent_id": "tLiK",
       "agent_seq": 434,
       "timestamp": "2026-10-20T03:52:49.964477688Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 435,
+      "timestamp": "2026-10-20T03:53:30.338627579Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:52:49.964477688Z",
+    "timestamp": "2026-10-20T03:53:30.338627579Z",
     "agent_id": "tLiK",
-    "agent_seq": 434
+    "agent_seq": 435
   }
 }
