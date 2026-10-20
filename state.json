@@ -1,5 +1,5 @@
 {
-  "next_display_id": 125,
+  "next_display_id": 126,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -13,6 +13,7 @@
     "1c41a146-039d-437e-a00e-d81644b8e118": 116,
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": 35,
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
+    "2797d073-2ce9-4dd9-932a-f643a2a95c56": 125,
     "293b1344-0dcf-4e79-b0ae-f57bd981696f": 121,
     "2d160374-3435-423c-8649-a766236f51ac": 67,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
@@ -565,6 +566,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABADExgUqipA1Q0Q3ZICoGsDe3Uz4XaRLiA7+wrapY6TnsqCMkAWL+U4KW7plBBGiHOkiAas++6lgCuNotHfcGZDw=="
         }
       }
+    },
+    "2797d073-2ce9-4dd9-932a-f643a2a95c56": {
+      "uuid": "2797d073-2ce9-4dd9-932a-f643a2a95c56",
+      "display_id": 125,
+      "title": "Divergence: psptool-py PSPTool() of an input under 8 MiB returns an empty parse; upstream raises ValueError (blob.py:53-54)",
+      "description": "Upstream PSPTool 241629b blob.py:53-54:\n    possible_rom_sizes = [32, 16, 8]\n    _rom_size = max(value for value in possible_rom_sizes if value * 1024 * 1024 <= self.buffer_size)\nFor len(rom_bytes) < 8 MiB the generator is empty, so PSPTool(...) and PSPTool.from_file(...) raise ValueError ('max() iterable argument is empty').\npsptool-py never raises: crates/psptool-py/src/tool.rs:137-156 (PSPTool.__new__ -> build -> model::build, model.rs:175-188 scan_fet_candidates/detect_rom_layout) returns a PSPTool whose blob.roms == [].\nLive oracle (reference interpreter, 241629b): sizes 0, 5, 1 MiB, 8 MiB-1 -> ValueError x4; bindings -> len(blob.roms) == 0 x4.\nConsumer impact: PSP-DB pspdb/actions/analyze.py:55-60 wraps PSPTool.from_file in 'except Exception: continue' to skip every non-firmware file of an extracted download; with the bindings every small file (readmes, flash utilities) is appended to parsed_psps and gets a FirmwareFile row plus a 'No ROMs found' warning. psp-etl ingest.py:149-159 records a parse_errors row upstream; with the bindings there is none.\nNot covered by crates/psptool-py/DEVIATIONS.md (item 5 is about malformed firmware nodes, not a missing ROM-size candidate).\nFailing test: crates/psptool-py/tests/divergence.rs::small_input_raises_value_error (case small_input of crates/psptool-py/tests/oracle_divergence.py).",
+      "status": "open",
+      "priority": "high",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:44:45.670693508Z",
+      "updated_at": "2026-10-20T03:44:45.670693508Z"
     },
     "293b1344-0dcf-4e79-b0ae-f57bd981696f": {
       "uuid": "293b1344-0dcf-4e79-b0ae-f57bd981696f",
@@ -6055,11 +6068,16 @@
       "agent_id": "tLiK",
       "agent_seq": 409,
       "timestamp": "2026-10-20T02:51:18.065543096Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 410,
+      "timestamp": "2026-10-20T03:44:45.670693508Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:51:18.065543096Z",
+    "timestamp": "2026-10-20T03:44:45.670693508Z",
     "agent_id": "tLiK",
-    "agent_seq": 409
+    "agent_seq": 410
   }
 }
