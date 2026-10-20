@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 172,
+  "next_comment_id": 173,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1805,7 +1805,7 @@
       "priority": "low",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:39:05.013796842Z",
-      "updated_at": "2026-10-20T00:44:37.018997854Z",
+      "updated_at": "2026-10-20T00:49:49.669993434Z",
       "labels": [
         "blocker"
       ],
@@ -1816,6 +1816,15 @@
           "content": "Failing tests at crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs: divergence_file_info_has_only_upstream_outcome_tokens (synthetic) and divergence_corpus_headerfile_file_info_matches_reference (live reference ls -v, 4024 rows). #[ignore]d with this issue; control_file_info_outcome_tags_present passes.",
           "created_at": "2026-10-20T00:39:50.909631414Z",
           "kind": "observation"
+        },
+        "b7810667-f2c7-4186-88db-32d77e0e0b80": {
+          "display_id": 172,
+          "author": "tLiK",
+          "content": "Plan: drop the bare 'signed' and 'sha256'/'sha384' tokens from psptool-ops list.rs info_list so the text File Info is psptool.py:113-140's outcome-tag list (sig outcome; sha256_ok/_inconsistent else-if sha384_ok/_inconsistent). JSON info shares info_list and follows. Update list.md REQ-7 (requirement + status row), list.rs module REQ table, regenerate psptool-cli synthetic__list_{default,verbose,json} snapshots, un-ignore the two #120 pins in divergence_list_text_headerfile_cells.rs. Gauntlet: fmt, clippy -D warnings, cargo test --workspace (corpus), differential + corpus_roundtrip.",
+          "created_at": "2026-10-20T00:49:49.665116806Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAj55pnbpayKFdTvnf3nAU9lbWfBNXFhD7tc33CrqRH9Z0pEXC49vO6UrQhJfpbGC1qPIh+/Prg0K8Guy57iLsDA=="
         },
         "e6bc4a35-ca41-4389-9eb8-f0a0c32037af": {
           "display_id": 169,
@@ -5698,11 +5707,16 @@
       "agent_id": "tLiK",
       "agent_seq": 373,
       "timestamp": "2026-10-20T00:49:37.294598417Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 374,
+      "timestamp": "2026-10-20T00:49:49.669993434Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:49:37.294598417Z",
+    "timestamp": "2026-10-20T00:49:49.669993434Z",
     "agent_id": "tLiK",
-    "agent_seq": 373
+    "agent_seq": 374
   }
 }
