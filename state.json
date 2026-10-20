@@ -1,5 +1,5 @@
 {
-  "next_display_id": 128,
+  "next_display_id": 129,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -23,6 +23,7 @@
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": 117,
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
+    "437add46-7714-4f3c-9669-57b286c9709d": 128,
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
     "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
@@ -920,6 +921,18 @@
       "labels": [
         "refactor"
       ]
+    },
+    "437add46-7714-4f3c-9669-57b286c9709d": {
+      "uuid": "437add46-7714-4f3c-9669-57b286c9709d",
+      "display_id": 128,
+      "title": "Divergence: psptool-py ls() soft_fuse() of an entry with rsv0 >= 0x80000000 prints a wrapped negative i64; upstream prints the 64-bit value (psptool.py:164-165)",
+      "description": "Upstream PSPTool 241629b psptool.py:164-165:\n    if file.type == 0xb:\n        info.append(f'soft_fuse({hex(file.entry.offset + (file.entry.rsv0 << 32))})')\non Python ints. rsv0 bits 31:30 are the entry address mode (entry.py:132-134), so a mode-2/3 soft-fuse record has rsv0 >= 0x80000000.\npsptool-py crates/psptool-py/src/listing.rs:293-297:\n    let offset: i64 = entry.getattr(\"offset\")?.extract()?;\n    let rsv0: i64 = entry.getattr(\"rsv0\")?.extract()?;\n    info.push(format!(\"soft_fuse({})\", py_hex(offset + (rsv0 << 32))));\nrsv0 << 32 overflows i64 and wraps.\nInput: ASRock-A520M-HSV-1.31.ROM, first PSP 0x0B entry with rsv0 |= 0x80000000 (in-memory bytearray). Reference ls(): soft_fuse(0x8000000020000001); bindings: soft_fuse(-0x7fffffffdfffffff).\nFailing test: crates/psptool-py/tests/divergence.rs::soft_fuse_listing_is_unsigned.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:46:05.796269716Z",
+      "updated_at": "2026-10-20T03:46:05.796269716Z"
     },
     "4438c167-6f65-469f-9ff4-a0773b7edddf": {
       "uuid": "4438c167-6f65-469f-9ff4-a0773b7edddf",
@@ -6133,11 +6146,16 @@
       "agent_id": "tLiK",
       "agent_seq": 415,
       "timestamp": "2026-10-20T03:45:52.782113842Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 416,
+      "timestamp": "2026-10-20T03:46:05.796269716Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:45:52.782113842Z",
+    "timestamp": "2026-10-20T03:46:05.796269716Z",
     "agent_id": "tLiK",
-    "agent_seq": 415
+    "agent_seq": 416
   }
 }
