@@ -1,6 +1,6 @@
 {
   "next_display_id": 120,
-  "next_comment_id": 160,
+  "next_comment_id": 161,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1294,10 +1294,19 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-07-11T21:56:27.526959772Z",
-      "updated_at": "2026-07-11T21:56:32.294080981Z",
+      "updated_at": "2026-10-20T00:28:54.757940738Z",
       "labels": [
         "feature"
-      ]
+      ],
+      "comments": {
+        "be67b921-c8a7-4ad6-93a7-66f8948081b2": {
+          "display_id": 160,
+          "author": "anon-b19d58ac",
+          "content": "Not a future feature: the pinned oracle (PSPTool 241629b) ALREADY renders the full PSP ID — fet.py:117-123 (combo) and directory.py:89-95 (tertiary) build 'Zen 3 (PSP ID 0xbc0c0140)', and psptool.py:84 prints it; unknown ids render 'unknown (PSP ID 0x...)'. Ours renders 'Zen3' (psptool-ops list.rs zen_label). Failing pin: crates/psptool-ops/tests/divergence_generation_threading.rs::divergence_generation_label_includes_psp_id (#[ignore] tracking #57). Generation ATTRIBUTION divergences are separate: #116 (L2 inheritance), #117 (multi-combo accumulation).",
+          "created_at": "2026-10-20T00:28:54.757934717Z",
+          "kind": "observation"
+        }
+      }
     },
     "6798ce69-9fe3-42b0-af27-75b0efb46e11": {
       "uuid": "6798ce69-9fe3-42b0-af27-75b0efb46e11",
@@ -5489,11 +5498,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 12,
       "timestamp": "2026-10-20T00:28:42.970792275Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 13,
+      "timestamp": "2026-10-20T00:28:54.757940738Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:28:42.970792275Z",
+    "timestamp": "2026-10-20T00:28:54.757940738Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 12
+    "agent_seq": 13
   }
 }
