@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 176,
+  "next_comment_id": 177,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2246,7 +2246,7 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:13.422491960Z",
-      "updated_at": "2026-10-20T00:44:31.337850413Z",
+      "updated_at": "2026-10-20T01:29:56.964849020Z",
       "labels": [
         "blocker"
       ],
@@ -2264,6 +2264,15 @@
           "content": "Failing tests at crates/psptool-ops/tests/divergence_headerfile_list_values.rs: divergence_sparse_md5_hashes_headerfile_body (synthetic signed 0x1 HeaderFile: ours 7B6A = md5(whole entry), expected BF12 = md5(body[0x100:0x7f00])) and divergence_corpus_headerfile_md5_matches_reference (live PSPTOOL_REFERENCE, 4147 HeaderFiles). #[ignore]d with this issue.",
           "created_at": "2026-10-20T00:28:42.970786745Z",
           "kind": "observation"
+        },
+        "758eff86-18fc-432b-b714-16fc4a78f9fa": {
+          "display_id": 176,
+          "author": "tLiK",
+          "content": "Plan: list.rs entry_md5(e, blob) = upstream md5(): File.get_bytes() for plain/pubkey/microcode entries (file.py:380-383), HeaderFile.body for HeaderFile/KeyStoreFile (header_file.py:312-315, :106) = [0x100, normalised rom_size - signature_len) of Entry::header_file_window(blob), signature reserved when signed (KeyStoreFile always, key_store_file.py:62-64), empty when unreadable (header_file.py:316-317). Drives the sparse 4-char MD5, the richer 32-char MD5 and the ls -j -v md5 key. Thread the image into build_entry_row/entry_to_json. Regenerate list_micro + psptool-cli synthetic verbose/json snapshots; un-ignore the two #119 pins; list.md REQ-8 + #86/#87 rows; CHANGELOG.",
+          "created_at": "2026-10-20T01:29:56.960043957Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAfvzQq75QL+RRFJaS9BGs6mS6HbiKEsOwLqm3lO48Y3ivQFDog38Z5G0ApJRVCC5pizwa7nO2vu9WVIMNVqibDg=="
         }
       }
     },
@@ -5786,11 +5795,16 @@
       "agent_id": "tLiK",
       "agent_seq": 383,
       "timestamp": "2026-10-20T01:29:45.827057512Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 384,
+      "timestamp": "2026-10-20T01:29:56.964849020Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:29:45.827057512Z",
+    "timestamp": "2026-10-20T01:29:56.964849020Z",
     "agent_id": "tLiK",
-    "agent_seq": 383
+    "agent_seq": 384
   }
 }
