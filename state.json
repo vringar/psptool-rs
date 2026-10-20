@@ -1892,12 +1892,13 @@
       "display_id": 108,
       "title": "Divergence: psptool sign / replace -p pass no IKEK, so the 256 encrypted corpus HeaderFiles cannot be re-signed; upstream get_signed_bytes decrypts with the Zen+ IKEK (header_file.py:286-307)",
       "description": "Spillover from #105. psptool-cli/src/cmds/sign.rs:21 and cmds/replace.rs:59 call sign_entry(.., ikek = None); HeaderEntry::get_signed_bytes then fails NotEncrypted for an encrypted entry (body.rs decode: ikek.ok_or(BodyError::NotEncrypted)). Upstream resign_only signs file.get_signed_bytes() (cert_tree.py:113), whose get_decrypted_body unwraps with get_unwrapped_ikek() = UNWRAPPED_IKEK_ZEN_PLUS unconditionally (header_file.py:286-307). Corpus: 256 signed HeaderFiles are encrypted (reference probe, 241629b). Fix shape: pass Some(Ikek::ZenPlus) in both CLI callers (both files are unrouted: add routes first, R-XLATE-2); psptool-cli/tests/sign_oracle.rs can then include an encrypted control.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:22:30.647914459Z",
-      "updated_at": "2026-10-20T06:02:46.469340481Z",
+      "updated_at": "2026-10-20T06:02:52.306354355Z",
+      "closed_at": "2026-10-20T06:02:52.306352922Z",
       "labels": [
         "blocker",
         "kaizen"
@@ -6721,11 +6722,16 @@
       "agent_id": "tLiK",
       "agent_seq": 459,
       "timestamp": "2026-10-20T06:02:46.469340481Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 460,
+      "timestamp": "2026-10-20T06:02:52.306354355Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T06:02:46.469340481Z",
+    "timestamp": "2026-10-20T06:02:52.306354355Z",
     "agent_id": "tLiK",
-    "agent_seq": 459
+    "agent_seq": 460
   }
 }
