@@ -37,8 +37,8 @@
 //! Upstream fills `size_signed / size_full / size_packed / load_addr` only for
 //! `type(file) is HeaderFile` (`psptool.py:183-191`, else `4 * ['']`): a
 //! `KeyStoreFile` (0x50 / 0x51, `file.py:244`, `key_store_file.py:23`) row has
-//! four empty cells. psptool-rs's `build_entry_row` (`list.rs:350-359`) fills
-//! them for every `EntryClass::header()` — including `KeyStore`.
+//! four empty cells. psptool-rs's `build_entry_row` filled them for every
+//! `EntryClass::header()` — including `KeyStore`; fixed by #121.
 //!
 //! Expected values are derived from the quoted upstream rules over named
 //! fixture constants, or read from the live reference's own `ls -v` table for
@@ -213,7 +213,6 @@ fn control_file_info_outcome_tags_present() {
 ///
 /// Tracking: #121
 #[test]
-#[ignore = "divergence: ls -v fills size_signed/size_full/size_packed/load_addr for a KeyStoreFile; upstream only for type(file) is HeaderFile (psptool.py:183-191); tracking #121"]
 fn divergence_keystore_row_has_empty_size_columns() {
     let row = single_row(&render_verbose(image(BL_PUBLIC_KEY, false)), "0x50");
     for col in ["size_signed", "size_full", "size_packed", "load_addr"] {
@@ -322,7 +321,6 @@ fn divergence_corpus_headerfile_file_info_matches_reference() {
 ///
 /// Tracking: #121
 #[test]
-#[ignore = "divergence: ls -v fills size_signed/size_full/size_packed/load_addr for a KeyStoreFile; upstream only for type(file) is HeaderFile (psptool.py:183-191); tracking #121"]
 fn divergence_corpus_keystore_size_columns_match_reference() {
     let Some(pairs) = corpus_row_pairs() else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");
