@@ -28,8 +28,10 @@ This route's `parity_ops` is `["differential"]`: the load-bearing contract is th
 JSON structural projection the differential reads. Text-table columns the
 differential does not read (`Generation`, `AGESA`, `Magic/ID`, `File Version`,
 `File Info`, the verbose extension) are pinned by the self-oracle snapshot suite
-`tests/list_micro.rs`, not by an upstream comparison — this is called out per row
-below so no SHIPPED claim over-reaches its actual oracle.
+`tests/list_micro.rs`; where a corpus pin compares a column against the live
+reference's `ls` instead (`File Info` of HeaderFile rows, REQ-7) the row says
+so — this is called out per row below so no SHIPPED claim over-reaches its
+actual oracle.
 
 ## Requirements
 
@@ -60,13 +62,18 @@ below so no SHIPPED claim over-reaches its actual oracle.
   certifying-id, mirroring `get_readable_magic` / `get_readable_version`
   (`psptool.py:176-177`/`:251-252`). *Self-oracle only:* the differential
   tolerates value-format divergence on these keys (`differential.rs` module doc).
-- REQ-7: **File Info tokens.** The `File Info`/`info` field emits
-  `compressed`/`signed`/`encrypted`/`sha256`/`sha384`/pubkey-usage/`destination(..)`
-  tokens derived from the parsed header flags and BIOS entry, mirroring the
-  attribute assembly in `ls_files`/`ls_files_dict` (`psptool.py:114-165`/`:232-244`).
-  *Self-oracle only.* The signature-verify and sha-verify **result** tags
-  (`verified`/`veri-failed`/`sha256_ok`/`sha256_inconsistent`, `psptool.py:117-140`)
-  are REQ-13.
+- REQ-7: **File Info tokens.** The `File Info`/`info` field emits, in
+  `ls_files` order (`psptool.py:113-165`), `compressed`, the signature outcome
+  tag, `encrypted`, the checksum outcome tag, the pubkey usage and
+  `destination(..)` — derived from the parsed header flags, the decode
+  verification and the BIOS entry. Upstream's text listing has **no** bare
+  `signed`, `sha256` or `sha384` token (`psptool.py:116-140` appends only the
+  outcome of each check), so neither does this unit (#120). The outcome tags
+  themselves (`verified`/`veri-failed`/`key_missing`/`sha256_ok`/
+  `sha256_inconsistent`/`sha384_*`, `psptool.py:117-140`) are REQ-13. The JSON
+  `info` list shares these tokens; upstream's `ls_files_dict` builds a different
+  list (`signed(..)`, `verified`/`no_key`, no checksum tag, `psptool.py:231-244`)
+  and `info` is a differential-tolerated key.
 - REQ-8: **Verbose extension columns.** `list_verbose` and `list_json(verbose)`
   add `flags`, `MD5`, `size_signed`, `size_full`, `size_packed`, `load_addr`
   (JSON: `md5`, `flags`, `sizes{signed,uncompressed,packed}`, `load_addr`),
@@ -150,7 +157,7 @@ below so no SHIPPED claim over-reaches its actual oracle.
 | REQ-4 (readable type name) | SHIPPED | `readable_type` `types.rs:196-213` (`"<NAME>~0x<hh>"`; BIOS `0x61`→`APOB`, `0x62`→`BIOS`; unknown `"0x<hh>"`), called `list.rs:218`/`:314`; mirrors `File.get_readable_type` as consumed at `psptool.py:173`/`:250`. Consumer: `psptool-cli/src/cmds/list.rs:41`. Verification: `differential.rs:264-269` compares `sectionType` (50 passed). Upstream-parity map-coverage gap tracked #39; one corpus ROM's `0x5c` name is a version-skew ignore (#60, §Version-skew). |
 | REQ-5 (combo lists no files) | SHIPPED | `entries_for_directory` `list.rs:353-361` returns `Vec::new()` for `Directory::Combo`; mirrors the reference listing only `directory.files` for leaf dirs (`psptool.py:95-96`). Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `differential.rs:354-359` drops `COMBO_MAGICS` (`2PSP`/`2BHD`) so combos line up; 50 passed. |
 | REQ-6 (magic/ID + version) | SHIPPED (self-oracle) | `magic_id_string` `list.rs:405-422` (header magic or pubkey certifying-id, `ascii_or_hex_4` `list.rs:508-518`) and `version_string` `list.rs:424-432`; mirror `get_readable_magic`/`get_readable_version` (`psptool.py:176-177`/`:251-252`). Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `list_micro` snapshots — NOT differentially compared (`differential.rs` module doc: `magic`/`version` are tolerated JSON-shape divergences). |
-| REQ-7 (file info tokens) | SHIPPED (self-oracle) | `info_list` `list.rs:447-485` emits `compressed`/`signed`/`encrypted`/`sha256`/`sha384`/`pubkey_usage`/`destination(..)` from parsed header + BIOS entry; mirrors `psptool.py:114-165`/`:232-244`. Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `list_micro` snapshots — `info` is a differential-tolerated key. Verify-result tags are a separate gap (REQ-13). |
+| REQ-7 (file info tokens) | SHIPPED | `info_list` `list.rs:572-613` emits `compressed`, `signature_tag`, `encrypted`, `checksum_tag` (sha256 else sha384, from the `ChecksumCheck` the decode verification picked), `pubkey_usage`, `destination(..)` — no bare `signed`/`sha256`/`sha384` token — mirroring `ls_files` (`psptool.py:113-140`: `info.append(f'verified(...)')`, `info.append(f'sha256_ok')`, …). Consumer: `psptool-cli/src/cmds/list.rs:55`/`:53`/`:49`. Verification: `divergence_list_text_headerfile_cells.rs::divergence_file_info_has_only_upstream_outcome_tokens` (synthetic, `key_missing(0000), sha256_ok`) and `::divergence_corpus_headerfile_file_info_matches_reference` (every HeaderFile row of the reference `ls -E -v` table over the 54-image corpus) — both un-ignored by #120; `list_micro` + `psptool-cli` `synthetic__list_*` snapshots. JSON `info` is a differential-tolerated key (upstream `ls_files_dict` tokens differ, `psptool.py:231-244`). Non-HeaderFile tokens upstream adds (`soft_fuse`, `patch_level`, …) are #114. |
 | REQ-8 (verbose extension columns) | SHIPPED | `build_entry_row` verbose branch `list.rs:238-259` (`flags`/`MD5`/`size_signed`/`size_full`/`size_packed`/`load_addr`, `body_md5_hex` `list.rs:496-506`) and `entry_to_json` verbose branch `list.rs:330-343` (`md5`/`flags`/`sizes`/`load_addr`); mirror `verbose_fields` + HeaderFile block (`psptool.py:104`/`:183-189`/`:260-266`). Consumer: `psptool-cli/src/cmds/list.rs:45` (`list_verbose`) / `:41` (`list_json` with `args.verbose`). Verification: `list_micro` `list_verbose_psp_micro`/`list_json_verbose_psp_micro`. |
 | #86/#87 (sparse `flags`/`MD5`) | SHIPPED | The richer default (populated `flags` + full 32-char lowercase `MD5`) is the default. Opt-in `RomListing::sparse` (`list.rs`) drives the `build_entry_row` sparse branch: `flags` → `''` (`psptool.py:179`), `MD5` → `body_md5_short_upper` = `md5()[:4].upper()` (`psptool.py:180`). Consumer: the CLI `list` subcommand sets `sparse` from the `--sparse` flag (`psptool-cli/src/cli.rs`, `ListArgs::sparse`) OR the `PSPTOOL_LS_SPARSE` env var (`psptool-cli/src/cmds/list.rs`). Verification: `divergence_list_columns.rs::divergence_verbose_flags_column_is_empty_upstream` + `::divergence_verbose_md5_column_truncated_and_uppercased` (un-ignored, sparse mode) + `::default_mode_flags_populated_and_md5_full_lowercase` (richer default). |
 | REQ-9 (secondary-directory resolution) | SHIPPED | `secondary_addresses` `list.rs:580-607` resolves secondary-directory-pointer entries through the directory address mode (`collect_secondary_psp`/`_bios` `list.rs:609-635`); mirrors `directory.secondary_directory_offsets` (`directory.py:156-163`), printed `psptool.py:86`/`:212`. Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `list_micro` `fet_pointer_addresses_are_byte_stable`; differential combo-drop keys on it. |
@@ -257,6 +264,10 @@ not a pass).
   default is pinned by `default_mode_flags_populated_and_md5_full_lowercase`.
   Sparse is opt-in via the CLI `--sparse` flag / `PSPTOOL_LS_SPARSE` env var, so
   the differential (default richer mode) is unaffected.
+- `cargo test -p psptool-ops --test divergence_list_text_headerfile_cells` —
+  the #120 pins (REQ-7) pass: the synthetic HeaderFile row and every
+  HeaderFile row of the reference `ls -E -v` table over the corpus have
+  upstream's File Info. The #121 KeyStoreFile size-column pins stay ignored.
 - `cargo test -p psptool-ops --lib` — 50 passed, 0 failed, 0 ignored (the crate's
   own suite is green; `list.rs` itself carries no in-file unit tests — its oracles
   are the integration suites above).

@@ -24,13 +24,13 @@
 //!
 //! There is no bare `signed` token and no bare `sha256` / `sha384` token (the
 //! JSON `ls_files_dict`, `psptool.py:232-244`, has `signed(..)` and no sha tag
-//! at all). psptool-rs `info_list` (`psptool-ops/src/list.rs:571-619`) pushes
-//! `"signed"` before the signature tag (`:589`) and `"sha256"` / `"sha384"`
-//! before the checksum tag (`:596`, `:602`). Corpus: every signed HeaderFile row
-//! of every image — e.g. `AORUS_X570_X57AOXT2.FCd` PSP_FW_TRUSTED_OS @0x801200
-//! upstream `verified(24C6), sha256_ok`, ours `signed, verified(24C6), sha256,
-//! sha256_ok`. With both tokens removed every HeaderFile row's File Info agrees
-//! with upstream on the 54-image corpus.
+//! at all). psptool-rs `info_list` (`psptool-ops/src/list.rs`) pushed
+//! `"signed"` before the signature tag and `"sha256"` / `"sha384"` before the
+//! checksum tag. Corpus: every signed HeaderFile row of every image — e.g.
+//! `AORUS_X570_X57AOXT2.FCd` PSP_FW_TRUSTED_OS @0x801200 upstream
+//! `verified(24C6), sha256_ok`, ours `signed, verified(24C6), sha256,
+//! sha256_ok`. Fixed (#120): both tokens are gone and every HeaderFile row's
+//! File Info agrees with upstream on the 54-image corpus.
 //!
 //! ## #121 — `ls -v` size columns of a KeyStoreFile
 //!
@@ -184,7 +184,6 @@ fn single_row(text: &str, type_suffix: &str) -> Row {
 ///
 /// Tracking: #120
 #[test]
-#[ignore = "divergence: ls File Info adds 'signed' and 'sha256'/'sha384' tokens upstream ls_files never emits (psptool.py:113-140); tracking #120"]
 fn divergence_file_info_has_only_upstream_outcome_tokens() {
     let row = single_row(&render_verbose(image(PSP_FW_BOOT_LOADER, true)), "0x1");
     assert_eq!(
@@ -290,7 +289,6 @@ fn corpus_row_pairs() -> Option<Vec<(String, RowKey, Row, Row)>> {
 ///
 /// Tracking: #120
 #[test]
-#[ignore = "divergence: ls File Info adds 'signed' and 'sha256'/'sha384' tokens upstream ls_files never emits (psptool.py:113-140); tracking #120"]
 fn divergence_corpus_headerfile_file_info_matches_reference() {
     let Some(pairs) = corpus_row_pairs() else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");

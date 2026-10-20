@@ -41,14 +41,14 @@
 //! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:313`/`:428` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:477` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:529` + `version_string` `list.rs:548` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-7 | SHIPPED | self-oracle (differential-tolerated key). `info_list` `list.rs:571` emits compressed/signed/encrypted/sha tokens per `psptool.py:114`; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-7 | SHIPPED | `info_list` `list.rs:572` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:333` + `entry_to_json` `list.rs:454` per `psptool.py:104`/`:183`; consumer `psptool-cli/src/cmds/list.rs:53` |
 //! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `md5`=`body_md5_short_upper`) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
 //! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:760` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:704` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-11 | SHIPPED | `directory_generation` tertiary branch `list.rs:740` renders the `block[20:24]` id per `directory.py:89` printed `psptool.py:84` (#70); consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:203` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
-//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:590` renders `signature_tag` (`list.rs:625`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:639`: `sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
+//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:572` renders `signature_tag` (`list.rs:619`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:633`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
 //! | REQ-14 | SHIPPED | `entry_to_json` `list.rs:447` emits `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry per `psptool.py:267-271` (PSPTool `241629b`), from the `_verify_decode` port `verify_decode` (core `body.rs:937`, `header_file.py:198-243`) over the image-wide `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`) built by `Verifier::new` `list.rs:111`; consumer `psptool-cli/src/cmds/list.rs:49` (closes #89) |
 
 use md5::{Digest, Md5};
@@ -559,14 +559,15 @@ fn version_string(class: &EntryClass) -> String {
 /// (PSPTool's `', '.join(info)`, `psptool.py:178`).
 ///
 /// Order mirrors `ls_files` (`psptool.py:113-140`):
-/// `compressed, signed, <signature outcome>, encrypted, sha256/sha384,
-/// <checksum outcome>`. The BIOS-flag compressed bit is folded into the same
-/// `compressed` slot (rather than emitted twice when both the entry flag and
-/// header bit are set) so the text matches PSPTool byte-for-byte. The two
-/// outcome tags come from `verification` (the entry's single
+/// `compressed, <signature outcome>, encrypted, <checksum outcome>`. Upstream
+/// emits only outcome tags there — no bare `signed` / `sha256` / `sha384`
+/// token. The BIOS-flag compressed bit is folded into the same `compressed`
+/// slot (rather than emitted twice when both the entry flag and header bit
+/// are set) so the text matches PSPTool byte-for-byte. The two outcome tags
+/// come from `verification` (the entry's single
 /// [`Entry::decode_verification`] pass): `verified(..)` / `veri-failed(..)` /
 /// `key_missing(..)` (`psptool.py:117-123`) and `sha256_ok` /
-/// `sha256_inconsistent` / `sha384_ok` / `sha384_inconsistent`
+/// `sha256_inconsistent`, else `sha384_ok` / `sha384_inconsistent`
 /// (`psptool.py:131-140`).
 fn info_list(
     e: &Entry,
@@ -577,7 +578,6 @@ fn info_list(
     let bios_flag_compressed = matches!(&e.record, EntryRecord::Bios(b) if b.is_compressed());
     let header = e.class.header();
     let header_compressed = header.map(|h| h.is_compressed).unwrap_or(false);
-    let checksum = verification.and_then(DecodeVerification::checksum);
 
     if bios_flag_compressed || header_compressed {
         info.push("compressed".to_string());
@@ -586,23 +586,17 @@ fn info_list(
         // `psptool.py:116`: `if file.is_signed` — a KeyStoreFile always is
         // (`key_store_file.py:62-64`); `signature()` is `Some` exactly then.
         if let Some(check) = verification.and_then(DecodeVerification::signature) {
-            info.push("signed".to_string());
             info.push(signature_tag(check, &h.signature_fingerprint));
         }
         if h.is_encrypted {
             info.push("encrypted".to_string());
         }
-        if h.has_sha256_checksum() {
-            info.push("sha256".to_string());
-            if let Some(ChecksumCheck::Sha256 { ok }) = checksum {
-                info.push(checksum_tag("sha256", ok));
-            }
-        }
-        if h.has_sha384_checksum() {
-            info.push("sha384".to_string());
-            if let Some(ChecksumCheck::Sha384 { ok }) = checksum {
-                info.push(checksum_tag("sha384", ok));
-            }
+        // `psptool.py:130-140`: `has_sha256_checksum` → `sha256_*`, `elif
+        // has_sha384_checksum` → `sha384_*`; `checksum()` picks the same bit.
+        match verification.and_then(DecodeVerification::checksum) {
+            Some(ChecksumCheck::Sha256 { ok }) => info.push(checksum_tag("sha256", ok)),
+            Some(ChecksumCheck::Sha384 { ok }) => info.push(checksum_tag("sha384", ok)),
+            None => {}
         }
     }
     if let EntryClass::Pubkey(p) = &e.class {

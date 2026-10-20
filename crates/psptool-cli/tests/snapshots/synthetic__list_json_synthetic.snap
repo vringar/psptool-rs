@@ -24,7 +24,6 @@ expression: value
         "decodeVerified": true,
         "index": 1,
         "info": [
-          "signed",
           "verified(A1A1)"
         ],
         "magic": "$PS1",
