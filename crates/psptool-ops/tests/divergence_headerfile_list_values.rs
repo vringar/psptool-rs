@@ -16,8 +16,8 @@
 //! `hex(file.rom_size)` (`psptool.py:183-189`, column `size_packed`) and
 //! `ls -j` `'packed': file.rom_size` (`psptool.py:261-265`). `buffer_size` is
 //! the directory-declared `entry.size` (`file.py:297-299`; grown to 0x100 at
-//! `header_file.py:32-33`, irrelevant here). psptool-rs renders the RAW header
-//! field `h.rom_size` (`psptool-ops/src/list.rs:355`, `:463`) → `0x0`.
+//! `header_file.py:32-33`, irrelevant here). psptool-rs rendered the RAW header
+//! field `h.rom_size` → `0x0`; fixed by #118 (`list.rs` `packed_size`).
 //! Corpus: every Summit-Ridge combo part, e.g. `AORUS_X370G5.23d`
 //! PSP_FW_BOOT_LOADER @0x268000 (upstream `0x8000`, ours `0x0`) and
 //! SMU_OFFCHIP_FW @0x270000 (`0x14000` vs `0x0`); 0x2e on `AORUS_X570`.
@@ -155,7 +155,6 @@ fn json_entry(buf: Vec<u8>) -> serde_json::Value {
 ///
 /// Tracking: #118
 #[test]
-#[ignore = "divergence: size_packed shows raw header rom_size 0; upstream normalises rom_size to buffer_size (header_file.py:72-73); tracking #118"]
 fn divergence_size_packed_normalises_zero_rom_size() {
     let row = verbose_row(image(0));
     let expected = format!("{ENTRY_SIZE:#x}");
@@ -172,7 +171,6 @@ fn divergence_size_packed_normalises_zero_rom_size() {
 ///
 /// Tracking: #118
 #[test]
-#[ignore = "divergence: size_packed shows raw header rom_size 0; upstream normalises rom_size to buffer_size (header_file.py:72-73); tracking #118"]
 fn divergence_json_sizes_packed_normalises_zero_rom_size() {
     let entry = json_entry(image(0));
     assert_eq!(
@@ -348,7 +346,6 @@ fn corpus_mismatches(field: usize) -> Option<Vec<String>> {
 ///
 /// Tracking: #118
 #[test]
-#[ignore = "divergence: size_packed shows raw header rom_size 0; upstream normalises rom_size to buffer_size (header_file.py:72-73); tracking #118"]
 fn divergence_corpus_sizes_packed_matches_reference() {
     let Some(bad) = corpus_mismatches(0) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");

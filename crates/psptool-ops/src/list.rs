@@ -42,7 +42,7 @@
 //! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:477` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:529` + `version_string` `list.rs:548` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-7 | SHIPPED | `info_list` `list.rs:572` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:333` + `entry_to_json` `list.rs:454` per `psptool.py:104`/`:183`; consumer `psptool-cli/src/cmds/list.rs:53` |
+//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:334` + `entry_to_json` `list.rs:455` per `psptool.py:104`/`:183`; `size_packed`/`sizes.packed` is `packed_size` `list.rs:520`, the normalised `rom_size` (`header_file.py:72-73`, #118); consumer `psptool-cli/src/cmds/list.rs:53` |
 //! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `md5`=`body_md5_short_upper`) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
 //! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:760` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:704` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:55` |
@@ -55,10 +55,11 @@ use md5::{Digest, Md5};
 use serde_json::{Value, json};
 
 use psptool_core::body::{CertifyingKeys, ChecksumCheck, DecodeVerification, SignatureCheck};
+use psptool_core::entry::HEADER_FILE_LEN;
 use psptool_core::{
     AddressMode, BiosDirectory, BiosEntry, Directory, DirectoryProvenance, DirectoryRef, Entry,
-    EntryClass, EntryRecord, Fet, FlashOffset, Ikek, ParseError, PspDirectory, PspEntry,
-    PubkeyEntry, ResolveContext, RomSize, SourceBytes, ZenGeneration,
+    EntryClass, EntryRecord, Fet, FlashOffset, HeaderEntry, Ikek, ParseError, PspDirectory,
+    PspEntry, PubkeyEntry, ResolveContext, RomSize, SourceBytes, ZenGeneration,
 };
 
 use crate::table::{Align, Table};
@@ -352,7 +353,7 @@ fn build_entry_row(
             Some(h) => (
                 format_hex_u64(h.size_signed as u64),
                 format_hex_u64(h.size_uncompressed as u64),
-                format_hex_u64(h.rom_size as u64),
+                format_hex_u64(packed_size(e, h)),
                 format_hex_u64(h.load_addr as u64),
             ),
             None => (String::new(), String::new(), String::new(), String::new()),
@@ -460,7 +461,7 @@ fn entry_to_json(
                 json!({
                     "signed": h.size_signed,
                     "uncompressed": h.size_uncompressed,
-                    "packed": h.rom_size,
+                    "packed": packed_size(e, h),
                 }),
             );
             obj.insert("load_addr".into(), json!(h.load_addr));
@@ -510,6 +511,17 @@ fn parse_bios_entries(rom: &RomListing<'_>, parent: &BiosDirectory) -> Vec<Entry
         ));
     }
     out
+}
+
+/// `HeaderFile.rom_size` after `_parse` normalised it — the `size_packed` /
+/// `sizes.packed` value (`psptool.py:187`, `:264`). A header `rom_size` of 0
+/// becomes the buffer size (`header_file.py:72-73`): the directory-declared
+/// entry, grown to the 0x100 header when shorter (`header_file.py:32-33`).
+fn packed_size(e: &Entry, h: &HeaderEntry) -> u64 {
+    match h.rom_size {
+        0 => e.body.len().max(HEADER_FILE_LEN) as u64,
+        rom_size => u64::from(rom_size),
+    }
 }
 
 fn subprogram_and_instance(rec: &EntryRecord) -> (u8, u8) {
