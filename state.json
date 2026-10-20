@@ -1801,11 +1801,12 @@
       "display_id": 120,
       "title": "Divergence: ls File Info of a HeaderFile adds 'signed' and 'sha256'/'sha384' tokens; upstream ls_files emits only outcome tags (psptool.py:113-140)",
       "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/psptool.py:113-140) builds the TEXT ls File Info from outcome tags only: 'compressed'; for a signed file one of verified(..) / veri-failed(..) / key_missing(..) / invalid_sig(..); 'legacy_header'; 'encrypted'; for a HeaderFile with a checksum bit sha256_ok / sha256_inconsistent / sha384_ok / sha384_inconsistent; inline_keys(..). There is no bare 'signed' token and no bare 'sha256'/'sha384' token in ls_files (ls_files_dict's JSON info, psptool.py:232-244, has signed(..) and no sha tag).\n\nTarget: psptool-ops/src/list.rs info_list (list.rs:571-619) pushes \"signed\" before the signature tag (:589) and \"sha256\"/\"sha384\" before the checksum tag (:596, :602); .design/psptool-ops/list.md REQ-7 lists `signed`/`sha256`/`sha384` as tokens, but upstream's text listing has none of them.\n\nRepro: psptool AORUS_X570_X57AOXT2.FCd -E -> PSP_FW_TRUSTED_OS~0x2 @0x801200 File Info 'signed, verified(24C6), sha256, sha256_ok'; upstream 'verified(24C6), sha256_ok'. SMU_OFFCHIP_FW~0x8 @0x815600 'compressed, signed, veri-failed(96A0), sha256, sha256_ok' vs 'compressed, veri-failed(96A0), sha256_ok'.\n\nImpact (corpus): 4024 HeaderFile rows (every signed 0x1/0x2/0x8/0x24/0x28/0x39 … on every image incl. EPYC Milan H12SSW9.719 and Zen 2/3). With the two extra tokens removed, every HeaderFile row's File Info equals upstream's. Distinct from #114 (MISSING tokens on non-HeaderFile rows).\n\nFailing tests: crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs::divergence_file_info_has_only_upstream_outcome_tokens (synthetic: ours 'signed, key_missing(0000), sha256, sha256_ok', expected 'key_missing(0000), sha256_ok') and ::divergence_corpus_headerfile_file_info_matches_reference (live reference ls -v table, 4024 rows). Control control_file_info_outcome_tags_present passes.",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:39:05.013796842Z",
-      "updated_at": "2026-10-20T01:07:05.423025696Z",
+      "updated_at": "2026-10-20T01:07:17.367754610Z",
+      "closed_at": "2026-10-20T01:07:17.367753077Z",
       "labels": [
         "blocker"
       ],
@@ -5726,11 +5727,16 @@
       "agent_id": "tLiK",
       "agent_seq": 375,
       "timestamp": "2026-10-20T01:07:05.423025696Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 376,
+      "timestamp": "2026-10-20T01:07:17.367754610Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:07:05.423025696Z",
+    "timestamp": "2026-10-20T01:07:17.367754610Z",
     "agent_id": "tLiK",
-    "agent_seq": 375
+    "agent_seq": 376
   }
 }
