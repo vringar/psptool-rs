@@ -148,6 +148,16 @@ design = ".design/psptool-ops/list.md"
 parity_ops = ["differential"]
 
 [[route]]
+crate_pattern = "crates/psptool-ops/src/table.rs"
+upstream = ["/tmp/psptool-ref/psptool/psptool.py"]
+design = ".design/psptool-ops/list.md"
+# The PrettyTable look-alike list.rs renders the ls tables with
+# (psptool.py:68/79/106). Text only — the differential reads the JSON — so the
+# crate suite (table::tests, list_micro + psptool-cli synthetic snapshots) is
+# its oracle.
+parity_ops = []
+
+[[route]]
 crate_pattern = "crates/psptool-ops/src/sign.rs"
 upstream = [
   "/tmp/psptool-ref/psptool/crypto.py",

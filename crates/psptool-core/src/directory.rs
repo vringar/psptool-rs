@@ -25,8 +25,8 @@
 //! | REQ-5 (checksum field parse) | SHIPPED | stored dword read at `directory.rs:79` per upstream `directory.py:135`; preserved through the diff-and-patch writer, pinned by `corpus_roundtrip`. |
 //! | REQ-6 (checksum verify / recompute) | NOT-STARTED | blocked on #43: no production verify/recompute path; writer is diff-and-patch (`writer.rs:15`). |
 //! | REQ-7 (combo reserved + secondaryAddresses) | SHIPPED | `ComboDirectory::parse_with_header` at `directory.rs:464` per upstream `directory.py:80-99`; consumer `psptool-ops/src/list.rs:533`. |
-//! | REQ-8 (Zen-generation id map) | SHIPPED | `PspGenerationId::zen_generation` at `id.rs:191` per upstream `directory.py:34-39`; consumer `psptool-ops/src/list.rs:536`. |
-//! | REQ-9 (FET to directory walk) | SHIPPED | `walk_directories` at `directory.rs:567` per upstream `directory.py:57-101`; consumer `psptool-cli/src/load.rs:57`. |
+//! | REQ-8 (Zen-generation id map) | SHIPPED | `PspGenerationId::zen_generation` at `id.rs:191` per upstream `directory.py:34-39`; consumer `psptool-ops/src/list.rs:761` (`generation_label`). |
+//! | REQ-9 (FET to directory walk) | SHIPPED | `walk_directories` at `directory.rs:685` per upstream `directory.py:57-101`, threading `DirectoryRef::generations` (`directory.rs:580`) per `directory.py:61-62`/`81-82`/`86-98`/`243-249` (#116/#117); consumers `psptool-cli/src/load.rs:57`, `psptool-ops/src/list.rs:738`. |
 
 use crate::address::{Address, AddressMode, FlashOffset, ResolveContext, RomSize};
 use crate::error::ParseError;
@@ -555,17 +555,10 @@ pub enum DirectoryProvenance {
     /// The directory was reached through a tertiary (0x48/0x4A) double
     /// indirection block owned by entry `index` of the parent directory at
     /// `parent_offset` (§3.3, the Zen 4+ double reference). The block's
-    /// `[20:24]` PSP generation id is carried so the `ls` Generation column can
-    /// label the reached directory exactly as the combo path does — upstream
-    /// stamps it into the created directory's `zen_generation`
-    /// (`directory.py:89`/`94`/`98`/`124`) and prints it in the Generation
-    /// column (`psptool.py:84`). Carrying the raw id (not the resolved label)
-    /// means an unknown generation still surfaces the directory, matching
-    /// upstream's warn-and-recurse behaviour (`directory.py:91-92`).
+    /// `[20:24]` PSP generation id lands in [`DirectoryRef::generations`].
     Tertiary {
         parent_offset: FlashOffset,
         index: usize,
-        generation: PspGenerationId,
     },
 }
 
@@ -573,7 +566,93 @@ pub enum DirectoryProvenance {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DirectoryRef {
     pub directory: Directory,
+    /// The first link that reached the directory.
     pub provenance: DirectoryProvenance,
+    /// The PSP generation ids upstream's `Directory.zen_generation` collects
+    /// for this directory, in the order they arrive (printed by `ls`,
+    /// `psptool.py:84`): the id of every combo entry pointing at it
+    /// (`fet.py:117-123`), the `block[20:24]` id of every tertiary block
+    /// pointing at it (`directory.py:86-98`), and every id of a directory whose
+    /// L2 pointer (0x40/0x49/0x70) reaches it (`directory.py:81-82`, cascaded
+    /// by `update_zen_generation`, `:243-249`). Empty for a directory only FET
+    /// slots reach (upstream `None`). Unknown ids are kept — upstream labels
+    /// them `unknown (PSP ID 0x..)` (`directory.py:42-48`).
+    pub generations: Vec<PspGenerationId>,
+}
+
+/// Bookkeeping of one [`walk_directories`] run: upstream's
+/// `directories_by_offset` cache plus the generation threading of
+/// `create_directories_if_not_exist` / `update_zen_generation`
+/// (`directory.py:58-101`, `:243-249`).
+#[derive(Default)]
+struct Walk {
+    /// Directories in visit order.
+    out: Vec<DirectoryRef>,
+    /// Per directory (index into `out`): the directories its L2 pointers
+    /// reach — upstream's `secondary_directory_offsets`, along which
+    /// `update_zen_generation` cascades (`directory.py:247-249`).
+    l2_children: Vec<Vec<usize>>,
+    /// Directories whose pointers are still to be followed.
+    work: Vec<usize>,
+}
+
+impl Walk {
+    /// `create_directories_if_not_exist` (`directory.py:58-70`): a directory
+    /// seen for the first time is recorded with `generations` and queued; one
+    /// already recorded (dedup by absolute header offset) merges them instead
+    /// (`:61-62`). Returns the directory's index in `out`.
+    fn visit(
+        &mut self,
+        directory: Directory,
+        provenance: DirectoryProvenance,
+        generations: &[PspGenerationId],
+    ) -> usize {
+        let offset = directory.source().offset();
+        if let Some(index) = self
+            .out
+            .iter()
+            .position(|d| d.directory.source().offset() == offset)
+        {
+            self.merge(index, generations);
+            return index;
+        }
+        self.out.push(DirectoryRef {
+            directory,
+            provenance,
+            generations: generations.to_vec(),
+        });
+        self.l2_children.push(Vec::new());
+        let index = self.out.len() - 1;
+        self.work.push(index);
+        index
+    }
+
+    /// `update_zen_generation` (`directory.py:243-249`): append each id the
+    /// directory lacks and cascade it to the directories its L2 pointers
+    /// reach. Upstream raises `TypeError` when the directory has no
+    /// generation yet (`None`); the ids are adopted instead.
+    fn merge(&mut self, index: usize, generations: &[PspGenerationId]) {
+        for &generation in generations {
+            if self.out[index].generations.contains(&generation) {
+                continue;
+            }
+            self.out[index].generations.push(generation);
+            for child in self.l2_children[index].clone() {
+                self.merge(child, &[generation]);
+            }
+        }
+    }
+
+    /// Follow the L2 pointer of directory `parent` to `child`: the child
+    /// inherits every generation of the parent (`directory.py:81-82`) and the
+    /// edge carries later additions (`:247-249`).
+    fn visit_l2(&mut self, parent: usize, child: Directory, provenance: DirectoryProvenance) {
+        let generations = self.out[parent].generations.clone();
+        let child = self.visit(child, provenance, &generations);
+        if !self.l2_children[parent].contains(&child) {
+            self.l2_children[parent].push(child);
+        }
+    }
 }
 
 /// Walk every directory reachable from `fet`, following combo dispatch and
@@ -591,6 +670,14 @@ pub struct DirectoryRef {
 /// other sub-directory (mirrors `directory.py:85-99`, see
 /// `tertiary_actual_offset`).
 ///
+/// Each directory carries the generation ids upstream threads through the
+/// same graph ([`DirectoryRef::generations`]): a combo entry's id, a tertiary
+/// block's `[20:24]` id, the parent's ids for an L2 directory; a directory
+/// reached again merges the new ids and passes them on to its L2 directories
+/// (`directory.py:58-101`, `:243-249`). The set equals upstream's; the order
+/// is the order this walk meets them, which matches upstream's depth-first
+/// order unless one directory is reached from two different parents.
+///
 /// `rom_origin` is the file offset of the ROM's first byte within `blob`.
 /// For a bare flash dump pass [`FlashOffset::ZERO`]; for a capsule-wrapped
 /// image (§1.1) pass the byte offset of the envelope end. See
@@ -601,27 +688,7 @@ pub fn walk_directories(
     rom_size: RomSize,
     rom_origin: FlashOffset,
 ) -> Vec<DirectoryRef> {
-    let mut out = Vec::new();
-    let mut visited: Vec<u64> = Vec::new();
-
-    let visit = |out: &mut Vec<DirectoryRef>,
-                 visited: &mut Vec<u64>,
-                 dir: Directory,
-                 provenance: DirectoryProvenance|
-     -> Option<usize> {
-        let off = dir.source().offset().get();
-        if visited.contains(&off) {
-            return None;
-        }
-        visited.push(off);
-        out.push(DirectoryRef {
-            directory: dir,
-            provenance,
-        });
-        Some(out.len() - 1)
-    };
-
-    let mut work: Vec<DirectoryRef> = Vec::new();
+    let mut walk = Walk::default();
 
     for (index, slot) in fet.slots.iter().enumerate() {
         let raw = match slot.slot {
@@ -639,173 +706,99 @@ pub fn walk_directories(
             Err(_) => continue,
         };
         if let Ok(dir) = Directory::parse_at(blob, target) {
-            let provenance = DirectoryProvenance::FetSlot { index };
-            if visit(&mut out, &mut visited, dir.clone(), provenance.clone()).is_some() {
-                work.push(DirectoryRef {
-                    directory: dir,
-                    provenance,
-                });
-            }
+            // `fet.py:88-89`: a FET-direct directory starts without a
+            // generation.
+            walk.visit(dir, DirectoryProvenance::FetSlot { index }, &[]);
         }
     }
 
-    while let Some(node) = work.pop() {
-        match node.directory {
-            Directory::Combo(combo) => {
-                let combo_offset = combo.source.offset();
-                for (idx, entry) in combo.entries.iter().enumerate() {
-                    // Combo pointers are §1.3-normalised raw pointers.
-                    let ctx = ResolveContext {
-                        rom_size,
-                        directory_base: FlashOffset(0),
-                        rom_origin,
-                    };
-                    let target = match AddressMode::PhysicalX86.resolve(entry.pointer, ctx) {
-                        Ok(o) => o,
-                        Err(_) => continue,
-                    };
-                    if let Ok(child) = Directory::parse_at(blob, target) {
-                        let provenance = DirectoryProvenance::ComboEntry {
-                            combo_offset,
-                            index: idx,
+    while let Some(parent) = walk.work.pop() {
+        // Cloned: following the pointers records directories in `walk`.
+        let directory = walk.out[parent].directory.clone();
+        let parent_offset = directory.source().offset();
+        let (dir_mode, pointers): (AddressMode, Vec<(EntryType, AddressMode, Address)>) =
+            match &directory {
+                Directory::Combo(combo) => {
+                    for (index, entry) in combo.entries.iter().enumerate() {
+                        // Combo pointers are §1.3-normalised raw pointers.
+                        let ctx = ResolveContext {
+                            rom_size,
+                            directory_base: FlashOffset(0),
+                            rom_origin,
                         };
-                        if visit(&mut out, &mut visited, child.clone(), provenance.clone())
-                            .is_some()
-                        {
-                            work.push(DirectoryRef {
-                                directory: child,
-                                provenance,
-                            });
+                        let target = match AddressMode::PhysicalX86.resolve(entry.pointer, ctx) {
+                            Ok(o) => o,
+                            Err(_) => continue,
+                        };
+                        if let Ok(child) = Directory::parse_at(blob, target) {
+                            // `fet.py:79-84`: the combo entry's generation id
+                            // (`fet.py:117-123`) goes with it.
+                            let provenance = DirectoryProvenance::ComboEntry {
+                                combo_offset: parent_offset,
+                                index,
+                            };
+                            walk.visit(child, provenance, &[entry.psp_generation]);
                         }
                     }
+                    continue;
                 }
-            }
-            Directory::Psp(psp) => {
-                let parent_offset = psp.source.offset();
-                let dir_mode = psp.header.address_mode();
-                let dir_base = psp.source.offset();
-                for (idx, entry) in psp.entries.iter().enumerate() {
-                    let ctx = ResolveContext {
-                        rom_size,
-                        directory_base: dir_base,
-                        rom_origin,
+                Directory::Psp(psp) => (
+                    psp.header.address_mode(),
+                    psp.entries
+                        .iter()
+                        .map(|e| (e.entry_type, e.entry_address_mode(), e.offset))
+                        .collect(),
+                ),
+                Directory::Bios(bios) => (
+                    bios.header.address_mode(),
+                    bios.entries
+                        .iter()
+                        .map(|e| (e.entry_type, e.entry_address_mode(), e.offset))
+                        .collect(),
+                ),
+            };
+        let ctx = ResolveContext {
+            rom_size,
+            directory_base: parent_offset,
+            rom_origin,
+        };
+        for (index, (entry_type, entry_mode, offset)) in pointers.into_iter().enumerate() {
+            let at = || dir_mode.resolve_with_entry(entry_mode, offset, ctx);
+            if entry_type.is_secondary_directory_pointer() {
+                // `directory.py:81-82`: the L2 directory gets the parent's
+                // generation.
+                if let Ok(child) = Directory::parse_at(blob, at()) {
+                    let provenance = DirectoryProvenance::L2Pointer {
+                        parent_offset,
+                        index,
                     };
-                    let (target, provenance) = if entry.entry_type.is_secondary_directory_pointer()
-                    {
-                        let target = dir_mode.resolve_with_entry(
-                            entry.entry_address_mode(),
-                            entry.offset,
-                            ctx,
-                        );
-                        (
-                            target,
-                            DirectoryProvenance::L2Pointer {
-                                parent_offset,
-                                index: idx,
-                            },
-                        )
-                    } else if entry.entry_type.is_tertiary_directory_pointer() {
-                        // Tertiary (0x48/0x4A) double-indirection (Zen 4+,
-                        // directory.py:85-99): the entry points at a 32-byte
-                        // block whose [16:20] holds the REAL L2 directory
-                        // offset and whose [20:24] holds the PSP generation id
-                        // upstream stamps into the created directory
-                        // (directory.py:89/94/98). Resolve the block location
-                        // like a secondary pointer (upstream
-                        // entry.file_offset()), then follow block[16:20] under
-                        // the ROM addr_mask and carry block[20:24].
-                        let block_at = dir_mode.resolve_with_entry(
-                            entry.entry_address_mode(),
-                            entry.offset,
-                            ctx,
-                        );
-                        match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
-                            Some((target, generation)) => (
-                                target,
-                                DirectoryProvenance::Tertiary {
-                                    parent_offset,
-                                    index: idx,
-                                    generation,
-                                },
-                            ),
-                            None => continue,
-                        }
-                    } else {
-                        continue;
-                    };
-                    if let Ok(child) = Directory::parse_at(blob, target)
-                        && visit(&mut out, &mut visited, child.clone(), provenance.clone())
-                            .is_some()
-                    {
-                        work.push(DirectoryRef {
-                            directory: child,
-                            provenance,
-                        });
-                    }
+                    walk.visit_l2(parent, child, provenance);
                 }
-            }
-            Directory::Bios(bios) => {
-                let parent_offset = bios.source.offset();
-                let dir_mode = bios.header.address_mode();
-                let dir_base = bios.source.offset();
-                for (idx, entry) in bios.entries.iter().enumerate() {
-                    let ctx = ResolveContext {
-                        rom_size,
-                        directory_base: dir_base,
-                        rom_origin,
+            } else if entry_type.is_tertiary_directory_pointer() {
+                // Tertiary (0x48/0x4A) double-indirection (Zen 4+,
+                // directory.py:85-99): the entry points at a 32-byte block,
+                // located like a secondary pointer (upstream
+                // entry.file_offset()), whose [16:20] holds the REAL L2
+                // directory offset (followed under the ROM addr_mask) and whose
+                // [20:24] the PSP generation id upstream gives the directory
+                // (directory.py:89-98).
+                let Some((target, generation)) =
+                    tertiary_actual_offset(blob, at(), rom_size, rom_origin)
+                else {
+                    continue;
+                };
+                if let Ok(child) = Directory::parse_at(blob, target) {
+                    let provenance = DirectoryProvenance::Tertiary {
+                        parent_offset,
+                        index,
                     };
-                    let (target, provenance) = if entry.entry_type.is_secondary_directory_pointer()
-                    {
-                        let target = dir_mode.resolve_with_entry(
-                            entry.entry_address_mode(),
-                            entry.offset,
-                            ctx,
-                        );
-                        (
-                            target,
-                            DirectoryProvenance::L2Pointer {
-                                parent_offset,
-                                index: idx,
-                            },
-                        )
-                    } else if entry.entry_type.is_tertiary_directory_pointer() {
-                        // Tertiary (0x48/0x4A) double-indirection, uniform with
-                        // the PSP branch above (directory.py:85-99): carry
-                        // block[20:24] as the generation id.
-                        let block_at = dir_mode.resolve_with_entry(
-                            entry.entry_address_mode(),
-                            entry.offset,
-                            ctx,
-                        );
-                        match tertiary_actual_offset(blob, block_at, rom_size, rom_origin) {
-                            Some((target, generation)) => (
-                                target,
-                                DirectoryProvenance::Tertiary {
-                                    parent_offset,
-                                    index: idx,
-                                    generation,
-                                },
-                            ),
-                            None => continue,
-                        }
-                    } else {
-                        continue;
-                    };
-                    if let Ok(child) = Directory::parse_at(blob, target)
-                        && visit(&mut out, &mut visited, child.clone(), provenance.clone())
-                            .is_some()
-                    {
-                        work.push(DirectoryRef {
-                            directory: child,
-                            provenance,
-                        });
-                    }
+                    walk.visit(child, provenance, &[generation]);
                 }
             }
         }
     }
 
-    out
+    walk.out
 }
 
 /// Follow a tertiary (0x48/0x4A) double-indirection block (Zen 4+, §3.3).
@@ -829,8 +822,8 @@ pub fn walk_directories(
 /// (`directory.py:91-92`), so an unknown generation does not gate this walk —
 /// but it IS threaded into the created directory's `zen_generation`
 /// (`directory.py:98`/`124`) and printed in the `ls` Generation column
-/// (`psptool.py:84`), so it is carried out for the caller to attach as
-/// [`DirectoryProvenance::Tertiary`]. Returns `None` when the block is out of
+/// (`psptool.py:84`), so it is carried out for the walk to record in
+/// [`DirectoryRef::generations`]. Returns `None` when the block is out of
 /// bounds (the pointer is skipped, matching the surrounding bad-offset
 /// handling).
 fn tertiary_actual_offset(
@@ -1156,9 +1149,12 @@ mod tests {
         let DirectoryRef {
             directory,
             provenance,
+            generations,
         } = &dirs[0];
         assert!(matches!(directory, Directory::Psp(_)));
         assert_eq!(*provenance, DirectoryProvenance::FetSlot { index: 0 });
+        // `fet.py:88-89`: no combo, no generation (upstream `None`).
+        assert!(generations.is_empty());
     }
 
     #[test]
@@ -1223,6 +1219,66 @@ mod tests {
                 index: 0,
             }
         );
+        // The combo entry's generation id (+0x24 of the combo) goes with it
+        // (`fet.py:117-123`).
+        let combo_gen = u32::from_le_bytes([
+            combo_bytes[0x24],
+            combo_bytes[0x25],
+            combo_bytes[0x26],
+            combo_bytes[0x27],
+        ]);
+        assert_eq!(dirs[1].generations, [PspGenerationId(combo_gen)]);
+    }
+
+    /// Upstream's generation threading (`directory.py:58-101`, `:243-249`):
+    /// two combo entries (ids A, B) point at one `$PSP` whose 0x40 pointer
+    /// reaches a `$PL2`. The `$PSP` collects A then B (`:61-62` →
+    /// `update_zen_generation`), the `$PL2` inherits both (`:81-82`, cascade
+    /// `:247-249`); the combo itself has none.
+    #[test]
+    fn walk_directories_threads_combo_generations_to_l2() {
+        const ID_A: u32 = 0xBC0A_0000;
+        const ID_B: u32 = 0xBC0A_0100;
+        let (combo_off, psp_off, pl2_off) = (0xA_7000usize, 0x1_0000usize, 0x1_1000usize);
+        let mut buf = vec![0u8; 0x100_0000];
+        let fet_off = 0x20_000usize;
+        buf[fet_off..fet_off + 4].copy_from_slice(FET_MAGIC.as_bytes());
+        buf[fet_off + 4..fet_off + 8].copy_from_slice(&(combo_off as u32).to_le_bytes());
+        buf[fet_off + 8..fet_off + 24].copy_from_slice(&[0xFF; 16]);
+
+        // `2PSP`: header, 16 reserved bytes, two entries [flags|id|ptr|rsv].
+        buf[combo_off..combo_off + 4].copy_from_slice(b"2PSP");
+        buf[combo_off + 8..combo_off + 12].copy_from_slice(&2u32.to_le_bytes());
+        for (i, id) in [ID_A, ID_B].into_iter().enumerate() {
+            let e = combo_off + 0x20 + i * COMBO_ENTRY_SIZE;
+            buf[e + 4..e + 8].copy_from_slice(&id.to_le_bytes());
+            buf[e + 8..e + 12].copy_from_slice(&(psp_off as u32).to_le_bytes());
+        }
+
+        // `$PSP`, mode 01 (flash offset, v2 bits[30:29]), one 0x40 → `$PL2`.
+        buf[psp_off..psp_off + 4].copy_from_slice(b"$PSP");
+        buf[psp_off + 8..psp_off + 12].copy_from_slice(&1u32.to_le_bytes());
+        buf[psp_off + 12..psp_off + 16].copy_from_slice(&0x2000_0000u32.to_le_bytes());
+        buf[psp_off + 0x10] = 0x40;
+        buf[psp_off + 0x14..psp_off + 0x18].copy_from_slice(&0x100u32.to_le_bytes());
+        buf[psp_off + 0x18..psp_off + 0x1C].copy_from_slice(&(pl2_off as u32).to_le_bytes());
+        buf[pl2_off..pl2_off + 4].copy_from_slice(b"$PL2");
+        buf[pl2_off + 12..pl2_off + 16].copy_from_slice(&0x2000_0000u32.to_le_bytes());
+
+        let blob = SourceBytes::from_blob(buf);
+        let dirs = Fet::parse_at(&blob, FlashOffset(0x20_000))
+            .map(|fet| walk_directories(&blob, &fet, RomSize::MIB_16, FlashOffset::ZERO))
+            .unwrap_or_default();
+        let gens = |off: usize| {
+            dirs.iter()
+                .find(|d| d.directory.source().offset() == FlashOffset(off as u64))
+                .map(|d| d.generations.clone())
+        };
+        let both = vec![PspGenerationId(ID_A), PspGenerationId(ID_B)];
+        assert_eq!(dirs.len(), 3, "combo + $PSP + $PL2");
+        assert_eq!(gens(combo_off), Some(Vec::new()));
+        assert_eq!(gens(psp_off), Some(both.clone()));
+        assert_eq!(gens(pl2_off), Some(both));
     }
 
     #[test]

@@ -4,7 +4,10 @@
 //! Layout: every cell is wrapped in `| ` … ` |`, header text is centered, body
 //! cells follow per-column [`Align`]. Horizontal separator rows are
 //! `+`-corners and `-`-fills, recomputed from the per-column widths after the
-//! caller has finished adding rows.
+//! caller has finished adding rows. A body cell containing `'\n'` spans one
+//! text line per line, top-aligned, like PrettyTable's default `valign = "t"`
+//! (upstream's multi-generation `zen_generation`, `directory.py:246`, printed
+//! at `psptool.py:84`).
 //!
 //! This is intentionally minimal: just enough to mimic prettytable so the
 //! snapshot diff is small, without pulling in a third-party formatter.
@@ -63,7 +66,9 @@ impl Table {
         }
         for row in &self.rows {
             for (i, cell) in row.iter().enumerate() {
-                widths[i] = widths[i].max(cell.chars().count());
+                for line in cell.split('\n') {
+                    widths[i] = widths[i].max(line.chars().count());
+                }
             }
         }
 
@@ -80,8 +85,16 @@ impl Table {
         out.push_str(&sep);
         out.push('\n');
         for row in &self.rows {
-            out.push_str(&render_row(row, &widths, &self.aligns));
-            out.push('\n');
+            let lines: Vec<Vec<&str>> = row.iter().map(|c| c.split('\n').collect()).collect();
+            let height = lines.iter().map(Vec::len).max().unwrap_or(1);
+            for k in 0..height {
+                let cells: Vec<&str> = lines
+                    .iter()
+                    .map(|l| l.get(k).copied().unwrap_or(""))
+                    .collect();
+                out.push_str(&render_row(&cells, &widths, &self.aligns));
+                out.push('\n');
+            }
         }
         out.push_str(&sep);
         out.push('\n');
@@ -100,9 +113,10 @@ fn build_separator(widths: &[usize]) -> String {
     s
 }
 
-fn render_row(cells: &[String], widths: &[usize], aligns: &[Align]) -> String {
+fn render_row(cells: &[impl AsRef<str>], widths: &[usize], aligns: &[Align]) -> String {
     let mut s = String::from("|");
     for (i, cell) in cells.iter().enumerate() {
+        let cell = cell.as_ref();
         let w = widths[i];
         let align = aligns.get(i).copied().unwrap_or(Align::Left);
         let cell_w = cell.chars().count();
@@ -165,6 +179,25 @@ mod tests {
         t.add_row(["1"]); // only 1 cell
         let s = t.render();
         assert!(s.contains("| 1 |   |   |"), "{s}");
+    }
+
+    /// PrettyTable prints a `'\n'` cell one line per text row, top-aligned,
+    /// the other cells blank on the continuation rows (e.g. upstream's
+    /// two-generation `$PSP` header row).
+    #[test]
+    fn multi_line_cells_span_one_text_row_per_line() {
+        let mut t = Table::new(["a", "Generation"], Align::Center);
+        t.add_row(["0", "Zen 1\nZen 2 (x)"]);
+        let s = t.render();
+        assert_eq!(
+            s,
+            "+---+------------+\n\
+             | a | Generation |\n\
+             +---+------------+\n\
+             | 0 |   Zen 1    |\n\
+             |   | Zen 2 (x)  |\n\
+             +---+------------+\n"
+        );
     }
 
     #[test]

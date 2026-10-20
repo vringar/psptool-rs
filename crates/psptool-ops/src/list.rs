@@ -35,21 +35,21 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 | SHIPPED | `render_text` `list.rs:176` composes ROM/header/entry tables per `psptool.py:68`/`:79`/`:103`; consumer `psptool-cli/src/cmds/list.rs:53`/`:55` |
-//! | REQ-2 | SHIPPED | `list_json` `list.rs:147` emits directory objects per `psptool.py:208`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-3 | SHIPPED | `entry_to_json` `list.rs:414` inserts `index`/`address`/`size`/`sectionType` per `psptool.py:246`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:313`/`:428` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:477` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:529` + `version_string` `list.rs:548` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-1 | SHIPPED | `render_text` `list.rs:177` composes ROM/header/entry tables per `psptool.py:68`/`:79`/`:103`; consumer `psptool-cli/src/cmds/list.rs:53`/`:55` |
+//! | REQ-2 | SHIPPED | `list_json` `list.rs:148` emits directory objects per `psptool.py:208`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-3 | SHIPPED | `entry_to_json` `list.rs:424` inserts `index`/`address`/`size`/`sectionType` per `psptool.py:246`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:316`/`:439` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:488` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:551` + `version_string` `list.rs:570` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-7 | SHIPPED | `info_list` `list.rs:594` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:336` + `entry_to_json` `list.rs:465` per `psptool.py:104`/`:183`; `MD5`/`md5` is `entry_md5` `list.rs:681`, upstream `md5()` — a HeaderFile hashes its `self.body` (`header_file.py:106`/`:312-315`, #119); `size_packed`/`sizes.packed` is `packed_size` `list.rs:530`, the normalised `rom_size` (`header_file.py:72-73`, #118); consumer `psptool-cli/src/cmds/list.rs:53` |
 //! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `MD5`=`entry_md5(..)[..4]` upper-cased) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
-//! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:760` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:704` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-11 | SHIPPED | `directory_generation` tertiary branch `list.rs:740` renders the `block[20:24]` id per `directory.py:89` printed `psptool.py:84` (#70); consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:203` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
+//! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:774` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
+//! | REQ-10 | SHIPPED | `directory_generation` `list.rs:738` renders the ids core `walk_directories` threads into `DirectoryRef::generations` (combo entry, L2 inheritance `directory.py:81-82`, accumulation + cascade `:61-62`/`:243-249`; #116/#117) as `generation_label` `list.rs:761` (`Zen N (PSP ID 0x..)`, `fet.py:117-123`; #57), one per line, per `psptool.py:84`; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-11 | SHIPPED | a tertiary-reached directory's `generations` hold the `block[20:24]` id (`directory.py:89`/`94`, #70), rendered by `directory_generation` `list.rs:738` per `psptool.py:84`; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:197` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
 //! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:594` renders `signature_tag` (`list.rs:641`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:655`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
-//! | REQ-14 | SHIPPED | `entry_to_json` `list.rs:447` emits `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry per `psptool.py:267-271` (PSPTool `241629b`), from the `_verify_decode` port `verify_decode` (core `body.rs:937`, `header_file.py:198-243`) over the image-wide `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`) built by `Verifier::new` `list.rs:111`; consumer `psptool-cli/src/cmds/list.rs:49` (closes #89) |
+//! | REQ-14 | SHIPPED | `entry_to_json` `list.rs:457` emits `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry per `psptool.py:267-271` (PSPTool `241629b`), from the `_verify_decode` port `verify_decode` (core `body.rs:937`, `header_file.py:198-243`) over the image-wide `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`) built by `Verifier::new` `list.rs:112`; consumer `psptool-cli/src/cmds/list.rs:49` (closes #89) |
 
 use md5::{Digest, Md5};
 use serde_json::{Value, json};
@@ -57,9 +57,9 @@ use serde_json::{Value, json};
 use psptool_core::body::{CertifyingKeys, ChecksumCheck, DecodeVerification, SignatureCheck};
 use psptool_core::entry::HEADER_FILE_LEN;
 use psptool_core::{
-    AddressMode, BiosDirectory, BiosEntry, Directory, DirectoryProvenance, DirectoryRef, Entry,
-    EntryClass, EntryRecord, Fet, FlashOffset, HeaderEntry, Ikek, ParseError, PspDirectory,
-    PspEntry, PubkeyEntry, ResolveContext, RomSize, SourceBytes, ZenGeneration,
+    AddressMode, BiosDirectory, BiosEntry, Directory, DirectoryRef, Entry, EntryClass, EntryRecord,
+    Fet, FlashOffset, HeaderEntry, Ikek, ParseError, PspDirectory, PspEntry, PspGenerationId,
+    PubkeyEntry, ResolveContext, RomSize, SourceBytes, ZenGeneration,
 };
 
 use crate::table::{Align, Table};
@@ -225,7 +225,7 @@ fn render_directory_header_table(
     let dir = &dir_ref.directory;
     let header = dir.header();
     let magic = magic_string(header.magic.as_bytes());
-    let generation = directory_generation(dir_ref, rom);
+    let generation = directory_generation(dir_ref);
     let secondary = secondary_addresses(rom, dir)
         .iter()
         .map(|a| format_hex_u64(*a))
@@ -724,71 +724,50 @@ fn magic_string(bytes: &[u8; 4]) -> String {
     ascii_or_hex_4(bytes)
 }
 
-/// Generation column for a directory.
+/// Generation column for a directory: upstream's `directory.zen_generation`
+/// (`psptool.py:84`), one [`generation_label`] per line — upstream joins the
+/// labels it accumulates with `'\n'` (`directory.py:246`) and PrettyTable
+/// prints each on its own line.
 ///
-/// * Combo directories: list every distinct Zen generation across all combo
-///   entries, comma-separated (e.g. `"Zen2, Zen3"`).
-/// * `$PSP`/`$BHD` directories: when reached via a combo entry, inherit
-///   that combo entry's generation; when reached via a tertiary (0x48/0x4A)
-///   double-indirection block, inherit that block's `[20:24]` generation id
-///   (upstream `directory.py:89`/`94`/`98` threads it into the created
-///   directory's `zen_generation`, printed at `psptool.py:84`). Otherwise
-///   empty (matches the reference tool's `Directory.zen_generation`).
-fn directory_generation(dir_ref: &DirectoryRef, rom: &RomListing<'_>) -> String {
+/// * `$PSP`/`$BHD` directories: the ids the walk threaded through the
+///   directory graph ([`DirectoryRef::generations`]: combo entry, tertiary
+///   block, L2 parent). Empty when there are none — upstream prints `None`
+///   there.
+/// * Combo directories (not listed by upstream at all): the distinct ids of
+///   their entries, i.e. what the directories they point at receive.
+fn directory_generation(dir_ref: &DirectoryRef) -> String {
+    let mut ids: Vec<PspGenerationId> = Vec::new();
     match &dir_ref.directory {
         Directory::Combo(c) => {
-            let mut gens: Vec<&str> = Vec::new();
             for e in &c.entries {
-                if let Some(g) = e.psp_generation.zen_generation() {
-                    let label = zen_label(g);
-                    if !gens.contains(&label) {
-                        gens.push(label);
-                    }
+                if !ids.contains(&e.psp_generation) {
+                    ids.push(e.psp_generation);
                 }
             }
-            gens.join(", ")
         }
-        Directory::Psp(_) | Directory::Bios(_) => match &dir_ref.provenance {
-            DirectoryProvenance::ComboEntry {
-                combo_offset,
-                index,
-            } => {
-                for d in rom.directories {
-                    if let Directory::Combo(c) = &d.directory
-                        && c.source.offset() == *combo_offset
-                        && let Some(g) = c
-                            .entries
-                            .get(*index)
-                            .and_then(|e| e.psp_generation.zen_generation())
-                    {
-                        return zen_label(g).to_string();
-                    }
-                }
-                String::new()
-            }
-            // Tertiary (0x48/0x4A) double-indirection: the generation id was
-            // read from the block's `[20:24]` and carried on the provenance,
-            // mirroring the combo path — upstream `directory.py:89`/`94` reads
-            // it and `directory.py:98`/`124` stamps it into the created
-            // directory's `zen_generation` (printed at `psptool.py:84`). An
-            // unknown id renders empty, exactly as the combo arm above.
-            DirectoryProvenance::Tertiary { generation, .. } => generation
-                .zen_generation()
-                .map(|g| zen_label(g).to_string())
-                .unwrap_or_default(),
-            _ => String::new(),
-        },
+        Directory::Psp(_) | Directory::Bios(_) => ids.clone_from(&dir_ref.generations),
     }
+    ids.into_iter()
+        .map(generation_label)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
-const fn zen_label(g: ZenGeneration) -> &'static str {
-    match g {
-        ZenGeneration::Zen1 => "Zen1",
-        ZenGeneration::Zen2 => "Zen2",
-        ZenGeneration::Zen3 => "Zen3",
-        ZenGeneration::Zen4 => "Zen4",
-        ZenGeneration::Zen4Or5 => "Zen4Or5",
-    }
+/// The label upstream threads into `zen_generation`:
+/// `get_possible_zen_generation(id[1:4])` plus `f' (PSP ID {hex(id)})'`
+/// (`fet.py:117-123`, `directory.py:89-95`), e.g. `Zen 3 (PSP ID
+/// 0xbc0c0140)`; an id outside `ZEN_GENERATION_IDS` is `'unknown'`
+/// (`directory.py:34-48`).
+fn generation_label(id: PspGenerationId) -> String {
+    let name = match id.zen_generation() {
+        Some(ZenGeneration::Zen1) => "Zen 1",
+        Some(ZenGeneration::Zen2) => "Zen 2",
+        Some(ZenGeneration::Zen3) => "Zen 3",
+        Some(ZenGeneration::Zen4) => "Zen 4",
+        Some(ZenGeneration::Zen4Or5) => "Zen 4/5",
+        None => "unknown",
+    };
+    format!("{name} (PSP ID {:#x})", id.get())
 }
 
 /// Resolve secondary-directory pointers for `dir` to flash offsets.

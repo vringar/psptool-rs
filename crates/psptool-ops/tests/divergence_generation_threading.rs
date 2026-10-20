@@ -42,12 +42,14 @@
 //!    point at (`:61-62` → `:246`), cascading the addition to its L2 children
 //!    (`:247-249`).
 //!
-//! ## Target divergence
+//! ## Target divergence (fixed by #116 / #117 / #57)
 //!
-//! `psptool_core::walk_directories` (`directory.rs`) records one provenance per
+//! `psptool_core::walk_directories` (`directory.rs`) recorded one provenance per
 //! directory (first visit wins) and `psptool_ops::list::directory_generation`
-//! (`list.rs:702-747`) derives a label only for `ComboEntry` / `Tertiary`
-//! provenance; an `L2Pointer` directory falls to `_ => String::new()`. Hence:
+//! derived a label only for `ComboEntry` / `Tertiary` provenance; an
+//! `L2Pointer` directory fell to `_ => String::new()`. The walk now threads
+//! `DirectoryRef::generations` the way upstream threads `zen_generation`, and
+//! the label is upstream's. Before the fix:
 //!
 //! * #116 (D1): every combo-reached L1's `$PL2`/`$BL2` child renders a BLANK
 //!   Generation cell. Corpus: the Zen 3 `$PL2`/`$BL2` of
@@ -303,7 +305,6 @@ fn control_combo_reached_l1_carries_generation() {
 ///
 /// Tracking: #116
 #[test]
-#[ignore = "divergence: L2 ($PL2/$BL2) directories do not inherit the L1 Zen generation (directory.py:81-82); tracking #116"]
 fn divergence_psp_l2_inherits_combo_generation() {
     let out = render_synthetic(psp_chain(&[ZEN3_ID]));
     let parent = tokens_of(&out, L1_OFF);
@@ -322,7 +323,6 @@ fn divergence_psp_l2_inherits_combo_generation() {
 ///
 /// Tracking: #116
 #[test]
-#[ignore = "divergence: L2 ($PL2/$BL2) directories do not inherit the L1 Zen generation (directory.py:81-82); tracking #116"]
 fn divergence_bios_l2_inherits_combo_generation() {
     let out = render_synthetic(bios_chain(ZEN3_ID));
     assert_eq!(
@@ -346,7 +346,6 @@ fn divergence_bios_l2_inherits_combo_generation() {
 ///
 /// Tracking: #117
 #[test]
-#[ignore = "divergence: a directory reached by several combo entries keeps only the first Zen generation (directory.py:61-62,243-249); tracking #117"]
 fn divergence_shared_l1_accumulates_every_combo_generation() {
     let out = render_synthetic(psp_chain(&[ZEN1_ID, ZEN2_ID]));
     let got = tokens_of(&out, L1_OFF);
@@ -367,7 +366,6 @@ fn divergence_shared_l1_accumulates_every_combo_generation() {
 ///
 /// Tracking: #117
 #[test]
-#[ignore = "divergence: a directory reached by several combo entries keeps only the first Zen generation (directory.py:61-62,243-249); tracking #117"]
 fn divergence_shared_l1_generation_cascades_to_l2() {
     let out = render_synthetic(psp_chain(&[ZEN1_ID, ZEN2_ID]));
     let got = tokens_of(&out, L2_OFF);
@@ -387,7 +385,6 @@ fn divergence_shared_l1_generation_cascades_to_l2() {
 ///
 /// Tracking: #57
 #[test]
-#[ignore = "divergence: Generation label is 'Zen3', upstream prints 'Zen 3 (PSP ID 0xbc0c0140)' (fet.py:117-123); tracking #57"]
 fn divergence_generation_label_includes_psp_id() {
     let out = render_synthetic(psp_chain(&[ZEN3_ID]));
     let blocks = directory_blocks(&out);
@@ -515,7 +512,6 @@ fn corpus_generation_mismatches(select: fn(&BTreeSet<String>) -> bool) -> Option
 ///
 /// Tracking: #116
 #[test]
-#[ignore = "divergence: L2 ($PL2/$BL2) directories do not inherit the L1 Zen generation (directory.py:81-82); tracking #116"]
 fn divergence_corpus_single_generation_matches_reference() {
     let Some(bad) = corpus_generation_mismatches(|g| g.len() <= 1) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");
@@ -535,7 +531,6 @@ fn divergence_corpus_single_generation_matches_reference() {
 ///
 /// Tracking: #117
 #[test]
-#[ignore = "divergence: a directory reached by several combo entries keeps only the first Zen generation (directory.py:61-62,243-249); tracking #117"]
 fn divergence_corpus_multi_generation_matches_reference() {
     let Some(bad) = corpus_generation_mismatches(|g| g.len() > 1) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");

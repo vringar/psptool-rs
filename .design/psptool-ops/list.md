@@ -84,16 +84,23 @@ actual oracle.
   secondary-directory-pointer entries, resolved through the directory's address
   mode, mirroring `directory.secondary_directory_offsets`
   (`directory.py:156-163`, printed at `psptool.py:86`/`:212`).
-- REQ-10: **Generation column for combo-reached directories.** The `Generation`
-  column shows the distinct Zen generations of a combo directory's entries, and a
-  `$PSP`/`$BHD` directory reached *via a combo entry* inherits that entry's
-  generation, mirroring `directory.zen_generation` (`psptool.py:84`, combo
-  threading `directory.py:57-63`).
+- REQ-10: **Generation column (combo threading).** The `Generation` column of a
+  `$PSP`/`$BHD`/`$PL2`/`$BL2` directory shows upstream's `directory.zen_generation`
+  (`psptool.py:84`): the generation of every combo entry pointing at it
+  (`fet.py:79-84`), inherited by the L2 directories its `0x40`/`0x49`/`0x70`
+  pointers reach (`directory.py:81-82`), accumulated when several combo entries
+  or parents reach one directory and cascaded to its L2 directories
+  (`directory.py:61-62`, `:243-249`). Each generation is upstream's label
+  `'<Zen 1|Zen 2|Zen 3|Zen 4|Zen 4/5|unknown> (PSP ID 0x..)'` (`fet.py:117-123`,
+  `directory.py:34-48`), one per line as upstream's `'\n'`-joined string prints
+  in PrettyTable. A combo directory (which upstream does not list) shows the
+  distinct labels of its entries.
 - REQ-11: **Generation column for tertiary-reached (`$PL2`) directories.** A
   directory reached through the Zen 4+ tertiary double-indirection (entry types
   `0x48`/`0x4A`) must show the Zen generation stamped in the tertiary block's
   `block[20:24]` PSP-ID, mirroring `directory.py:86-98` (which sets
-  `zen_generation='Zen 4/5 (PSP ID 0x..)'`) as printed at `psptool.py:84`.
+  `zen_generation='Zen 4/5 (PSP ID 0x..)'`) as printed at `psptool.py:84`, in the
+  REQ-10 label format; the directory's own L2 directories inherit it.
 - REQ-12: **AGESA version in the ROM summary.** The `AGESA` column of the ROM
   table shows the parsed AGESA version string, mirroring `rom.agesa_version`
   (`psptool.py:74`).
@@ -121,13 +128,16 @@ actual oracle.
   entry's `index`/`address`/`size`/`sectionType` agree with reference PSPTool via
   this unit's `-E -j` JSON (the former #41/#60 ignores were cleared by the
   cross-ROM-echo accommodation and the master repin).
-- AC-3 (REQ-10): `cargo test -p psptool-ops --test divergence_tertiary_generation`
-  — `control_combo_reached_directory_carries_generation` passes, proving the
-  render path stamps `Zen4Or5` for a combo-reached directory.
-- AC-4 (REQ-11): the same suite's
-  `divergence_tertiary_0x48_directory_carries_generation` and `_0x4a_` are now
-  `#[test]` (un-ignored) and PASS — the tertiary-reached `$PL2` renders
-  `Zen4Or5` from the block's `[20:24]` id, closing blocker #70.
+- AC-3 (REQ-10): `cargo test -p psptool-ops --test divergence_generation_threading`
+  — 8 passed, 0 ignored: a combo-reached `$PSP` carries its entry's generation,
+  `$PL2`/`$BL2` inherit it (#116), a `$PSP` two combo entries share lists both
+  and cascades both to its `$PL2` (#117), the label is `Zen 3 (PSP ID
+  0xbc0c0140)` (#57), and the two corpus pins compare every directory's
+  generation tokens with the live reference.
+- AC-4 (REQ-11): `cargo test -p psptool-ops --test divergence_tertiary_generation`
+  — 3 passed: the tertiary-reached `$PL2` renders `Zen 4/5 (PSP ID 0xbc0d0300)`
+  from the block's `[20:24]` id via `0x48` and `0x4A` (#70), and the combo control
+  renders the same label.
 - AC-5 (REQ-12): open — no green test exists; the placeholder string
   `AGESA_UNKNOWN` is emitted verbatim.
 - AC-6 (REQ-13, REQ-14): `cargo test -p psptool-ops --test decode_verification`
@@ -161,8 +171,8 @@ actual oracle.
 | REQ-8 (verbose extension columns) | SHIPPED | `build_entry_row` verbose branch `list.rs:336-364` (`flags`/`MD5`/`size_signed`/`size_full`/`size_packed`/`load_addr`) and `entry_to_json` verbose branch `list.rs:465-479` (`md5`/`flags`/`sizes`/`load_addr`); mirror `verbose_fields` + HeaderFile block (`psptool.py:104`/`:180`/`:183-189`/`:260-266`). `MD5` / `md5` is `entry_md5` (`list.rs:681`), the digest of upstream's `file.md5()`: the file buffer for a plain/pubkey/microcode entry (`file.py:380-383`), and for a HeaderFile / KeyStoreFile its data region `self.body` = `[0x100, rom_size - signature_len)` of the HeaderFile buffer (`header_file.py:106`, `:312-315`; the signature is reserved when signed, a KeyStoreFile always is, `key_store_file.py:62-64`; #119). `size_packed` / `sizes.packed` is `packed_size` (`list.rs:530`): upstream's normalised `HeaderFile.rom_size` — a header `rom_size` of 0 reads as the buffer size, the directory-declared entry grown to the 0x100 header (`header_file.py:72-73`, `:32-33`; #118). Consumer: `psptool-cli/src/cmds/list.rs:53` (`list_verbose`) / `:49` (`list_json` with `args.verbose`). Verification: `list_micro` `list_verbose_psp_micro`/`list_json_verbose_psp_micro`; `divergence_headerfile_list_values.rs` — `divergence_size_packed_normalises_zero_rom_size` / `divergence_json_sizes_packed_normalises_zero_rom_size` / `divergence_sparse_md5_hashes_headerfile_body` (synthetic) and `divergence_corpus_sizes_packed_matches_reference` / `divergence_corpus_headerfile_md5_matches_reference` (every corpus HeaderFile's packed size and `md5()[:4].upper()` equal the reference's; 147 and 4147 differed before #118 / #119). |
 | #86/#87 (sparse `flags`/`MD5`) | SHIPPED | The richer default (populated `flags` + full 32-char lowercase `MD5`) is the default. Opt-in `RomListing::sparse` (`list.rs`) drives the `build_entry_row` sparse branch: `flags` → `''` (`psptool.py:179`), `MD5` → the first four characters of `entry_md5`, upper-cased = `md5()[:4].upper()` (`psptool.py:180`); the richer default prints all 32 characters of the same digest. Consumer: the CLI `list` subcommand sets `sparse` from the `--sparse` flag (`psptool-cli/src/cli.rs`, `ListArgs::sparse`) OR the `PSPTOOL_LS_SPARSE` env var (`psptool-cli/src/cmds/list.rs`). Verification: `divergence_list_columns.rs::divergence_verbose_flags_column_is_empty_upstream` + `::divergence_verbose_md5_column_truncated_and_uppercased` (un-ignored, sparse mode) + `::default_mode_flags_populated_and_md5_full_lowercase` (richer default). |
 | REQ-9 (secondary-directory resolution) | SHIPPED | `secondary_addresses` `list.rs:580-607` resolves secondary-directory-pointer entries through the directory address mode (`collect_secondary_psp`/`_bios` `list.rs:609-635`); mirrors `directory.secondary_directory_offsets` (`directory.py:156-163`), printed `psptool.py:86`/`:212`. Consumer: `psptool-cli/src/cmds/list.rs:41`/`:47`. Verification: `list_micro` `fet_pointer_addresses_are_byte_stable`; differential combo-drop keys on it. |
-| REQ-10 (generation, combo-reached) | SHIPPED | `directory_generation` `list.rs:531-567`: combo branch (`:533-544`) joins distinct `zen_label`s; PSP/BIOS branch resolves `DirectoryProvenance::ComboEntry` back to the combo entry's generation (`:545-564`, `zen_label` `list.rs:569-577`); mirrors `directory.zen_generation` (`psptool.py:84`) combo threading (`directory.py:57-63`). Consumer: `psptool-cli/src/cmds/list.rs:47`. Verification: `divergence_tertiary_generation.rs::control_combo_reached_directory_carries_generation` (passes — renders `Zen4Or5`). |
-| REQ-11 (generation, tertiary-reached `$PL2`) | SHIPPED | `directory_generation` `list.rs:545-580` handles `DirectoryProvenance::Tertiary { generation, .. }` by rendering `generation.zen_generation()` via `zen_label` (`list.rs:571-576`); the id is read from `block[20:24]` in core `tertiary_actual_offset` (`directory.rs:864-869`) and attached to the walk result at `directory.rs:727-731`/`788-792` — mirrors upstream `directory.py:89`/`94`/`98`/`124` (block[20:24] → created dir's `zen_generation`) printed at `psptool.py:84`. Consumer: `psptool-cli/src/cmds/list.rs:47` (`list_default`). Verification: `divergence_tertiary_generation.rs::divergence_tertiary_0x48/0x4a_directory_carries_generation` (both now `#[test]`, pass — render `Zen4Or5`) + control still green. |
+| REQ-10 (generation, combo threading) | SHIPPED | core `walk_directories` threads `DirectoryRef::generations` (`psptool-core/src/directory.rs:580`) like `create_directories_if_not_exist` / `update_zen_generation`: `Walk::visit` (`directory.rs:604`) records a combo entry's `psp_generation` on the directory it reaches (`fet.py:79-84`) and merges ids into a directory reached again (`directory.py:61-62`), `Walk::merge` (`directory.rs:634`) cascades new ids along the recorded L2 edges (`directory.py:243-249`), `Walk::visit_l2` (`directory.rs:649`) gives an L2 directory its parent's ids (`directory.py:81-82`). `directory_generation` (`list.rs:738`) renders them with `generation_label` (`list.rs:761`, `fet.py:117-123` / `directory.py:34-48`), one per line through the multi-line cells of `table.rs` (PrettyTable `valign` top). Consumer: `psptool-cli/src/cmds/list.rs:55`/`:53`. Verification: `divergence_generation_threading.rs` (8 tests, the 7 #116/#117/#57 pins un-ignored, incl. two live-reference corpus pins over every corpus directory) + core `walk_directories_threads_combo_generations_to_l2` / `walk_directories_via_combo_to_psp` + `table::tests::multi_line_cells_span_one_text_row_per_line`. A directory only FET slots reach renders an empty cell where upstream prints `None`. |
+| REQ-11 (generation, tertiary-reached `$PL2`) | SHIPPED | the walk's tertiary branch (`psptool-core/src/directory.rs:777-797`) records the `block[20:24]` id read by `tertiary_actual_offset` (`directory.rs:829`, `directory.py:89`/`94`) on the reached directory (`directory.py:98`/`124`); `directory_generation` (`list.rs:738`) renders it as `Zen 4/5 (PSP ID 0x..)`, printed at `psptool.py:84`. Consumer: `psptool-cli/src/cmds/list.rs:55` (`list_default`). Verification: `divergence_tertiary_generation.rs` (3 passed: `0x48`/`0x4a` pins + combo control, label `Zen 4/5 (PSP ID 0xbc0d0300)`). |
 | REQ-12 (AGESA version) | NOT-STARTED | open blocker #75. `render_rom_table` `list.rs:128` emits the `AGESA_UNKNOWN` placeholder (const `list.rs:61`) where `psptool.py:74` prints `rom.agesa_version`; the core parse for the AGESA string is not exposed on `RomListing`. Text-only column, not gated by the differential JSON oracle. |
 | REQ-13 (sig/sha verify result) | SHIPPED | `info_list` (`list.rs:571`) pushes `signature_tag` (`list.rs:625`: `verified(XXXX)`/`veri-failed(XXXX)`/`key_missing(XXXX)`, `XXXX` = first two certifying-id bytes upper-case hex per `KeyId.magic` `crypto.py:369-371`) and `checksum_tag` (`list.rs:639`: `sha256_ok`/`sha256_inconsistent`/`sha384_ok`/`sha384_inconsistent`) from one `Entry::decode_verification` pass (core `body.rs:899`) per `psptool.py:116-140`. A verification that cannot run renders `invalid_sig(XXXX)` (`psptool.py:124-125`; upstream's `ls` would propagate the exception). Consumer: `psptool-cli/src/cmds/list.rs:55`/`:53`/`:49`. Verification: `decode_verification.rs::ls_renders_verdicts_in_json_and_file_info`; corpus File-Info tags agree with upstream `ls_files` logic on every shared entry (3409 verified, 377 veri-failed, 251 key_missing, 141 sha256_ok, 3 sha256_inconsistent). `info` stays a differential-tolerated key. Closes #76. |
 | REQ-14 (decode-verified JSON bit) | SHIPPED | `entry_to_json` (`list.rs:447`) inserts `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry, non-verbose included, per `psptool.py:267-271` (`241629b`). The ladder is core `HeaderEntry::verify_decode` (`body.rs:937`, `header_file.py:198-243`) behind `Entry::decode_verification` (`body.rs:899`), resolving keys through `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`: PubkeyFile keys + every `$KDB` key-store key, `key_store_file.py:140-253`) built once per listing by `Verifier::new` (`list.rs:111`). `DecodeVerification` exposes `decode_verified()`/`decode_verification_method()`/`plaintext_identity_ok()` (`header_file.py:245-276`) to library consumers. Consumer: `psptool-cli/src/cmds/list.rs:49`. Verification: AC-6. Closes #89. |
@@ -195,46 +205,34 @@ as an explicit failure rather than an opaque missing-`address`. The BIOS
 `destinationAddress` key is added only for a used-destination BIOS entry
 (`list.rs:320-328`), mirroring `psptool.py:257-258`.
 
-**Generation resolution.** `directory_generation` (`list.rs:531`) is the one place
-the `Generation` column value is computed. For a combo directory it enumerates
-each combo entry's `psp_generation.zen_generation()`; for a `$PSP`/`$BHD`
-directory it back-resolves a `DirectoryProvenance::ComboEntry`
-(`directory.rs:545-548`) to the combo entry's generation. Tertiary-reached
-(`0x48`/`0x4A`) directories arrive as `DirectoryProvenance::Tertiary { generation
-}` (`directory.rs:555-570`) — core `tertiary_actual_offset` reads the block's
-`[20:24]` PSP-ID (`directory.rs:864-869`, upstream `directory.py:89`/`94`) and the
-walk attaches it (`directory.rs:727-731`/`788-792`), so the function renders the
-same `zen_label` the combo path does (REQ-11 / #70, closed). This is the same
-routing wall #66 hit for `replace.rs`, which is why list.rs was routed.
+**Generation resolution.** The ids come from the core walk: `walk_directories`
+threads them through the directory graph into `DirectoryRef::generations`
+(`directory.rs:580`) the way upstream's `create_directories_if_not_exist` /
+`update_zen_generation` thread `zen_generation` (`directory.py:58-101`,
+`:243-249`) — a combo entry's id, a tertiary block's `[20:24]` id
+(`tertiary_actual_offset`, `directory.rs:829`), an L2 parent's ids, merged on
+every further visit and cascaded along L2 edges. `directory_generation`
+(`list.rs:738`) is the one place the `Generation` cell is rendered: one
+`generation_label` (`list.rs:761`) per id and line. The set of ids equals
+upstream's; their order is the walk's, which is upstream's depth-first order
+unless one directory is reached from two different parents (no corpus image
+has such a directory: the exact cell text matches the reference for all 433
+directories of the vendor corpus and the five local Zen 4/5 images).
 
 **Address-mode reuse.** Secondary-pointer resolution builds a `ResolveContext`
 from `rom_size`/`directory_base`/`rom_origin` (`list.rs:583-588`) and defers to the
 core `AddressMode` resolver, so the rendering unit never re-implements address
 arithmetic — it reuses the `.design/psptool-core/address.md` primitive.
 
-## Version-skew note (blocker #61)
+## Version-skew note (blocker #61, resolved)
 
-The differential oracle is PSPTool 3.4 while the translation source
-`/tmp/psptool-ref` is git HEAD. Two rendering strings this unit produces can differ
-across that skew and are handled as tolerated ignores rather than asserted REQs:
-
-- **Type name for `0x5c`** — one corpus ROM
-  (`AORUS_X570_X57AOXT2.FCd`) surfaces our `SPI_ROM_CONFIG` (`types.rs:96`) vs the
-  3.4 reference's `WMOS`/HeaderFile classification; registered as an ignored
-  differential trial (`differential.rs:123-127`, crosslink #60). This is a #61
-  version-skew artifact (the HEAD type-name map differs from 3.4), not a code bug,
-  so REQ-4 does not assert a HEAD-only `0x5c` string.
-- **Generation labels** — `zen_label` (`list.rs:569-577`) renders HEAD-style tags
-  (`Zen1`..`Zen4Or5`); the 3.4 reference prints `Zen 1`..`Zen 4/5 (PSP ID 0x..)`
-  (`directory.py:34-48`). The `Generation` column is a text-only column the
-  differential does not read, so no REQ asserts label equality with the 3.4
-  oracle; REQ-10/REQ-11 are pinned by the self-oracle
-  `divergence_tertiary_generation.rs` control instead.
-
-The upstream-parity divergences #57 (full PSP-ID hex in the generation label), #55
-(zen back-fill to secondary dirs), and #39 (type-name-map coverage) are HEAD-vs-3.4
-/ completeness follow-ups on the same rendering surface; they are referenced here,
-not re-filed.
+The differential oracle and the translation source are the same PSPTool
+revision (`241629b`, `default.nix`), so no rendering string of this unit is a
+version-skew artifact any more. The `Generation` labels follow that revision
+(`Zen 3 (PSP ID 0xbc0c0140)`, #57) and are compared with the live reference by
+the `divergence_generation_threading.rs` corpus pins. #55 (bootloader-version
+back-fill for single-FET EPYC images, upstream PR #85) and #39 (type-name-map
+coverage) remain open on the same rendering surface.
 
 ## Verification
 
@@ -258,6 +256,12 @@ not a pass).
   (REQ-10). `divergence_tertiary_0x48/0x4a_directory_carries_generation` now pass
   (REQ-11 fix landed — per goal.md R-DEFER-3 they moved from `#[ignore]` to
   `#[test]` when the fix landed, and now serve as permanent regression coverage).
+- `cargo test -p psptool-ops --test divergence_generation_threading` — **8
+  passed, 0 ignored** (REQ-10): L2 inheritance (#116), accumulation + cascade
+  (#117), upstream label format (#57), and the two live-reference corpus pins.
+- `cargo test -p psptool-ops --test divergence_headerfile_list_values` — 6
+  passed, 0 ignored (REQ-8: #118 packed size, #119 HeaderFile MD5, incl. two
+  live-reference corpus pins).
 - `cargo test -p psptool-ops --test divergence_list_columns` — all `#[test]`s
   pass, 0 ignored. The #86 (`flags` empty) and #87 (`MD5` `md5()[:4].upper()`)
   pins render upstream-exact in SPARSE mode (`RomListing::sparse`); the richer

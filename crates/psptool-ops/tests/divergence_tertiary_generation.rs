@@ -41,7 +41,8 @@
 //! `block[21:24] = 03 0D BC`) is the known Zen 4/5 tag
 //! (`ZEN_GENERATION_IDS['Zen 4/5'] = [b'\x03\x0D\xBC']`, `directory.py:38`),
 //! which the project's own `PspGenerationId::zen_generation()` maps to
-//! `ZenGeneration::Zen4Or5` (label `"Zen4Or5"`). The expected label is NOT
+//! `ZenGeneration::Zen4Or5` (label `"Zen 4/5 (PSP ID 0xbc0d0300)"` since #57,
+//! `"Zen4Or5"` when this pin was written). The expected label is NOT
 //! copied from the tertiary parser output (which produces nothing) — it is the
 //! label the working combo path renders for the SAME generation-id bytes, as
 //! proved by the passing `control_combo_reached_directory_carries_generation`
@@ -71,11 +72,12 @@ const COMBO_CHILD_PSP_OFF: usize = 0x7_0000;
 /// both paths map to `ZenGeneration::Zen4Or5`.
 const ZEN45_GEN_ID: u32 = 0xBC0D_0300;
 
-/// The `zen_label(ZenGeneration::Zen4Or5)` string the project renders for
-/// `ZEN45_GEN_ID`. Traceable to upstream `ZEN_GENERATION_IDS['Zen 4/5']`
-/// (`directory.py:38`); its correctness for this gen id is proved by the combo
-/// control test, not asserted by fiat.
-const ZEN45_LABEL: &str = "Zen4Or5";
+/// Upstream's label for `ZEN45_GEN_ID`: the `ZEN_GENERATION_IDS` key
+/// `'Zen 4/5'` (`directory.py:38`) plus `f' (PSP ID {hex(id)})'`
+/// (`directory.py:94-95`, `fet.py:122-123`; Python `hex()` is lower-case).
+/// Since #57 the project renders exactly this (it rendered `Zen4Or5` before);
+/// the combo control test proves the render path produces it.
+const ZEN45_LABEL: &str = "Zen 4/5 (PSP ID 0xbc0d0300)";
 
 fn parse_rom(buf: Vec<u8>) -> (SourceBytes, Fet, Vec<psptool_core::DirectoryRef>) {
     let blob = SourceBytes::from_blob(buf);
