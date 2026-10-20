@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 169,
+  "next_comment_id": 170,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -1787,7 +1787,7 @@
       "priority": "low",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:39:05.013796842Z",
-      "updated_at": "2026-10-20T00:39:50.909637055Z",
+      "updated_at": "2026-10-20T00:44:37.018997854Z",
       "labels": [
         "blocker"
       ],
@@ -1797,6 +1797,13 @@
           "author": "anon-b19d58ac",
           "content": "Failing tests at crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs: divergence_file_info_has_only_upstream_outcome_tokens (synthetic) and divergence_corpus_headerfile_file_info_matches_reference (live reference ls -v, 4024 rows). #[ignore]d with this issue; control_file_info_outcome_tags_present passes.",
           "created_at": "2026-10-20T00:39:50.909631414Z",
+          "kind": "observation"
+        },
+        "e6bc4a35-ca41-4389-9eb8-f0a0c32037af": {
+          "display_id": 169,
+          "author": "anon-b19d58ac",
+          "content": "Pins committed as c89f4ae on local branch critic/divergence-898 (parent claude-main e2890e0), not pushed.",
+          "created_at": "2026-10-20T00:44:37.018992513Z",
           "kind": "observation"
         }
       }
@@ -5653,11 +5660,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 25,
       "timestamp": "2026-10-20T00:44:31.337850413Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 26,
+      "timestamp": "2026-10-20T00:44:37.018997854Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:44:31.337850413Z",
+    "timestamp": "2026-10-20T00:44:37.018997854Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 25
+    "agent_seq": 26
   }
 }
