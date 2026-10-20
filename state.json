@@ -818,11 +818,12 @@
       "display_id": 117,
       "title": "Divergence: a directory several combo entries point at keeps only the first Zen generation; upstream update_zen_generation accumulates all and cascades to L2 (directory.py:61-62,243-249)",
       "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/directory.py:61-62 and :243-249):\n    if offset in fet.psptool.directories_by_offset:\n        fet.psptool.directories_by_offset[offset].update_zen_generation(fet, zen_generation)\n    ...\n    def update_zen_generation(self, fet, zen_generation):\n        if zen_generation is not None:\n            if zen_generation not in self.zen_generation:\n                self.zen_generation += '\\n' + zen_generation\n                for offset in self.secondary_directory_offsets:\n                    dir = fet.psptool.directories_by_offset[offset]\n                    dir.update_zen_generation(fet, zen_generation)\nA directory that several combo entries point at accumulates every combo generation, and the addition cascades to its L2 children.\n\nTarget: psptool-core walk_directories (directory.rs) dedups by offset and keeps only the FIRST provenance (`visit` returns None for an already-visited offset); psptool-ops list.rs directory_generation renders that single combo entry's label. The second combo entry's generation is dropped, and the L2 child gets none (#113).\n\nRepro: psptool AORUS_X570_X57AOXT2.FCd -E -> $PSP 0x2c0000 Generation 'Zen1'; upstream 'Zen 1 (PSP ID 0xbc0a0000)\\nZen 2 (PSP ID 0xbc0a0100)'. ASRock_B450_B45P4_3.31: $PSP 0x178000 'Zen1' vs 'Zen 1 ...\\nZen 2 ...', $PL2 0x520000 '' vs 'Zen 1 ...\\nZen 2 ...'.\n\nImpact (corpus, 43 directories): every Pinnacle-Ridge/Picasso desktop image whose combo maps both 0xbc0a0000 (Zen 1) and 0xbc0a0100 (Zen 2) to one $PSP (AORUS B450/X470/X570, ASRock B350/B450/X370/X470, ASUS PRIME/ROG/TUF, Gigabyte, MSI A320/B350/B450/X370/X470). The Zen 2 (0xbc0a0100) attribution of that $PSP's 0x1 / 0x8 / 0x24 HeaderFiles and of its $PL2 (0x2 / 0x28 / 0x39) is lost.\n\nFailing tests: crates/psptool-ops/tests/divergence_generation_threading.rs::divergence_shared_l1_accumulates_every_combo_generation, ::divergence_shared_l1_generation_cascades_to_l2 (synthetic) and ::divergence_corpus_multi_generation_matches_reference (live reference, 43 mismatches).",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:26:22.662439692Z",
-      "updated_at": "2026-10-20T02:31:48.649630965Z",
+      "updated_at": "2026-10-20T02:31:58.706286780Z",
+      "closed_at": "2026-10-20T02:31:58.706285157Z",
       "labels": [
         "blocker"
       ],
@@ -5985,11 +5986,16 @@
       "agent_id": "tLiK",
       "agent_seq": 401,
       "timestamp": "2026-10-20T02:31:48.649630965Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 402,
+      "timestamp": "2026-10-20T02:31:58.706286780Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:31:48.649630965Z",
+    "timestamp": "2026-10-20T02:31:58.706286780Z",
     "agent_id": "tLiK",
-    "agent_seq": 401
+    "agent_seq": 402
   }
 }
