@@ -1,6 +1,6 @@
 {
   "next_display_id": 135,
-  "next_comment_id": 203,
+  "next_comment_id": 204,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2185,11 +2185,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:23:01.018140944Z",
-      "updated_at": "2026-10-19T23:23:17.941972306Z",
+      "updated_at": "2026-10-20T05:35:29.796794085Z",
       "labels": [
         "blocker",
         "kaizen"
-      ]
+      ],
+      "comments": {
+        "49253e5f-c97a-4709-8bf1-5ae382513e5d": {
+          "display_id": 203,
+          "author": "tLiK",
+          "content": "Plan: sign_entry (psptool-ops/src/sign.rs) copies the HeaderFile window, stale_sha256() returns sha256(get_checksummed_bytes()) when the sha256 bit is set and the stored digest at 0xd0 (header_file.py:46 — the issue's [0x20:0x40] is the IV) no longer matches (HeaderFile: decoded body, header_file.py:109-110; KeyStoreFile: key store, key_store_file.py:25-26), writes it into the copy before get_signed_bytes and patches it beside the signature — resign_only cert_tree.py:103-110 / update_sha256 header_file.py:119-121. sha384 untouched like upstream. core entry::CHECKSUM_OFFSET made pub (consumer sign_entry). Pins: sign_entry_refreshes_a_stale_sha256_after_replace (replace_psp_entry_body then sign) + sign_entry_keeps_a_valid_sha256 control. sign.md REQ-10 + REQ-6 amendment.",
+          "created_at": "2026-10-20T05:35:29.778648315Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAzNdedQXXc7fFV0t7kCvzhHgLXT8ubRxPoXRXPeo62aPpk9Ei/1UXLqJsYXHXaX9XE/gXUW+kYKpYxlbbha8jBg=="
+        }
+      }
     },
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": {
       "uuid": "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8",
@@ -6603,11 +6614,16 @@
       "agent_id": "tLiK",
       "agent_seq": 450,
       "timestamp": "2026-10-20T05:07:51.603849021Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 451,
+      "timestamp": "2026-10-20T05:35:29.796794085Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T05:07:51.603849021Z",
+    "timestamp": "2026-10-20T05:35:29.796794085Z",
     "agent_id": "tLiK",
-    "agent_seq": 450
+    "agent_seq": 451
   }
 }
