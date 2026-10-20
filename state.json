@@ -1,5 +1,5 @@
 {
-  "next_display_id": 114,
+  "next_display_id": 115,
   "next_comment_id": 156,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -29,6 +29,7 @@
     "524bcf22-328f-4580-a5d3-318a48ffacde": 94,
     "525d7258-de71-4087-8d5a-f7dd155266b5": 1,
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
+    "5335cd25-1a5a-4ddb-a627-e4fa5a0c7469": 114,
     "5346afaa-652e-4838-a5c1-851082a0f96f": 69,
     "54e6baa0-7637-4170-925c-b3cdea587722": 15,
     "58ab16e7-59ab-4168-b6e1-d1708dc511e5": 7,
@@ -980,6 +981,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA/Z2StxUiPpGsKHHTyum6wcGJot02brUJoNsAayrsp9IpXcUChcc56uqj5r2PV5zab8hIWN7Ik6g6M6uWswABBQ=="
         }
       }
+    },
+    "5335cd25-1a5a-4ddb-a627-e4fa5a0c7469": {
+      "uuid": "5335cd25-1a5a-4ddb-a627-e4fa5a0c7469",
+      "display_id": 114,
+      "title": "Divergence: ls File Info lacks soft_fuse(..), patch_level/date, reset/copy image, 0x-prefixed destination and pubkey verified/usage tokens",
+      "description": "Golden diff vs Python PSPTool (Milan 0.13.0.50/.72, #920): SOFT_FUSE_CHAIN_01 info empty vs soft_fuse(0x1); MICROCODE_PATCH empty vs patch_level(0x..), date(MM/DD/YYYY); APOB destination(30000000) vs destination(0x30000000); BIOS lacks 'reset image, copy image' flags and 0x prefix; OEM_PSP_FW_PUBLIC_KEY key_usage(0x2) vs 'verified(94C3), AMD_AND_BIOS_CODE_SIGN'; SEC_DBG_PUBLIC_KEY key_usage(0x3) vs 'verified(94C3), unknown_key_usage(3)'. list.md REQ-7 pins info tokens as self-oracle only, so decide whether text parity is wanted. Not goal-critical.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T00:00:08.345151685Z",
+      "updated_at": "2026-10-20T00:00:08.345151685Z"
     },
     "5346afaa-652e-4838-a5c1-851082a0f96f": {
       "uuid": "5346afaa-652e-4838-a5c1-851082a0f96f",
@@ -5299,11 +5311,16 @@
       "agent_id": "tLiK",
       "agent_seq": 370,
       "timestamp": "2026-10-19T23:59:04.657998059Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 371,
+      "timestamp": "2026-10-20T00:00:08.345151685Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-19T23:59:04.657998059Z",
+    "timestamp": "2026-10-20T00:00:08.345151685Z",
     "agent_id": "tLiK",
-    "agent_seq": 370
+    "agent_seq": 371
   }
 }
