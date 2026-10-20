@@ -1,6 +1,6 @@
 {
   "next_display_id": 122,
-  "next_comment_id": 174,
+  "next_comment_id": 175,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3278,7 +3278,7 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:01.852764762Z",
-      "updated_at": "2026-10-20T00:44:25.473276752Z",
+      "updated_at": "2026-10-20T01:08:15.990755474Z",
       "labels": [
         "blocker"
       ],
@@ -3296,6 +3296,15 @@
           "content": "Failing tests at crates/psptool-ops/tests/divergence_headerfile_list_values.rs: divergence_size_packed_normalises_zero_rom_size (size_packed 0x0 vs 0x8000), divergence_json_sizes_packed_normalises_zero_rom_size (packed 0 vs 32768) and divergence_corpus_sizes_packed_matches_reference (live PSPTOOL_REFERENCE, 147 HeaderFiles). #[ignore]d with this issue; control_size_packed_nonzero_rom_size passes.",
           "created_at": "2026-10-20T00:28:35.639022499Z",
           "kind": "observation"
+        },
+        "b631a5ee-e255-4b77-89c2-fd49536288fb": {
+          "display_id": 174,
+          "author": "tLiK",
+          "content": "Plan: add a list.rs helper packed_size(e, h) = upstream's normalised HeaderFile.rom_size (header_file.py:72-73: rom_size 0 -> buffer_size, the directory-declared entry grown to the 0x100 header per :32-33). Use it in the ls -v size_packed cell and the ls -j sizes.packed key. Un-ignore the three #118 pins (synthetic text + JSON, live-reference corpus). Update list.md REQ-8 evidence + CHANGELOG. Full gauntlet.",
+          "created_at": "2026-10-20T01:08:15.985882753Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAnOI7bHec+tVASBETSxMXAyYKX6AUDf1PkDic4NjqAFGsqNuz0xyD99lRTFh+hiUQ3bbOLXXVCymPLKXlTxb2Cg=="
         }
       }
     },
@@ -5742,11 +5751,16 @@
       "agent_id": "tLiK",
       "agent_seq": 378,
       "timestamp": "2026-10-20T01:08:05.546699579Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 379,
+      "timestamp": "2026-10-20T01:08:15.990755474Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T01:08:05.546699579Z",
+    "timestamp": "2026-10-20T01:08:15.990755474Z",
     "agent_id": "tLiK",
-    "agent_seq": 378
+    "agent_seq": 379
   }
 }
