@@ -1,6 +1,6 @@
 {
   "next_display_id": 135,
-  "next_comment_id": 201,
+  "next_comment_id": 202,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2452,7 +2452,18 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:59:04.657998059Z",
-      "updated_at": "2026-10-19T23:59:04.657998059Z"
+      "updated_at": "2026-10-20T05:06:57.622122602Z",
+      "comments": {
+        "ba6fe81e-dd31-4903-8897-c88d28a5b08b": {
+          "display_id": 201,
+          "author": "tLiK",
+          "content": "Plan: decision per upstream rom.py/blob.py — both columns are presentation; walk/entry addresses (already = upstream) and roundtrip untouched. list.rs render_rom_table prints rom_origin (rom.get_address(), psptool.py:71) and rom_window_size (rom.buffer_size: image-wide rom_size if FET in page 0 else min(rom_size,16M), blob.py:65,:72-75). secondary_addresses resolves in the ROM's own coordinates (origin 0, ROM-relative dir base) = upstream entry.file_offset() (entry.py:38-70, directory.py:156-161), text + ls -j secondaryAddresses, incl. combo. Pins: new divergence_rom_window.rs (capsule 0x800 synthetic text+JSON, 32 MiB dual-ROM upper ROM, live-reference corpus pin over ROM rows + every secondary cell). Off-tree: 25 images differed before (21 corpus + 2 local SP5 + 2 Milan), 0 after.",
+          "created_at": "2026-10-20T05:06:57.615401681Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABATdQ4v8fgODu70UeQTLT/f8zaVoqVH2Z4mnGqEHmO0R3zk9raX0JOxwuO39fbCW078XizU2Y3XiWXummJL9PoCg=="
+        }
+      }
     },
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": {
       "uuid": "9f9a22c1-b127-497d-a1c7-a604ee50ba88",
@@ -6567,11 +6578,16 @@
       "agent_id": "tLiK",
       "agent_seq": 447,
       "timestamp": "2026-10-20T04:23:06.274389191Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 448,
+      "timestamp": "2026-10-20T05:06:57.622122602Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T04:23:06.274389191Z",
+    "timestamp": "2026-10-20T05:06:57.622122602Z",
     "agent_id": "tLiK",
-    "agent_seq": 447
+    "agent_seq": 448
   }
 }
