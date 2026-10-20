@@ -1,5 +1,5 @@
 {
-  "next_display_id": 119,
+  "next_display_id": 120,
   "next_comment_id": 156,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -71,6 +71,7 @@
     "9f9a22c1-b127-497d-a1c7-a604ee50ba88": 31,
     "a0d69506-28e3-43b3-9b3d-69c6c1bbf081": 58,
     "a23d5372-e916-4105-9e37-4f4f540157fa": 4,
+    "a249be78-533d-4cb8-b9e7-69f2f9dd67f6": 119,
     "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": 63,
     "a6322983-624f-4612-bcad-795481ee0f8d": 61,
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
@@ -2088,6 +2089,17 @@
           "kind": "plan"
         }
       }
+    },
+    "a249be78-533d-4cb8-b9e7-69f2f9dd67f6": {
+      "uuid": "a249be78-533d-4cb8-b9e7-69f2f9dd67f6",
+      "display_id": 119,
+      "title": "Divergence: ls MD5 of a HeaderFile hashes the whole entry; upstream HeaderFile.md5 hashes self.body = [0x100, rom_size - signature_len) (header_file.py:106,312-315)",
+      "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/header_file.py:312-315) overrides File.md5 (file.py:380-383) for HeaderFile and its KeyStoreFile subclass:\n    def md5(self):\n        m = md5()\n        try:\n            m.update(self.body.get_bytes())\nself.body is the data region NestedBuffer(self, len(self) - len(self.header) - self.signature_len, len(self.header)) (header_file.py:106), i.e. [0x100, rom_size - signature_len) - not the whole entry. ls -v prints file.md5()[:4].upper() (psptool.py:180), ls -j 'md5': file.md5()[:4].upper() (psptool.py:254).\n\nTarget: the sparse (\"upstream-exact\", #87) MD5 cell is body_md5_short_upper(&e.body) (psptool-ops/src/list.rs:346, :672-674) and the JSON md5 is body_md5_hex(&e.body) (list.rs:455): both hash the whole directory-declared entry (header + data + signature). Correct for File/PubkeyFile/MicrocodeFile, wrong for every HeaderFile-class entry. The #87 pin (divergence_list_columns.rs) only checks length/case on a non-HeaderFile (WRAPPED_IKEK), so it never saw this.\n\nRepro: PSPTOOL_LS_SPARSE=1 psptool AORUS_X370G5.23d -E -v -> PSP_FW_BOOT_LOADER @0x268000 MD5 93B4 (upstream C985 = md5(f.body.get_bytes())[:4]); SMU_OFFCHIP_FW @0x270000 F658 (upstream A83B).\n\nImpact (corpus): 4147 HeaderFile-class entries, i.e. every 0x1/0x2/0x8/0x24/0x28/0x39 (and other HeaderFile) entry of every image incl. EPYC Milan H12SSW9.719 and Zen 2/3 X570/A520M. JSON md5 presence/format (only with -v, 32-char) is #94; this issue is the hashed bytes.\n\nFailing tests: crates/psptool-ops/tests/divergence_headerfile_list_values.rs::divergence_sparse_md5_hashes_headerfile_body (synthetic) and ::divergence_corpus_headerfile_md5_matches_reference (live reference, 4147 mismatches).",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "anon-b19d58ac",
+      "created_at": "2026-10-20T00:27:13.422491960Z",
+      "updated_at": "2026-10-20T00:27:13.422491960Z"
     },
     "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": {
       "uuid": "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c",
@@ -5408,11 +5420,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 6,
       "timestamp": "2026-10-20T00:27:07.266767714Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 7,
+      "timestamp": "2026-10-20T00:27:13.422491960Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:27:07.266767714Z",
+    "timestamp": "2026-10-20T00:27:13.422491960Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 6
+    "agent_seq": 7
   }
 }
