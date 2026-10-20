@@ -1,6 +1,6 @@
 {
   "next_display_id": 120,
-  "next_comment_id": 157,
+  "next_comment_id": 158,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -754,10 +754,19 @@
       "priority": "high",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:26:22.662439692Z",
-      "updated_at": "2026-10-20T00:26:27.934557939Z",
+      "updated_at": "2026-10-20T00:28:30.153394028Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "cb175e64-f874-49e0-8a1c-8a133bd71ab8": {
+          "display_id": 157,
+          "author": "anon-b19d58ac",
+          "content": "Failing tests at crates/psptool-ops/tests/divergence_generation_threading.rs: divergence_shared_l1_accumulates_every_combo_generation (shared $PSP tokens {1} vs expected {1,2}), divergence_shared_l1_generation_cascades_to_l2 ($PL2 {} vs {1,2}) and divergence_corpus_multi_generation_matches_reference (live PSPTOOL_REFERENCE, 43 directories). #[ignore]d with this issue. A fix likely has to carry a generation SET per directory through walk_directories (psptool-py model.rs already mirrors update_zen_generation and could be the reference).",
+          "created_at": "2026-10-20T00:28:30.153387105Z",
+          "kind": "observation"
+        }
+      }
     },
     "40caf313-88c8-4453-9818-6ade46d69119": {
       "uuid": "40caf313-88c8-4453-9818-6ade46d69119",
@@ -5447,11 +5456,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 9,
       "timestamp": "2026-10-20T00:28:03.453716419Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 10,
+      "timestamp": "2026-10-20T00:28:30.153394028Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:28:03.453716419Z",
+    "timestamp": "2026-10-20T00:28:30.153394028Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 9
+    "agent_seq": 10
   }
 }
