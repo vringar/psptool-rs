@@ -1,6 +1,6 @@
 {
   "next_display_id": 125,
-  "next_comment_id": 182,
+  "next_comment_id": 183,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -822,7 +822,7 @@
       "priority": "high",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:26:22.662439692Z",
-      "updated_at": "2026-10-20T01:56:04.358345148Z",
+      "updated_at": "2026-10-20T02:31:48.649630965Z",
       "labels": [
         "blocker"
       ],
@@ -833,6 +833,15 @@
           "content": "Root cause location: psptool-core/src/directory.rs:607-616 (walk_directories visit closure) returns None for an already-visited offset and discards the second provenance, so no generation set can be built downstream; psptool-ops/src/list.rs:716-733 then reads the single ComboEntry provenance. Upstream keeps one Directory object and merges (directory.py:61-62 -> :243-249). For reference, the Python bindings model (psptool-py/src/model.rs:118-120, psptool-py/src/directory.rs:208-227) carries an update_zen_generation port.",
           "created_at": "2026-10-20T00:42:07.819615728Z",
           "kind": "observation"
+        },
+        "42745016-83c2-49bb-b928-06284525858c": {
+          "display_id": 182,
+          "author": "tLiK",
+          "content": "Result: fixed in 1365c023 (psptool-core walk_directories threads DirectoryRef::generations; psptool-ops list.rs renders upstream labels one per line, table.rs multi-line cells). All 7 divergence_generation_threading.rs pins un-ignored and green incl. both live-reference corpus pins; exact Generation cell text equals the reference for all 433 directories (vendor corpus + 5 local Zen 4/5), None read as empty (#122 filed). Workspace 626 passed / 0 failed / 5 ignored; corpus_roundtrip 54/0/0; differential 54/0/0; clippy + fmt + core rustdoc clean. Consumer-visible: ls text Generation column only; ls -j unchanged; psptool-py unaffected.",
+          "created_at": "2026-10-20T02:31:48.644829605Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAOqq20S00wDbKmGXm/kdwYUgDg6Sefioe4lK4ctvSOp/bizTuJeYFfDM/6oOjv6Gi9FSA3KyJkUV4WKMZpxjbDg=="
         },
         "4e1f1ad9-afa9-4f28-bb34-e73a9e5fdd71": {
           "display_id": 166,
@@ -5971,11 +5980,16 @@
       "agent_id": "tLiK",
       "agent_seq": 400,
       "timestamp": "2026-10-20T02:31:43.177254223Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 401,
+      "timestamp": "2026-10-20T02:31:48.649630965Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T02:31:43.177254223Z",
+    "timestamp": "2026-10-20T02:31:48.649630965Z",
     "agent_id": "tLiK",
-    "agent_seq": 400
+    "agent_seq": 401
   }
 }
