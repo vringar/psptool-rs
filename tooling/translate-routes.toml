@@ -119,6 +119,33 @@ design = ".design/psptool-ops/extract.md"
 # psptool-ops extract suite + the envelope pins.
 parity_ops = []
 
+[[route]]
+crate_pattern = "crates/psptool-cli/src/cmds/sign.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/__main__.py",
+  "/tmp/psptool-ref/psptool/cert_tree.py",
+  "/tmp/psptool-ref/psptool/header_file.py",
+]
+design = ".design/psptool-ops/sign.md"
+# The CLI sign subcommand — loads the key and drives psptool_ops::sign_entry
+# (upstream's resign flow, __main__.py:238-262 -> cert_tree.py:101-117). Not
+# exercised by roundtrip or the ls differential; its oracle is the psptool-ops
+# sign suite + the live-reference psptool-cli/tests/sign_oracle.rs.
+parity_ops = []
+
+[[route]]
+crate_pattern = "crates/psptool-cli/src/cmds/replace.rs"
+upstream = [
+  "/tmp/psptool-ref/psptool/__main__.py",
+  "/tmp/psptool-ref/psptool/cert_tree.py",
+  "/tmp/psptool-ref/psptool/header_file.py",
+]
+design = ".design/psptool-ops/replace.md"
+# The CLI replace subcommand / -R fast path (__main__.py:238-262): replace the
+# body, then optionally re-sign through psptool_ops::sign_entry. Its oracle is
+# the psptool-ops replace + sign suites and sign_oracle.rs.
+parity_ops = []
+
 # --- psptool-ops (depends on psptool-core; leaf-first order satisfied) ----
 
 [[route]]

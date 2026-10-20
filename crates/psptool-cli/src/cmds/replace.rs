@@ -5,7 +5,7 @@ use std::fs;
 use std::io::Write;
 
 use anyhow::{Context, Result, anyhow, bail};
-use psptool_core::{BlobEditor, Directory, Entry, EntryClass};
+use psptool_core::{BlobEditor, Directory, Entry, EntryClass, Ikek};
 use psptool_ops::{replace_bios_entry_body, replace_psp_entry_body, sign_entry};
 
 use crate::cli::ReplaceArgs;
@@ -56,7 +56,9 @@ pub fn run(args: &ReplaceArgs, out: &mut dyn Write) -> Result<()> {
             // Build a fresh editor over the post-replacement bytes so the
             // sign patch coordinates are correct.
             let mut sign_editor = BlobEditor::from_blob(blob);
-            sign_entry(&mut sign_editor, &entry, &priv_key, None)?;
+            // Upstream decrypts with the Zen+ IKEK, unconditionally
+            // (`header_file.py:286-307`), like `cmds/sign.rs`.
+            sign_entry(&mut sign_editor, &entry, &priv_key, Some(Ikek::ZenPlus))?;
             let final_bytes = sign_editor.serialize();
             fs::write(&args.outfile, &final_bytes)
                 .with_context(|| format!("writing {}", args.outfile.display()))?;

@@ -123,11 +123,19 @@ Fletcher-verifying reader accepts the output (closed blocker #66).
 it records patches into a [`BlobEditor`] (`.design/psptool-core/writer.md`).
 The primitive it calls is `BlobEditor::patch` (`replace.rs:171`, `replace.rs:192`);
 materialisation is the caller's later `editor.serialize()`
-(`psptool-cli/src/cmds/replace.rs:78`). This is the mechanism by which the PR#77
+(`psptool-cli/src/cmds/replace.rs:80`). This is the mechanism by which the PR#77
 bug class is structurally impossible here: the writer only echoes the caller's
 absolute coordinates, and `apply` supplies the exact body offset
 (`entry.body.offset()`) and exact size (`new_body.len()`), so there is no code
 path that could round an offset or length to `0x10`.
+
+**CLI re-sign after replace (`-p`).** `psptool-cli/src/cmds/replace.rs` (the
+`replace` subcommand and the upstream-compatible `-R` path, `__main__.py:238-262`)
+re-parses the replaced image and drives `psptool_ops::sign_entry` over a fresh
+editor (`cmds/replace.rs:51-61`), passing the Zen+ IKEK upstream's
+`get_decrypted_body` always unwraps with (`header_file.py:286-307`; #108), so an
+encrypted HeaderFile re-signs; `sign_entry` refreshes a sha256 the new body made
+stale (`.design/psptool-ops/sign.md` REQ-10, #109).
 
 **Three public entry points, one `apply` core.** `replace_psp_entry_body`
 (`replace.rs:96`) and `replace_bios_entry_body` (`replace.rs:111`) re-parse the

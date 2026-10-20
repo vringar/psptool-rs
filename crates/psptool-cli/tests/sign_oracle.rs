@@ -251,3 +251,150 @@ fn corpus_resigned_grown_headerfiles_verify_under_reference() {
     );
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// CLI coordinates `(rom index, directory index, entry index)` — the `-r` /
+/// `-d` / `-e` the `sign` and `-R` commands resolve through
+/// `psptool-cli/src/load.rs` — plus address and `signature_type` of the first
+/// encrypted signed HeaderFile of `blob`.
+fn first_encrypted_signed(blob: &SourceBytes) -> Option<(usize, usize, usize, u64, u32)> {
+    let layouts = scan_fet_candidates(blob)
+        .into_iter()
+        .filter_map(|p| detect_rom_layout(blob, p));
+    for (r, layout) in layouts.enumerate() {
+        let dirs = walk_directories(blob, &layout.fet, layout.rom_size, layout.rom_origin);
+        for (d, dir) in dirs.iter().enumerate() {
+            let parsed: Vec<_> = match &dir.directory {
+                Directory::Psp(p) => (0..p.entries.len())
+                    .map(|i| Entry::parse_psp(blob, p, i, layout.rom_size, layout.rom_origin))
+                    .collect(),
+                Directory::Bios(b) => (0..b.entries.len())
+                    .map(|i| Entry::parse_bios(blob, b, i, layout.rom_size, layout.rom_origin))
+                    .collect(),
+                Directory::Combo(_) => Vec::new(),
+            };
+            for (e, entry) in parsed.into_iter().enumerate() {
+                if let Ok(entry) = entry
+                    && let EntryClass::Header(h) = &entry.class
+                    && h.is_signed()
+                    && h.is_encrypted
+                    && matches!(h.signature_type, 0 | 2)
+                {
+                    return Some((r, d, e, entry.body.offset().get(), h.signature_type));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// #108: `psptool sign` and `psptool -R -p` (`cmds/sign.rs`, `cmds/replace.rs`)
+/// re-sign an encrypted HeaderFile. The signed bytes are `header ||
+/// get_decrypted_decompressed_body()[..size_signed]` (`header_file.py:168-170`),
+/// which upstream decrypts with `get_unwrapped_ikek()` — the Zen+ IKEK,
+/// unconditionally (`header_file.py:286-307`); both CLI callers passed no
+/// IKEK, so `sign_entry` failed `NotEncrypted` on all 256 encrypted signed
+/// corpus HeaderFiles. The reference's own `verify_with_pubkey`
+/// (`cert_tree.py:97-98`) must accept the CLI's output.
+#[test]
+fn cli_resigns_an_encrypted_headerfile_under_reference() {
+    let Some(reference) = reference() else { return };
+    let roms = psptool_fixtures::corpus_rom_paths();
+    if roms.is_empty() {
+        eprintln!("PSPTOOL_TEST_CORPUS unset or empty — skipping the corpus differential");
+        return;
+    }
+    let (rom, (r, d, e, address, signature_type)) = roms
+        .iter()
+        .find_map(|rom| {
+            let blob = SourceBytes::from_blob(std::fs::read(rom).expect("read corpus ROM"));
+            first_encrypted_signed(&blob).map(|target| (rom, target))
+        })
+        .expect("the corpus holds an encrypted signed HeaderFile");
+
+    let scratch = Temp::new("cli");
+    let (key_2048, key_4096) = (scratch.0.join("rsa2048.pem"), scratch.0.join("rsa4096.pem"));
+    python(&reference, KEYGEN, &[&key_2048, &key_4096]);
+    // `signature_type` 0 → RSA-2048, 2 → RSA-4096 (`crypto.py:189-196`).
+    let key = if signature_type == 0 {
+        &key_2048
+    } else {
+        &key_4096
+    };
+
+    let (r, d, e) = (r.to_string(), d.to_string(), e.to_string());
+    let signed = scratch.0.join("signed.bin");
+    let replaced = scratch.0.join("replaced.bin");
+    let runs: [(&Path, Vec<&std::ffi::OsStr>); 2] = [
+        (
+            &signed,
+            [
+                "sign",
+                "-r",
+                r.as_str(),
+                "-d",
+                d.as_str(),
+                "-e",
+                e.as_str(),
+                "-o",
+            ]
+            .map(std::ffi::OsStr::new)
+            .into_iter()
+            .chain([signed.as_os_str(), "-p".as_ref(), key.as_os_str()])
+            .chain([rom.as_os_str()])
+            .collect(),
+        ),
+        (
+            &replaced,
+            [rom.as_os_str()]
+                .into_iter()
+                .chain(
+                    [
+                        "-R",
+                        "-r",
+                        r.as_str(),
+                        "-d",
+                        d.as_str(),
+                        "-e",
+                        e.as_str(),
+                        "-o",
+                    ]
+                    .map(std::ffi::OsStr::new),
+                )
+                .chain([replaced.as_os_str(), "-p".as_ref(), key.as_os_str()])
+                .collect(),
+        ),
+    ];
+    for (outfile, args) in &runs {
+        let out = Command::new(env!("CARGO_BIN_EXE_psptool"))
+            .args(args)
+            .output()
+            .expect("spawn psptool");
+        assert!(
+            out.status.success(),
+            "divergence #108: `psptool {}` failed on the encrypted HeaderFile @{address:#x} \
+             of {}: {}",
+            args.iter()
+                .map(|a| a.to_string_lossy())
+                .collect::<Vec<_>>()
+                .join(" "),
+            rom.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+        assert!(outfile.exists(), "no output written");
+    }
+
+    let verdicts = python(
+        &reference,
+        VERIFY,
+        &[&key_2048, &key_4096, &signed, &replaced],
+    );
+    for outfile in [&signed, &replaced] {
+        let line = format!("{} {address} verified", outfile.display());
+        assert!(
+            verdicts.lines().any(|l| l == line),
+            "divergence #108: the reference does not verify the re-signed encrypted \
+             HeaderFile @{address:#x} in {}:\n{verdicts}",
+            outfile.display()
+        );
+    }
+}

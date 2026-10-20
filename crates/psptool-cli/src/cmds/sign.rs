@@ -4,7 +4,7 @@ use std::fs;
 use std::io::Write;
 
 use anyhow::{Context, Result, anyhow, bail};
-use psptool_core::{BlobEditor, Directory, Entry, EntryClass};
+use psptool_core::{BlobEditor, Directory, Entry, EntryClass, Ikek};
 use psptool_ops::sign_entry;
 
 use crate::cli::SignArgs;
@@ -18,7 +18,10 @@ pub fn run(args: &SignArgs, out: &mut dyn Write) -> Result<()> {
     }
     let priv_key = load_priv_key(&args.privkey)?;
     let mut editor = BlobEditor::from_blob(opened.blob.clone());
-    sign_entry(&mut editor, &entry, &priv_key, None)?;
+    // Upstream signs `get_signed_bytes()`, decrypting an encrypted body with
+    // `get_unwrapped_ikek()` — the Zen+ IKEK, unconditionally
+    // (`header_file.py:168-170`, `:286-307`).
+    sign_entry(&mut editor, &entry, &priv_key, Some(Ikek::ZenPlus))?;
     let bytes = editor.serialize();
     fs::write(&args.outfile, &bytes)
         .with_context(|| format!("writing {}", args.outfile.display()))?;
