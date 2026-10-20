@@ -79,11 +79,13 @@ re-signed.
   print_warning("Did not resign anything since target file is not signed")`) and the
   `is_signed` predicate (`header_file.py:130-135`).
 - REQ-6: **Signature-region locality (diff-and-patch).** Re-signing patches *only* the
-  entry's trailing `signature_len()` bytes through [`BlobEditor::patch`]; every other
-  byte — header, body, sibling entries, directory records — serialises byte-identical
-  to the source. Mirrors upstream writing solely into the signature buffer
+  entry's trailing `signature_len()` bytes through [`BlobEditor::patch`] — plus the
+  header's 32-byte sha256 when REQ-10 refreshes it; every other byte — rest of the
+  header, body, sibling entries, directory records — serialises byte-identical to the
+  source. Mirrors upstream writing solely into the signature buffer
   (`cert_tree.py:117` `self.signature.set_bytes(0, len(signature), signature)`), a
-  `NestedBuffer` view over the trailing `signature_len` bytes (`header_file.py:88`).
+  `NestedBuffer` view over the trailing `signature_len` bytes (`header_file.py:88`),
+  and into `_sha256_checksum` (`header_file.py:46`, `:120`).
 - REQ-7: **Trailing region located via the vetted core helper (bounds-safe).** The
   signature offset/length is taken from [`HeaderEntry::signature_bytes`] over the
   HeaderFile buffer of REQ-1, which honours `rom_size` and rejects a `rom_size` the
@@ -105,6 +107,17 @@ re-signed.
   `sign_entry` through a [`BlobEditor`], and writes the serialised ROM to `--outfile`.
   Mirrors the reference re-sign CLI path (`__main__.py:238-262`, `-p/--privkeystub`
   `__main__.py:82`).
+
+- REQ-10: **A stale sha256 checksum is refreshed before signing.** When the header's
+  sha256 bit is set (`header_file.py:66`, bitfield `0x58` big-endian) and the stored
+  digest (`0xd0`, `header_file.py:46`) no longer matches the checksummed bytes — the
+  decrypted, inflated body of a HeaderFile (`header_file.py:109-110`), the key store of
+  a KeyStoreFile (`key_store_file.py:25-26`) — the fresh `sha256` is written there
+  first and the signature covers the header carrying it. Mirrors `resign_only`
+  (`cert_tree.py:103-110`: `if self.file.has_sha256_checksum: if not
+  verify_sha256(): update_sha256()`, before `sign_blob` at `:113`) and
+  `update_sha256` (`header_file.py:119-121`). A digest that still matches, and a sha384
+  checksum, are left as is, as upstream does.
 
 ## Acceptance criteria
 
@@ -132,6 +145,13 @@ re-signed.
   `SignedEntity.verify_with_pubkey` (`cert_tree.py:97-98`) accepts every corpus
   HeaderFile whose buffer outgrows its directory entry (16) plus one control per
   image (16), re-signed with keys the reference generated.
+- AC-9 (REQ-10, REQ-6; #109): `sign::tests::sign_entry_refreshes_a_stale_sha256_after_replace`
+  — a HeaderFile with a valid sha256 is replaced (`replace_psp_entry_body`) by the
+  same header over a new payload, then re-signed: the header now holds
+  `sha256(new payload)`, only that checksum and the signature differ from the
+  replaced image, the checksum verifies and `verify_chain_of_trust` reports
+  `Verified`; `sign::tests::sign_entry_keeps_a_valid_sha256` — a matching digest
+  stays, only the signature changes.
 - AC-6 (REQ-9): the `sign` subcommand round-trips a ROM to disk
   (`psptool-cli/src/cmds/sign.rs:13-32`), reachable via `main.rs:131`
   (`Command::Sign(args) => cmds::sign::run(args, out)`).
@@ -151,9 +171,10 @@ re-signed.
 | REQ-3 (fresh valid PSS signature) | SHIPPED | Impl `sign.rs:181-184`/`:188-191` (`signing_key.sign_with_rng(rng, &signed).to_bytes()`), `sign_entry` seeds `rand::thread_rng()` (`sign.rs:123`); mirrors `PrivateKey.sign_blob` (`crypto.py:302-307`) invoked by `resign_only` (`cert_tree.py:113`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:21`. Verification: `sign_then_verify_round_trip_via_blob_editor` (re-sign → asserts `Verified`). |
 | REQ-4 (key-size / type validation) | SHIPPED | Impl `sign.rs:144-157`: `UnsupportedSignatureType` for type ∉ {0,2} (`sign.rs:147`, again at `:193` in the hash match instead of an `unreachable!` arm); `KeySizeMismatch` when `priv_key.n().bits() != needed_bits` (`sign.rs:150-157`); plus `SignatureLengthMismatch` guard (`sign.rs:195-200`). Mirrors upstream key-size assert (`crypto.py:265`) and signature-size assert (`cert_tree.py:111-112`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:21` propagates via `?`. Verification: `sign_entry_rejects_wrong_key_size` (`KeySizeMismatch` + `is_clean`). |
 | REQ-5 (reject non-signed entries) | SHIPPED | Impl `sign.rs:136-142`: non-`Header`/`KeyStore` class → `NotSignedEntry` (`sign.rs:138`); `!header.is_signed()` → `NotSignedFlag` (`sign.rs:140-142`). Mirrors upstream refusal (`__main__.py:254-257`) and `is_signed` (`header_file.py:130-135`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:16-18` pre-checks the class and bails, then `:21` propagates. Verification: `sign_entry_rejects_plain_entry` (`NotSignedEntry` + no patch). |
-| REQ-6 (signature-region locality) | SHIPPED | Impl `sign.rs:203-204` (`editor.patch(FlashOffset(sig_start), sig_be)?`, `sig_start` = window offset + signature offset in the window) writes only the trailing `sig_len` bytes; no other byte is patched. Mirrors upstream `self.signature.set_bytes(0, len(signature), signature)` (`cert_tree.py:117`) over the trailing signature `NestedBuffer` (`header_file.py:88`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:21-22` (`sign_entry` then `editor.serialize()`). Verification: `sign_entry_patches_only_signature_region` (only `[sig_off, sig_off+0x100)` differs), and the same locality for a buffer grown past its directory entry in `sign_entry_signs_the_buffer_grown_to_rom_size` / `sign_entry_signs_a_zero_size_record`. |
+| REQ-6 (signature-region locality) | SHIPPED | Impl `sign.rs:224` (`editor.patch(FlashOffset(sig_start), sig_be)?`, `sig_start` = window offset + signature offset in the window) writes only the trailing `sig_len` bytes, and `sign.rs:227` the header's 32-byte sha256 when REQ-10 refreshes it; no other byte is patched. Mirrors upstream `self.signature.set_bytes(0, len(signature), signature)` (`cert_tree.py:117`) over the trailing signature `NestedBuffer` (`header_file.py:88`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:21-22` (`sign_entry` then `editor.serialize()`). Verification: `sign_entry_patches_only_signature_region` (only `[sig_off, sig_off+0x100)` differs), `sign_entry_keeps_a_valid_sha256` / `sign_entry_refreshes_a_stale_sha256_after_replace` (only the signature and, when stale, the checksum differ), and the same locality for a buffer grown past its directory entry in `sign_entry_signs_the_buffer_grown_to_rom_size` / `sign_entry_signs_a_zero_size_record`. |
 | REQ-7 (bounds-safe trailing region) | SHIPPED | Impl `sign.rs:174-176` (`let sig_slice = header.signature_bytes(file)?` over the REQ-1 window) uses `HeaderEntry::signature_bytes` (`body.rs:260`), which normalises `rom_size` and returns `BodyTooSmall` when the image does not cover `rom_size` (`header_file_window` then falls back to the entry body); offset derived `sign.rs:176`. Mirrors upstream signature `NestedBuffer(self, signature_len, rom_size - signature_len)` (`header_file.py:88`) over the buffer re-sized to `rom_size` (`header_file.py:72-75`, `:104-105`). Non-test consumer: `psptool-cli/src/cmds/sign.rs:21`. Verification: `sign_entry_rejects_rom_size_past_the_image` (`BodyTooSmall` + `is_clean`). |
 | REQ-8 (on-disk byte-order / upstream verify fidelity) | SHIPPED | Impl `sign.rs:204` (`editor.patch(FlashOffset(sig_start), sig_be)`) writes the RSA-PSS signature **plain** (big-endian I2OSP), NOT reversed — matching upstream's plain HeaderFile `Signature` (`cert_tree.py:63`; verified plain at `cert_tree.py:98` + `crypto.py:247-258`). Combined with the fixed signed region (`get_signed_bytes` = `0x100 + size_signed`, `body.rs:384`) over the grown HeaderFile buffer (REQ-1), a re-signed HeaderFile matches the real-firmware convention. Non-test consumer: `psptool-cli/src/cmds/sign.rs:21`. Corpus-proven twice: `crates/psptool-ops/tests/divergence_signature_byte_order.rs` establishes that plain + full-length IS the on-disk convention real signed HeaderFiles use (its pin verifies the real corpus signatures under exactly the verify path the plain/full-length sign path targets; the control asserts reversed and short-length both FAIL), and `crates/psptool-cli/tests/sign_oracle.rs` re-signs 32 corpus HeaderFiles (the 16 whose buffer outgrows the directory entry, #105, plus one control per image) with keys the live reference generated, and the reference's `SignedEntity.verify_with_pubkey` (`cert_tree.py:97-98`) verifies all 32. The `ReversedSignature` convention (`crypto.py:386-409`) remains PubkeyFile-only and untouched. |
+| REQ-10 (stale sha256 refreshed before signing) | SHIPPED | Impl `stale_sha256` `sign.rs:240`: `None` without the sha256 bit or when `sha256(checksummed bytes)` equals the stored digest (`HeaderEntry::sha256_checksum`), else the fresh digest — over `get_decrypted_decompressed_body` for a HeaderFile, the key store of `get_key_store_signed_bytes` for a KeyStoreFile. `sign_entry` writes it into its copy of the HeaderFile buffer at `CHECKSUM_OFFSET` (core `entry.rs:62`, now `pub` for this consumer) before `get_signed_bytes` (`sign.rs:178-185`) and patches it (`sign.rs:227`). Mirrors `resign_only` (`cert_tree.py:103-110`) and `update_sha256` (`header_file.py:119-121`). Non-test consumers: `psptool-cli/src/cmds/sign.rs:21`, `psptool-cli/src/cmds/replace.rs:59` (the `replace -s -p` path the stale digest comes from). Verification: AC-9. Closes #109. |
 | REQ-9 (CLI `sign` subcommand consumer) | SHIPPED | Impl `psptool-cli/src/cmds/sign.rs:13-32`: parses the target entry (`:15`), class-guards (`:16-18`), loads a PKCS#8 PEM key (`:19`, `load_priv_key` `:34-41`), drives `sign_entry` through a `BlobEditor` over the parsed image (`:20-21`), and writes the serialised ROM (`:22-24`). Dispatched from `main.rs:131` (`Command::Sign(args) => cmds::sign::run(args, out)`); args in `cli.rs` (`SignArgs`). Mirrors the reference re-sign CLI (`__main__.py:238-262`; `-p/--privkeystub` `__main__.py:82`). This IS the boundary CLI surface (goal.md R-DEFER-1). Verification: `cargo test -p psptool-ops --lib`; CLI builds and dispatches. |
 
 ## Architecture
@@ -240,7 +261,7 @@ The list below IS the gauntlet for this module; run inside `nix-shell` so
 `PSPTOOL_REFERENCE` + `PSPTOOL_TEST_CORPUS` are set (a skipped suite is a red gate, not
 a pass).
 
-- `cargo test -p psptool-ops --lib` — **56 passed, 0 failed, 0 ignored**. Covers the
+- `cargo test -p psptool-ops --lib` — **60 passed, 0 failed, 0 ignored**. Covers the
   sign→verify oracle (`verify::tests::sign_then_verify_round_trip_via_blob_editor`,
   REQ-1/REQ-2/REQ-3/REQ-6/REQ-7 end-to-end) and the `sign::tests::*` reject/locality
   pins: `sign_entry_patches_only_signature_region` (REQ-6),
@@ -248,7 +269,9 @@ a pass).
   (REQ-4), `sign_entry_rejects_rom_size_past_the_image` (REQ-7), and
   `sign_entry_signs_the_buffer_grown_to_rom_size` /
   `sign_entry_signs_a_zero_size_record` (REQ-1/REQ-6/REQ-7 over a buffer grown past
-  its directory entry, #105). This is the module's self-oracle; `parity_ops` is `[]`.
+  its directory entry, #105), and `sign_entry_refreshes_a_stale_sha256_after_replace` /
+  `sign_entry_keeps_a_valid_sha256` (REQ-10, #109). This is the module's self-oracle;
+  `parity_ops` is `[]`.
 - `cargo test -p psptool-cli --test sign_oracle` — **1 passed** (live reference +
   corpus): 32 corpus HeaderFiles re-signed — the 16 whose buffer outgrows their
   directory entry and one control per image — all verify under the reference's

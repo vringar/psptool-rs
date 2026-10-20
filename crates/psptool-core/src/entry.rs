@@ -56,8 +56,10 @@ use crate::source::SourceBytes;
 /// Length of the PSP "blob header" prefixed to signed-entry bodies (§4).
 pub const HEADER_FILE_LEN: usize = 0x100;
 
-/// Header offset of the content checksum (sha256 or sha384, mutually exclusive).
-const CHECKSUM_OFFSET: usize = 0xd0;
+/// Header offset of the content checksum (sha256 or sha384, mutually
+/// exclusive): `header_file.py:46-47` `NestedBuffer(self, 0x20 / 0x30, 0xd0)`.
+/// Re-signing rewrites a stale sha256 here (`header_file.py:119-121`).
+pub const CHECKSUM_OFFSET: usize = 0xd0;
 
 /// Length of the fixed `PubkeyFile` header (§7.1).
 pub const PUBKEY_HEADER_LEN: usize = 0x40;
