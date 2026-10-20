@@ -1,5 +1,5 @@
 {
-  "next_display_id": 133,
+  "next_display_id": 134,
   "next_comment_id": 196,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -22,6 +22,7 @@
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "39fdab98-8c42-447e-b4f2-a335125d7d04": 129,
+    "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": 133,
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": 117,
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
     "437add46-7714-4f3c-9669-57b286c9709d": 128,
@@ -891,6 +892,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAd2yrbbIB3k+hwj0f0q37jbkSnZL4Xwxk4ij4fWMKqovgj+BQwosnx8OhZXCba6h3A1JEUX3w4vxfj0Pk7T31AA=="
         }
       }
+    },
+    "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": {
+      "uuid": "3b98f619-1a78-4106-b47d-d7fcffb8c9e6",
+      "display_id": 133,
+      "title": "Divergence: psptool -E on a 64 MiB image with no FET exits 1 'no FET found'; upstream prints nothing / '[]' and exits 0 (psptool.py ls/ls_json)",
+      "description": "Bulk differential vs PSPTool 241629b over the psp-etl corpus (1350 ROMs, checkout dcfec1f). sha c248eac28fc5530d018cdbc048221560aab22978b0982297ea55f1d74be3b126 (67109128 bytes = 0x4000108, ARM reset-vector image, no FET at any probed offset). Upstream: stderr 'Warning: Input file is 0x4000108, will assume ROM size of 32M' + 'Warning: Could not find any Firmware Entry Table!', exit 0, -E stdout empty, -E -j stdout '[]'. Ours: 'psptool -E -j -r 0' exits 1 with 'psptool: <path>: no FET (Firmware Entry Table) found', no stdout. This is the only ours-crashed ROM of 1350 (no panics anywhere). Expected: exit 0 with empty ls / '[]' for -j (warning on stderr is fine). Note the sha 412449d3 (128 KB blob that upstream crashes on at blob.py:54) also gives a clean exit-1 error on ours, no panic. Harness: scratchpad diffloop.py.",
+      "status": "open",
+      "priority": "medium",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T04:12:44.158932173Z",
+      "updated_at": "2026-10-20T04:12:44.158932173Z"
     },
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": {
       "uuid": "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b",
@@ -6427,11 +6440,16 @@
       "agent_id": "tLiK",
       "agent_seq": 436,
       "timestamp": "2026-10-20T03:53:38.226633825Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 437,
+      "timestamp": "2026-10-20T04:12:44.158932173Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:53:38.226633825Z",
+    "timestamp": "2026-10-20T04:12:44.158932173Z",
     "agent_id": "tLiK",
-    "agent_seq": 436
+    "agent_seq": 437
   }
 }
