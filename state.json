@@ -1,6 +1,6 @@
 {
   "next_display_id": 133,
-  "next_comment_id": 187,
+  "next_comment_id": 188,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3881,11 +3881,20 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T02:16:56.424005552Z",
-      "updated_at": "2026-10-20T03:49:28.887451471Z",
+      "updated_at": "2026-10-20T03:50:09.651615012Z",
       "labels": [
         "blocker"
       ],
       "comments": {
+        "6257a2c4-727d-4d01-bdd9-02dc24c06129": {
+          "display_id": 187,
+          "author": "tLiK",
+          "content": "Result: commit 043a5151. directory_generation renders None (NO_GENERATION) for a $PSP/$BHD with no generations. Pins: divergence_fet_only_directory_generation_is_none + divergence_corpus_generation_cell_text_matches_reference (exact cell text == reference str(zen_generation) for every corpus directory). Workspace 630 passed/0 failed/3 ignored; roundtrip 54/0/0; differential 54/0/0; clippy+fmt clean. Consumer-visible: Generation cell 'None' instead of empty.",
+          "created_at": "2026-10-20T03:50:09.646632726Z",
+          "kind": "result",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABATvKA9/OHhtXmAnRaslWrEAilFfXkubf7ufTd3hDiLX6B0zWIMnPxeZC2s8sBof24Lr9+P8AUsnL1RfMhsEMjAQ=="
+        },
         "712cc11d-7619-4464-a974-80c60f8a8cd6": {
           "display_id": 186,
           "author": "tLiK",
@@ -6279,11 +6288,16 @@
       "agent_id": "tLiK",
       "agent_seq": 426,
       "timestamp": "2026-10-20T03:49:28.887451471Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 427,
+      "timestamp": "2026-10-20T03:50:09.651615012Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:49:28.887451471Z",
+    "timestamp": "2026-10-20T03:50:09.651615012Z",
     "agent_id": "tLiK",
-    "agent_seq": 426
+    "agent_seq": 427
   }
 }
