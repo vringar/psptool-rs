@@ -1,5 +1,5 @@
 {
-  "next_display_id": 120,
+  "next_display_id": 121,
   "next_comment_id": 161,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -56,6 +56,7 @@
     "7c5ec29a-d96d-4643-89c6-90b347dcfe44": 56,
     "7d3e8bf4-fc86-456e-9ee3-434b2180f648": 81,
     "82112724-69c6-48bc-87d7-953720d70f0f": 22,
+    "84ff0006-28b2-4b33-a69e-b01eba5a138f": 120,
     "85cb914b-5cc4-4d96-b34a-3923a29e5c94": 97,
     "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": 75,
     "8c70f226-69d1-4f16-9468-1e51f93cf14e": 109,
@@ -1724,6 +1725,17 @@
         "bc034fa5-f3ae-4faf-99a1-18d096bf29fd",
         "e9e8d58e-9b00-4f70-b337-7ab57b2da892"
       ]
+    },
+    "84ff0006-28b2-4b33-a69e-b01eba5a138f": {
+      "uuid": "84ff0006-28b2-4b33-a69e-b01eba5a138f",
+      "display_id": 120,
+      "title": "Divergence: ls File Info of a HeaderFile adds 'signed' and 'sha256'/'sha384' tokens; upstream ls_files emits only outcome tags (psptool.py:113-140)",
+      "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/psptool.py:113-140) builds the TEXT ls File Info from outcome tags only: 'compressed'; for a signed file one of verified(..) / veri-failed(..) / key_missing(..) / invalid_sig(..); 'legacy_header'; 'encrypted'; for a HeaderFile with a checksum bit sha256_ok / sha256_inconsistent / sha384_ok / sha384_inconsistent; inline_keys(..). There is no bare 'signed' token and no bare 'sha256'/'sha384' token in ls_files (ls_files_dict's JSON info, psptool.py:232-244, has signed(..) and no sha tag).\n\nTarget: psptool-ops/src/list.rs info_list (list.rs:571-619) pushes \"signed\" before the signature tag (:589) and \"sha256\"/\"sha384\" before the checksum tag (:596, :602); .design/psptool-ops/list.md REQ-7 lists `signed`/`sha256`/`sha384` as tokens, but upstream's text listing has none of them.\n\nRepro: psptool AORUS_X570_X57AOXT2.FCd -E -> PSP_FW_TRUSTED_OS~0x2 @0x801200 File Info 'signed, verified(24C6), sha256, sha256_ok'; upstream 'verified(24C6), sha256_ok'. SMU_OFFCHIP_FW~0x8 @0x815600 'compressed, signed, veri-failed(96A0), sha256, sha256_ok' vs 'compressed, veri-failed(96A0), sha256_ok'.\n\nImpact (corpus): 4024 HeaderFile rows (every signed 0x1/0x2/0x8/0x24/0x28/0x39 … on every image incl. EPYC Milan H12SSW9.719 and Zen 2/3). With the two extra tokens removed, every HeaderFile row's File Info equals upstream's. Distinct from #114 (MISSING tokens on non-HeaderFile rows).\n\nFailing tests: crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs::divergence_file_info_has_only_upstream_outcome_tokens (synthetic: ours 'signed, key_missing(0000), sha256, sha256_ok', expected 'key_missing(0000), sha256_ok') and ::divergence_corpus_headerfile_file_info_matches_reference (live reference ls -v table, 4024 rows). Control control_file_info_outcome_tags_present passes.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "anon-b19d58ac",
+      "created_at": "2026-10-20T00:39:05.013796842Z",
+      "updated_at": "2026-10-20T00:39:05.013796842Z"
     },
     "85cb914b-5cc4-4d96-b34a-3923a29e5c94": {
       "uuid": "85cb914b-5cc4-4d96-b34a-3923a29e5c94",
@@ -5503,11 +5515,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 13,
       "timestamp": "2026-10-20T00:28:54.757940738Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 14,
+      "timestamp": "2026-10-20T00:39:05.013796842Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:28:54.757940738Z",
+    "timestamp": "2026-10-20T00:39:05.013796842Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 13
+    "agent_seq": 14
   }
 }
