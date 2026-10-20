@@ -1,5 +1,5 @@
 {
-  "next_display_id": 121,
+  "next_display_id": 122,
   "next_comment_id": 161,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -13,6 +13,7 @@
     "1c41a146-039d-437e-a00e-d81644b8e118": 116,
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": 35,
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
+    "293b1344-0dcf-4e79-b0ae-f57bd981696f": 121,
     "2d160374-3435-423c-8649-a766236f51ac": 67,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
@@ -528,6 +529,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABADExgUqipA1Q0Q3ZICoGsDe3Uz4XaRLiA7+wrapY6TnsqCMkAWL+U4KW7plBBGiHOkiAas++6lgCuNotHfcGZDw=="
         }
       }
+    },
+    "293b1344-0dcf-4e79-b0ae-f57bd981696f": {
+      "uuid": "293b1344-0dcf-4e79-b0ae-f57bd981696f",
+      "display_id": 121,
+      "title": "Divergence: ls -v fills size_signed/size_full/size_packed/load_addr for a KeyStoreFile; upstream only for type(file) is HeaderFile (psptool.py:183-191)",
+      "description": "Upstream (PSPTool 241629b, /tmp/psptool-ref/psptool/psptool.py:183-191):\n    if type(file) is HeaderFile:\n        all_values += [hex(v) for v in [file.size_signed, file.size_uncompressed, file.rom_size, file.load_addr]]\n    else:\n        all_values += (4 * [''])\n`type(file) is HeaderFile` excludes the KeyStoreFile subclass (key_store_file.py:23; KEY_STORE_TYPES 0x50/0x51, file.py:244), so a KeyStoreFile ls -v row has empty size_signed / size_full / size_packed / load_addr. (The JSON sizes block uses issubclass, psptool.py:260, and does include KeyStoreFile.)\n\nTarget: psptool-ops/src/list.rs build_entry_row (list.rs:350-359) fills the four cells for every e.class.header(), which includes EntryClass::KeyStore (entry.rs EntryClass::header).\n\nRepro: psptool <any image with a 0x50/0x51 key store> -E -v -> BL_PUBLIC_KEY~0x50 row size_signed/size_full/size_packed/load_addr populated; upstream empty.\n\nImpact (corpus): 12 KeyStoreFile rows, 6 each in ASRock-A520M-HSV-1.31.ROM and AORUS_X570_X57AOXT2.FCd (the only corpus images with key stores).\n\nFailing tests: crates/psptool-ops/tests/divergence_list_text_headerfile_cells.rs::divergence_keystore_row_has_empty_size_columns (synthetic) and ::divergence_corpus_keystore_size_columns_match_reference (live reference ls -v table, 12 rows).",
+      "status": "open",
+      "priority": "low",
+      "created_by": "anon-b19d58ac",
+      "created_at": "2026-10-20T00:39:21.590327973Z",
+      "updated_at": "2026-10-20T00:39:21.590327973Z"
     },
     "2d160374-3435-423c-8649-a766236f51ac": {
       "uuid": "2d160374-3435-423c-8649-a766236f51ac",
@@ -5528,11 +5540,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 15,
       "timestamp": "2026-10-20T00:39:15.746559305Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 16,
+      "timestamp": "2026-10-20T00:39:21.590327973Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:39:15.746559305Z",
+    "timestamp": "2026-10-20T00:39:21.590327973Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 15
+    "agent_seq": 16
   }
 }
