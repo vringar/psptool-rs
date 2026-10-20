@@ -1,6 +1,6 @@
 {
   "next_display_id": 120,
-  "next_comment_id": 158,
+  "next_comment_id": 159,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3133,10 +3133,19 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:01.852764762Z",
-      "updated_at": "2026-10-20T00:27:07.266767714Z",
+      "updated_at": "2026-10-20T00:28:35.639030264Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "828b6a5a-686b-4298-b3b1-e6f72d89df4d": {
+          "display_id": 158,
+          "author": "anon-b19d58ac",
+          "content": "Failing tests at crates/psptool-ops/tests/divergence_headerfile_list_values.rs: divergence_size_packed_normalises_zero_rom_size (size_packed 0x0 vs 0x8000), divergence_json_sizes_packed_normalises_zero_rom_size (packed 0 vs 32768) and divergence_corpus_sizes_packed_matches_reference (live PSPTOOL_REFERENCE, 147 HeaderFiles). #[ignore]d with this issue; control_size_packed_nonzero_rom_size passes.",
+          "created_at": "2026-10-20T00:28:35.639022499Z",
+          "kind": "observation"
+        }
+      }
     },
     "e5722ead-8cd4-4006-8598-6cb24d15adbd": {
       "uuid": "e5722ead-8cd4-4006-8598-6cb24d15adbd",
@@ -5461,11 +5470,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 10,
       "timestamp": "2026-10-20T00:28:30.153394028Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 11,
+      "timestamp": "2026-10-20T00:28:35.639030264Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:28:30.153394028Z",
+    "timestamp": "2026-10-20T00:28:35.639030264Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 10
+    "agent_seq": 11
   }
 }
