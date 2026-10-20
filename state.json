@@ -2448,11 +2448,12 @@
       "display_id": 113,
       "title": "Divergence: ROM with 0x800 prefix — ROM row addr/size and secondary-directory addresses differ from upstream (Milan KRPA-U16)",
       "description": "Differential vs Python PSPTool 241629b3 goldens (psptool topic #891/#920), Milan 0.13.0.50 f84f3e9e and 0.13.0.72 37dfbe71 (served on :8830, file is 0x1000800 bytes). Upstream warns 'will assume ROM size of 16M' and reports ROM Addr 0x800, Size 0x1000000; $PSP secondary 0x272000, $BHD 0x582000. psptool-rs prints Addr 0x0, Size 0x1000800, $PSP 0x272800, $BHD 0x582800. Entry addresses agree with the oracle, so this may be a presentation/ROM-bounds difference only: needs a decision on which is right for byte-exact addressing. Source: golden diff agent report, scratch in session scratchpad.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:59:04.657998059Z",
-      "updated_at": "2026-10-20T05:07:39.756925280Z",
+      "updated_at": "2026-10-20T05:07:51.603849021Z",
+      "closed_at": "2026-10-20T05:07:51.603847598Z",
       "comments": {
         "ba6fe81e-dd31-4903-8897-c88d28a5b08b": {
           "display_id": 201,
@@ -6597,11 +6598,16 @@
       "agent_id": "tLiK",
       "agent_seq": 449,
       "timestamp": "2026-10-20T05:07:39.756925280Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 450,
+      "timestamp": "2026-10-20T05:07:51.603849021Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T05:07:39.756925280Z",
+    "timestamp": "2026-10-20T05:07:51.603849021Z",
     "agent_id": "tLiK",
-    "agent_seq": 449
+    "agent_seq": 450
   }
 }
