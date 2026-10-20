@@ -37,11 +37,11 @@
 //! `self.body` is the data region `NestedBuffer(self, len(self) - 0x100 -
 //! signature_len, 0x100)` (`header_file.py:106`) — NOT the whole entry. Both
 //! `ls -v` (`psptool.py:180`) and `ls -j` (`psptool.py:254`) print
-//! `file.md5()[:4].upper()`. psptool-rs's sparse ("upstream-exact") MD5 cell is
-//! `body_md5_short_upper(&e.body)` (`list.rs:346`, `:672-674`) over the whole
-//! directory-declared entry. Corpus: every HeaderFile of every image, e.g.
-//! `AORUS_X370G5.23d` @0x268000 upstream `C985`, ours `93B4`. The #87 pin
-//! (`divergence_list_columns.rs`) only checked length/case on a non-HeaderFile.
+//! `file.md5()[:4].upper()`. psptool-rs's sparse ("upstream-exact") MD5 cell
+//! hashed the whole directory-declared entry. Corpus: every HeaderFile of
+//! every image, e.g. `AORUS_X370G5.23d` @0x268000 upstream `C985`, ours
+//! `93B4`. The #87 pin (`divergence_list_columns.rs`) only checked length/case
+//! on a non-HeaderFile. Fixed by #119 (`list.rs` `entry_md5`).
 //!
 //! Expected values come from the fixture's named constants through the quoted
 //! upstream rules, or from the live reference for the corpus pins (R-CHAR-3).
@@ -200,7 +200,6 @@ fn control_size_packed_nonzero_rom_size() {
 ///
 /// Tracking: #119
 #[test]
-#[ignore = "divergence: sparse MD5 of a HeaderFile hashes the whole entry; upstream HeaderFile.md5 hashes self.body (header_file.py:312-315); tracking #119"]
 fn divergence_sparse_md5_hashes_headerfile_body() {
     let buf = image(ENTRY_SIZE);
     let body = &buf[BODY_OFF + HEADER_LEN..BODY_OFF + ENTRY_SIZE as usize - SIG_LEN_RSA2048];
@@ -364,7 +363,6 @@ fn divergence_corpus_sizes_packed_matches_reference() {
 ///
 /// Tracking: #119
 #[test]
-#[ignore = "divergence: sparse MD5 of a HeaderFile hashes the whole entry; upstream HeaderFile.md5 hashes self.body (header_file.py:312-315); tracking #119"]
 fn divergence_corpus_headerfile_md5_matches_reference() {
     let Some(bad) = corpus_mismatches(1) else {
         eprintln!("skipped: PSPTOOL_TEST_CORPUS / PSPTOOL_REFERENCE unset");

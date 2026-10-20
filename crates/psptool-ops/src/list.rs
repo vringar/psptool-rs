@@ -41,14 +41,14 @@
 //! | REQ-4 | SHIPPED | `readable_type` (`types.rs:196`) called `list.rs:313`/`:428` per `psptool.py:173`/`:250`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-5 | SHIPPED | `entries_for_directory` `list.rs:477` returns empty for combo per `psptool.py:95`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-6 | SHIPPED | self-oracle (differential-tolerated key). `magic_id_string` `list.rs:529` + `version_string` `list.rs:548` per `psptool.py:176`/`:177`; consumer `psptool-cli/src/cmds/list.rs:49` |
-//! | REQ-7 | SHIPPED | `info_list` `list.rs:572` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
-//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:334` + `entry_to_json` `list.rs:455` per `psptool.py:104`/`:183`; `size_packed`/`sizes.packed` is `packed_size` `list.rs:520`, the normalised `rom_size` (`header_file.py:72-73`, #118); consumer `psptool-cli/src/cmds/list.rs:53` |
-//! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `md5`=`body_md5_short_upper`) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
+//! | REQ-7 | SHIPPED | `info_list` `list.rs:594` emits `compressed`, the signature outcome, `encrypted`, the checksum outcome, pubkey usage and `destination(..)` — no bare `signed`/`sha256`/`sha384` token — per `psptool.py:113-140`; HeaderFile rows agree with the reference `ls -v` on the corpus (`divergence_list_text_headerfile_cells.rs`, #120); `info` stays a differential-tolerated JSON key; consumer `psptool-cli/src/cmds/list.rs:55` |
+//! | REQ-8 | SHIPPED | verbose branch `build_entry_row` `list.rs:336` + `entry_to_json` `list.rs:465` per `psptool.py:104`/`:183`; `MD5`/`md5` is `entry_md5` `list.rs:681`, upstream `md5()` — a HeaderFile hashes its `self.body` (`header_file.py:106`/`:312-315`, #119); `size_packed`/`sizes.packed` is `packed_size` `list.rs:530`, the normalised `rom_size` (`header_file.py:72-73`, #118); consumer `psptool-cli/src/cmds/list.rs:53` |
+//! | #86/#87 sparse-mode (upstream-exact `flags`/`MD5`) | SHIPPED | richer default preserved; opt-in `RomListing::sparse` drives `build_entry_row`'s sparse branch (`flags`=`""`, `MD5`=`entry_md5(..)[..4]` upper-cased) per `psptool.py:179`/`:180`; consumer `psptool-cli/src/cmds/list.rs` sets it from `--sparse` / `PSPTOOL_LS_SPARSE` |
 //! | REQ-9 | SHIPPED | `secondary_addresses` `list.rs:760` per `directory.py:156` printed `psptool.py:86`; consumer `psptool-cli/src/cmds/list.rs:49` |
 //! | REQ-10 | SHIPPED | `directory_generation` combo branch `list.rs:704` per `psptool.py:84` + `directory.py:57`; consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-11 | SHIPPED | `directory_generation` tertiary branch `list.rs:740` renders the `block[20:24]` id per `directory.py:89` printed `psptool.py:84` (#70); consumer `psptool-cli/src/cmds/list.rs:55` |
 //! | REQ-12 | NOT-STARTED | blocked on #75 (AGESA rendering); `render_rom_table` `list.rs:203` emits `AGESA_UNKNOWN` where `psptool.py:74` prints `rom.agesa_version` |
-//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:572` renders `signature_tag` (`list.rs:619`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:633`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
+//! | REQ-13 | SHIPPED | self-oracle + corpus parity (differential-tolerated key). `info_list` `list.rs:594` renders `signature_tag` (`list.rs:641`: `verified`/`veri-failed`/`key_missing(XXXX)`) and `checksum_tag` (`list.rs:655`:`sha256_ok`/`_inconsistent`) from the entry's `Entry::decode_verification` (core `body.rs:899`) per `psptool.py:116-140`; consumer `psptool-cli/src/cmds/list.rs:55` (closes #76) |
 //! | REQ-14 | SHIPPED | `entry_to_json` `list.rs:447` emits `decodeVerified`/`decodeVerificationMethod` for every HeaderFile-class entry per `psptool.py:267-271` (PSPTool `241629b`), from the `_verify_decode` port `verify_decode` (core `body.rs:937`, `header_file.py:198-243`) over the image-wide `CertifyingKeys::from_blob` (`body.rs:801`, `cert_tree.py:385-397`) built by `Verifier::new` `list.rs:111`; consumer `psptool-cli/src/cmds/list.rs:49` (closes #89) |
 
 use md5::{Digest, Md5};
@@ -293,6 +293,7 @@ fn render_entries_table(
                 verbose,
                 sparse,
                 verifier.verify(e).as_ref(),
+                verifier.blob,
             )),
             Err(err) => t.add_row(build_error_row(idx, err, verbose)),
         }
@@ -308,6 +309,7 @@ fn build_entry_row(
     verbose: bool,
     sparse: bool,
     verification: Option<&DecodeVerification>,
+    blob: &SourceBytes,
 ) -> Vec<String> {
     let address = format_hex_u64(e.body.offset().get());
     let size = format_hex_u64(e.body.len() as u64);
@@ -337,17 +339,17 @@ fn build_entry_row(
         //   `hex(file.entry.flags)` form is commented out), and
         // * `MD5` is `file.md5()[:4].upper()` (`psptool.py:180`).
         // The richer default keeps the full `hex(flags)` + 32-char lowercase
-        // digest; `sparse` reproduces the upstream-exact cells.
+        // digest of the same `md5()`; `sparse` reproduces the upstream-exact
+        // cells.
         let flags = if sparse {
             String::new()
         } else {
             format_hex_u64(entry_flags(&e.record) as u64)
         };
-        let md5 = if sparse {
-            body_md5_short_upper(&e.body)
-        } else {
-            body_md5_hex(&e.body)
-        };
+        let md5 = entry_md5(e, blob);
+        // The four leading characters are ASCII hex digits, so byte 4 is a
+        // char boundary.
+        let md5 = if sparse { md5[..4].to_uppercase() } else { md5 };
         let header = e.class.header();
         let (size_signed, size_full, size_packed, load_addr) = match header {
             Some(h) => (
@@ -404,7 +406,14 @@ fn entry_row_to_json(
     verifier: &Verifier<'_>,
 ) -> Value {
     match row {
-        Ok(e) => entry_to_json(idx, e, is_bios, verbose, verifier.verify(e).as_ref()),
+        Ok(e) => entry_to_json(
+            idx,
+            e,
+            is_bios,
+            verbose,
+            verifier.verify(e).as_ref(),
+            verifier.blob,
+        ),
         Err(err) => json!({
             "index": idx,
             "error": format!("{err}"),
@@ -418,6 +427,7 @@ fn entry_to_json(
     is_bios: bool,
     verbose: bool,
     verification: Option<&DecodeVerification>,
+    blob: &SourceBytes,
 ) -> Value {
     let info = info_list(e, is_bios, verification);
     let mut obj = serde_json::Map::new();
@@ -453,7 +463,7 @@ fn entry_to_json(
     }
 
     if verbose {
-        obj.insert("md5".into(), json!(body_md5_hex(&e.body)));
+        obj.insert("md5".into(), json!(entry_md5(e, blob)));
         obj.insert("flags".into(), json!(entry_flags(&e.record)));
         if let Some(h) = e.class.header() {
             obj.insert(
@@ -657,26 +667,45 @@ fn pubkey_usage(p: &PubkeyEntry) -> String {
     }
 }
 
-/// Full 32-character hex MD5 digest of the entry body, matching PSPTool's
-/// `File.md5()` (`hashlib.md5(self.get_bytes()).hexdigest()`).
-fn body_md5_hex(body: &SourceBytes) -> String {
-    let mut hasher = Md5::new();
-    hasher.update(body.as_bytes());
-    let digest = hasher.finalize();
+/// Full 32-character hex digest of upstream's `file.md5()`, which `ls` prints
+/// as `md5()[:4].upper()` (`psptool.py:180`, `:254`).
+///
+/// `File.md5` hashes the file buffer (`file.py:380-383`). `HeaderFile.md5`
+/// — inherited by `KeyStoreFile` — hashes its data region `self.body`
+/// instead (`header_file.py:312-315`): `[0x100, rom_size - signature_len)` of
+/// the HeaderFile buffer (`header_file.py:106`, `rom_size` normalised as in
+/// [`packed_size`]), the signature reserved only when signed (`:83-90`; a
+/// `KeyStoreFile` always is, `key_store_file.py:62-64`). A region the image
+/// does not hold hashes no bytes, like upstream's `except` arm
+/// (`header_file.py:316-317`).
+fn entry_md5(e: &Entry, blob: &SourceBytes) -> String {
+    let (h, key_store) = match &e.class {
+        EntryClass::Header(h) => (h, false),
+        EntryClass::KeyStore(h) => (h, true),
+        _ => return md5_hex(e.body.as_bytes()),
+    };
+    let sig_len = if key_store || h.is_signed() {
+        h.signature_len()
+    } else {
+        Some(0)
+    };
+    let end = sig_len.and_then(|sig| usize::try_from(packed_size(e, h)).ok()?.checked_sub(sig));
+    let window = e.header_file_window(blob);
+    let region = window
+        .as_ref()
+        .zip(end)
+        .and_then(|(w, end)| w.as_bytes().get(HEADER_FILE_LEN..end));
+    md5_hex(region.unwrap_or_default())
+}
+
+fn md5_hex(bytes: &[u8]) -> String {
+    let digest = Md5::digest(bytes);
     let mut s = String::with_capacity(32);
     for b in digest.iter() {
         use core::fmt::Write;
         let _ = write!(s, "{:02x}", b);
     }
     s
-}
-
-/// Upstream-exact sparse MD5 cell: `file.md5()[:4].upper()`
-/// (`psptool.py:180`) — the first four hex characters of the body MD5,
-/// uppercased. The four leading characters are ASCII hex digits, so slicing
-/// `body_md5_hex` at byte 4 is a valid char boundary.
-fn body_md5_short_upper(body: &SourceBytes) -> String {
-    body_md5_hex(body)[..4].to_uppercase()
 }
 
 fn ascii_or_hex_4(bytes: &[u8; 4]) -> String {
