@@ -1,5 +1,5 @@
 {
-  "next_display_id": 127,
+  "next_display_id": 128,
   "next_comment_id": 186,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -100,6 +100,7 @@
     "cdc4c578-ed06-4ff6-8395-41a3b3561c31": 82,
     "ce56520a-58fd-45d1-a30f-308d3ad8600c": 111,
     "cf133cc6-457d-4b4c-8000-bd9958a02990": 85,
+    "cfed9d64-2909-4fbf-9087-3df9ccb35bb2": 127,
     "d3ce0e1b-00bf-435e-987c-78c4119ad087": 86,
     "d434f175-a545-41e6-9748-d52c77e1eb5d": 54,
     "d4d77cb2-c1d0-4a74-8ecf-6ae51a5e1334": 44,
@@ -3080,6 +3081,18 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAKc+7ekENiAyOVahK/RZw/+8nvJUxSZlGuRXgGNSSDqzxN9rgpnpckIFJrXdT85N0BaqmTEyXiLLZK0m3vKgEBw=="
         }
       }
+    },
+    "cfed9d64-2909-4fbf-9087-3df9ccb35bb2": {
+      "uuid": "cfed9d64-2909-4fbf-9087-3df9ccb35bb2",
+      "display_id": 127,
+      "title": "Divergence: psptool-py sets destination on HeaderFile/PubkeyFile/KeyStoreFile parsed from a BIOS directory; upstream only BiosFile has it (file.py:396-399)",
+      "description": "Upstream PSPTool 241629b file.py:259-265 picks PubkeyFile / KeyStoreFile / HeaderFile before falling back to cls(*file_args), and only BiosFile.__init__ stores the attribute (file.py:397-399: 'super().__init__(...); self.destination = self.entry.destination'). So hasattr(f, 'destination') is False for a HeaderFile/PubkeyFile/KeyStoreFile of a BiosDirectory.\npsptool-py: crates/psptool-py/src/file.rs:1461-1463 (init_file, shared by every class): 'if let EntryRecord::Bios(b) = a.record { obj.setattr(\"destination\", b.destination)?; }'.\nLive oracle on H12SSW9.719: reference HeaderFile:False 39, PubkeyFile:False 2; bindings HeaderFile:True 39, PubkeyFile:True 2 (corpus-wide: 1096 HeaderFile + 69 PubkeyFile). Code that uses getattr(f, 'destination', None) to recognise BiosFile-like objects sees a value upstream does not have.\nFailing test: crates/psptool-py/tests/divergence.rs::destination_only_on_bios_file.",
+      "status": "open",
+      "priority": "low",
+      "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
+      "created_by": "tLiK",
+      "created_at": "2026-10-20T03:45:47.109666162Z",
+      "updated_at": "2026-10-20T03:45:47.109666162Z"
     },
     "d3ce0e1b-00bf-435e-987c-78c4119ad087": {
       "uuid": "d3ce0e1b-00bf-435e-987c-78c4119ad087",
@@ -6107,11 +6120,16 @@
       "agent_id": "tLiK",
       "agent_seq": 413,
       "timestamp": "2026-10-20T03:45:32.129235289Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 414,
+      "timestamp": "2026-10-20T03:45:47.109666162Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T03:45:32.129235289Z",
+    "timestamp": "2026-10-20T03:45:47.109666162Z",
     "agent_id": "tLiK",
-    "agent_seq": 413
+    "agent_seq": 414
   }
 }
