@@ -1,6 +1,6 @@
 {
   "next_display_id": 120,
-  "next_comment_id": 159,
+  "next_comment_id": 160,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2117,10 +2117,19 @@
       "priority": "medium",
       "created_by": "anon-b19d58ac",
       "created_at": "2026-10-20T00:27:13.422491960Z",
-      "updated_at": "2026-10-20T00:27:19.568938791Z",
+      "updated_at": "2026-10-20T00:28:42.970792275Z",
       "labels": [
         "blocker"
-      ]
+      ],
+      "comments": {
+        "56d9becb-aab8-4961-9b13-e8eecc2393bf": {
+          "display_id": 159,
+          "author": "anon-b19d58ac",
+          "content": "Failing tests at crates/psptool-ops/tests/divergence_headerfile_list_values.rs: divergence_sparse_md5_hashes_headerfile_body (synthetic signed 0x1 HeaderFile: ours 7B6A = md5(whole entry), expected BF12 = md5(body[0x100:0x7f00])) and divergence_corpus_headerfile_md5_matches_reference (live PSPTOOL_REFERENCE, 4147 HeaderFiles). #[ignore]d with this issue.",
+          "created_at": "2026-10-20T00:28:42.970786745Z",
+          "kind": "observation"
+        }
+      }
     },
     "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c": {
       "uuid": "a57420b6-7ede-4ce0-9edf-d4fdfdacdd1c",
@@ -5475,11 +5484,16 @@
       "agent_id": "anon-b19d58ac",
       "agent_seq": 11,
       "timestamp": "2026-10-20T00:28:35.639030264Z"
+    },
+    {
+      "agent_id": "anon-b19d58ac",
+      "agent_seq": 12,
+      "timestamp": "2026-10-20T00:28:42.970792275Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T00:28:35.639030264Z",
+    "timestamp": "2026-10-20T00:28:42.970792275Z",
     "agent_id": "anon-b19d58ac",
-    "agent_seq": 11
+    "agent_seq": 12
   }
 }
