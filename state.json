@@ -1,6 +1,6 @@
 {
   "next_display_id": 135,
-  "next_comment_id": 198,
+  "next_comment_id": 199,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -3198,11 +3198,22 @@
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T23:46:42.222925422Z",
-      "updated_at": "2026-10-19T23:46:55.032852153Z",
+      "updated_at": "2026-10-20T04:22:32.200853697Z",
       "labels": [
         "blocker",
         "kaizen"
-      ]
+      ],
+      "comments": {
+        "564d639c-b1ae-448d-8acd-d89dc1bc001d": {
+          "display_id": 198,
+          "author": "tLiK",
+          "content": "Plan: fixed together with #115 (Milan ABL0 0x3a0 vs 0x864f0, same mechanism): list.rs file_size() renders upstream buffer_size (normalised header rom_size) for HeaderFile-class entries in ls Size + ls -j size; differential.rs HeaderFile size tolerance removed.",
+          "created_at": "2026-10-20T04:22:32.195922773Z",
+          "kind": "plan",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAvv2Xtr5RrPaLWKvEW0fYFGGbv7K9DU3L0qTYEw8A46vnuiKBJ9Ub8lZAjzlxOrHobnZzPHC8ooksx1zcZfSrBQ=="
+        }
+      }
     },
     "cf133cc6-457d-4b4c-8000-bd9958a02990": {
       "uuid": "cf133cc6-457d-4b4c-8000-bd9958a02990",
@@ -6511,11 +6522,16 @@
       "agent_id": "tLiK",
       "agent_seq": 442,
       "timestamp": "2026-10-20T04:22:26.541982751Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 443,
+      "timestamp": "2026-10-20T04:22:32.200853697Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T04:22:26.541982751Z",
+    "timestamp": "2026-10-20T04:22:32.200853697Z",
     "agent_id": "tLiK",
-    "agent_seq": 442
+    "agent_seq": 443
   }
 }
