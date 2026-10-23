@@ -1,5 +1,5 @@
 {
-  "next_display_id": 137,
+  "next_display_id": 138,
   "next_comment_id": 207,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -38,6 +38,7 @@
     "52a1c711-a12a-42ae-b67e-82f906418fb2": 71,
     "5335cd25-1a5a-4ddb-a627-e4fa5a0c7469": 114,
     "5346afaa-652e-4838-a5c1-851082a0f96f": 69,
+    "53d3c3c2-bb6f-4eb5-b245-a88eb3518b0e": 137,
     "54e6baa0-7637-4170-925c-b3cdea587722": 15,
     "58ab16e7-59ab-4168-b6e1-d1708dc511e5": 7,
     "58c3ac9f-6818-420d-9fb0-13146e78ebb0": 60,
@@ -1283,6 +1284,17 @@
       "labels": [
         "refactor"
       ]
+    },
+    "53d3c3c2-bb6f-4eb5-b245-a88eb3518b0e": {
+      "uuid": "53d3c3c2-bb6f-4eb5-b245-a88eb3518b0e",
+      "display_id": 137,
+      "title": "Divergence candidate: ls -E lists empty 2PSP directory that psptool omits (10 Zen4/5 images)",
+      "description": "Survey 2026-10-23: on 10 of 140 Zen4/5 images (e.g. sha 14ba969b…, 260aaa42…, 93bdb8fa…) psptool-rs lists a '2PSP' directory at 0x82000 with 0 entries and secondaryAddresses [0x82000-ish]; psptool's survey-counts (psptool agent, http://127.0.0.1:8895) shows only the $PSP dir (dirs=1, same 6 entries). Cause unverified: no Python oracle on this host; check directory.py for how 2PSP/empty dirs are treated, then pin with a failing test.",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-10-23T23:40:56.736792683Z",
+      "updated_at": "2026-10-23T23:40:56.736792683Z"
     },
     "54e6baa0-7637-4170-925c-b3cdea587722": {
       "uuid": "54e6baa0-7637-4170-925c-b3cdea587722",
@@ -6727,11 +6739,16 @@
       "agent_id": "tLiK",
       "agent_seq": 460,
       "timestamp": "2026-10-20T06:02:52.306354355Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 461,
+      "timestamp": "2026-10-23T23:40:56.736792683Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-20T06:02:52.306354355Z",
+    "timestamp": "2026-10-23T23:40:56.736792683Z",
     "agent_id": "tLiK",
-    "agent_seq": 460
+    "agent_seq": 461
   }
 }
