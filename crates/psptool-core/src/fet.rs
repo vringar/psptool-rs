@@ -63,6 +63,16 @@ pub struct RomLayout {
     pub fet: Fet,
 }
 
+/// The ROM size PSPTool assumes for an input of `input_len` bytes: the largest
+/// of 32 / 16 / 8 MiB that fits (`blob.py:53-55`, `possible_rom_sizes = [32,
+/// 16, 8]`). `None` below 8 MiB, where upstream's `max()` over the empty
+/// candidate list raises `ValueError` before any FET is looked at.
+pub fn assumed_rom_size(input_len: u64) -> Option<RomSize> {
+    [RomSize::MIB_32, RomSize::MIB_16, RomSize::MIB_8]
+        .into_iter()
+        .find(|size| size.bytes() <= input_len)
+}
+
 /// Try every (rom_size, fet_offset) combination from §1.1 against
 /// `fet_position` (the absolute file offset where the FET magic was found)
 /// and return the first layout where the resulting ROM fits inside `blob`.
@@ -80,16 +90,7 @@ pub fn detect_rom_layout(blob: &SourceBytes, fet_position: FlashOffset) -> Optio
         return None;
     }
 
-    // PSPTool selects the largest power-of-two ROM size ≤ buffer_size.
-    let rom_size = if blob_len >= RomSize::MIB_32.bytes() {
-        RomSize::MIB_32
-    } else if blob_len >= RomSize::MIB_16.bytes() {
-        RomSize::MIB_16
-    } else if blob_len >= RomSize::MIB_8.bytes() {
-        RomSize::MIB_8
-    } else {
-        return None;
-    };
+    let rom_size = assumed_rom_size(blob_len)?;
 
     for &fet_offset in KNOWN_FET_OFFSETS {
         // rom_origin is `fet_position - fet_offset` — must lie at-or-after
