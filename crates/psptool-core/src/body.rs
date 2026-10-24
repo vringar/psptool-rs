@@ -1227,15 +1227,38 @@ pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
 /// `flate2`'s `Read` adapter returns the partial output of a truncated stream
 /// as success, so drive [`Decompress`] directly and demand `StreamEnd`.
 fn zlib_decompress_strict(stream: &[u8]) -> Option<Vec<u8>> {
+    zlib_decompress_capped(stream, ZLIB_MAX_OUTPUT)
+}
+
+/// Absolute ceiling on one inflated zlib stream (64 MiB). Deflate reaches
+/// ~1000:1, so without a ceiling a small crafted image inflates to GiBs (zlib
+/// bomb) on the default `ls` path. Upstream never consults `size_uncompressed`
+/// when inflating a HeaderFile (`utils.py:241-254`, `header_file.py:201`), so
+/// the bound is absolute rather than header-declared. Exceeding it fails like
+/// a corrupt stream, and `decode` then falls back to the compressed bytes.
+const ZLIB_MAX_OUTPUT: usize = 64 << 20;
+
+/// [`zlib_decompress_strict`] with an explicit output ceiling; `None` once the
+/// inflated size would exceed `max_output`. Output room is grown in bounded
+/// steps, so memory never exceeds roughly `max_output` plus one step.
+fn zlib_decompress_capped(stream: &[u8], max_output: usize) -> Option<Vec<u8>> {
     let mut inflater = Decompress::new(true);
     let mut out: Vec<u8> = Vec::new();
     loop {
         if out.len() == out.capacity() {
-            out.reserve(out.capacity().max(0x1000));
+            let room = max_output.saturating_add(1).saturating_sub(out.len());
+            if room == 0 {
+                return None;
+            }
+            out.reserve_exact(out.capacity().max(0x1000).min(room));
         }
         let (in_before, out_before) = (inflater.total_in(), inflater.total_out());
         let rest = stream.get(usize::try_from(in_before).ok()?..)?;
-        match inflater.decompress_vec(rest, &mut out, FlushDecompress::None) {
+        let res = inflater.decompress_vec(rest, &mut out, FlushDecompress::None);
+        if out.len() > max_output {
+            return None;
+        }
+        match res {
             Ok(Status::StreamEnd) => return Some(out),
             Ok(Status::Ok | Status::BufError) => {
                 let stalled =
@@ -1409,6 +1432,29 @@ mod tests {
         let out = hdr.get_decompressed_body(&plaintext)?;
         assert_eq!(&out[..prefix.len()], &prefix);
         assert_eq!(&out[prefix.len()..], b"hello, psptool-rs");
+        Ok(())
+    }
+
+    #[test]
+    fn zlib_inflate_cap_rejects_past_and_accepts_at_or_under()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use std::io::Write;
+        let cap = 0x3000usize;
+        let deflate = |n: usize| -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+            let mut enc = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+            enc.write_all(&vec![0u8; n])?;
+            Ok(enc.finish()?)
+        };
+        assert_eq!(
+            zlib_decompress_capped(&deflate(cap)?, cap).map(|v| v.len()),
+            Some(cap)
+        );
+        assert_eq!(
+            zlib_decompress_capped(&deflate(cap - 1)?, cap).map(|v| v.len()),
+            Some(cap - 1)
+        );
+        assert_eq!(zlib_decompress_capped(&deflate(cap + 1)?, cap), None);
+        assert_eq!(zlib_decompress_capped(&deflate(cap * 100)?, cap), None);
         Ok(())
     }
 

@@ -118,6 +118,36 @@ fn collect_trials() -> Vec<Trial> {
     trials
 }
 
+/// Verification fields that the #138 stored-zlib-stream retry changes on purpose.
+#[cfg(feature = "corpus")]
+const RETRY_FIELDS: [&str; 3] = ["dv", "dvd", "dvm"];
+
+/// True when the records differ only because we verify a compressed entry on
+/// the stored zlib stream after the reference's decompressed-body check failed
+/// (#138, intentional). The other direction is not excused.
+#[cfg(feature = "corpus")]
+fn retry_verified_only(theirs: Option<&str>, ours: Option<&str>) -> bool {
+    let parse = |l: Option<&str>| {
+        l.and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+            .and_then(|v| v.as_object().cloned())
+    };
+    let (Some(mut t), Some(mut o)) = (parse(theirs), parse(ours)) else {
+        return false;
+    };
+    let ok = |r: &serde_json::Map<String, serde_json::Value>| {
+        r.get("dv").and_then(|v| v.get(0)?.as_bool())
+    };
+    let (failed_there, verified_here) = (ok(&t) == Some(false), ok(&o) == Some(true));
+    if t.get("comp") != Some(&serde_json::Value::Bool(true)) || !failed_there || !verified_here {
+        return false;
+    }
+    for k in RETRY_FIELDS {
+        t.remove(k);
+        o.remove(k);
+    }
+    t == o
+}
+
 /// AC-1: identical walk dumps.
 #[cfg(feature = "corpus")]
 fn dump(reference: &Path, stage: &Path, rom: &Path) -> Result<(), Failed> {
@@ -140,7 +170,7 @@ fn dump(reference: &Path, stage: &Path, rom: &Path) -> Result<(), Failed> {
     loop {
         match (theirs.next(), ours.next()) {
             (None, None) => break,
-            (t, o) if t == o => count += 1,
+            (t, o) if t == o || retry_verified_only(t, o) => count += 1,
             (t, o) => {
                 return Err(format!(
                     "walk diverges after {count} identical records\n  reference: {}\n  bindings:  {}",
