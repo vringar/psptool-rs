@@ -1,5 +1,5 @@
 {
-  "next_display_id": 140,
+  "next_display_id": 141,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -72,6 +72,7 @@
     "84ff0006-28b2-4b33-a69e-b01eba5a138f": 120,
     "85cb914b-5cc4-4d96-b34a-3923a29e5c94": 97,
     "8a4f6de5-0ef0-4d2a-95c2-0d23e191b065": 75,
+    "8bbb17c6-b249-4f50-8024-921d9d8ea90d": 140,
     "8c70f226-69d1-4f16-9468-1e51f93cf14e": 109,
     "8c783248-2efb-4e78-8cbd-ae679e1c9759": 136,
     "8f2a4d88-d837-40e3-989a-ffd1b41cbcf8": 24,
@@ -2253,6 +2254,17 @@
       "labels": [
         "blocker"
       ]
+    },
+    "8bbb17c6-b249-4f50-8024-921d9d8ea90d": {
+      "uuid": "8bbb17c6-b249-4f50-8024-921d9d8ea90d",
+      "display_id": 140,
+      "title": "Robustness: zlib bomb, no output cap (zlib_decompress_strict)",
+      "description": "body.rs:1207-1230 unbounded inflate; 16 MiB image tries 4 GiB on plain ls. 9922 corpus entries never exceed size_uncompressed, so capping there is safe. Pinned by robust_body.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:21:39.649240005Z",
+      "updated_at": "2026-10-24T18:21:39.649240005Z"
     },
     "8c70f226-69d1-4f16-9468-1e51f93cf14e": {
       "uuid": "8c70f226-69d1-4f16-9468-1e51f93cf14e",
@@ -6808,11 +6820,16 @@
       "agent_id": "tLiK",
       "agent_seq": 465,
       "timestamp": "2026-10-24T18:21:32.756767127Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 466,
+      "timestamp": "2026-10-24T18:21:39.649240005Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:21:32.756767127Z",
+    "timestamp": "2026-10-24T18:21:39.649240005Z",
     "agent_id": "tLiK",
-    "agent_seq": 465
+    "agent_seq": 466
   }
 }
