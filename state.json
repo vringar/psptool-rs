@@ -1,5 +1,5 @@
 {
-  "next_display_id": 145,
+  "next_display_id": 146,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -30,6 +30,7 @@
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
     "437add46-7714-4f3c-9669-57b286c9709d": 128,
     "4438c167-6f65-469f-9ff4-a0773b7edddf": 53,
+    "47c1ac99-149c-4ccf-8877-5ae35e7310f6": 145,
     "47de77e3-bbbf-42a9-930a-eb46387697f5": 10,
     "4d536e81-d60a-4bf5-a28b-bc08efab07f9": 89,
     "4f1b3f73-783b-466e-a560-bc207b52e59c": 92,
@@ -1083,6 +1084,17 @@
       "labels": [
         "feature"
       ]
+    },
+    "47c1ac99-149c-4ccf-8877-5ae35e7310f6": {
+      "uuid": "47c1ac99-149c-4ccf-8877-5ae35e7310f6",
+      "display_id": 145,
+      "title": "Bug: failed replace leaves 2 patches in editor despite all-or-nothing comment",
+      "description": "psptool-ops/src/replace.rs:213-238. Pinned by robust_replace.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:22:07.409747076Z",
+      "updated_at": "2026-10-24T18:22:07.409747076Z"
     },
     "47de77e3-bbbf-42a9-930a-eb46387697f5": {
       "uuid": "47de77e3-bbbf-42a9-930a-eb46387697f5",
@@ -6893,11 +6905,16 @@
       "agent_id": "tLiK",
       "agent_seq": 470,
       "timestamp": "2026-10-24T18:22:01.654746460Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 471,
+      "timestamp": "2026-10-24T18:22:07.409747076Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:22:01.654746460Z",
+    "timestamp": "2026-10-24T18:22:07.409747076Z",
     "agent_id": "tLiK",
-    "agent_seq": 470
+    "agent_seq": 471
   }
 }
