@@ -1,5 +1,5 @@
 {
-  "next_display_id": 142,
+  "next_display_id": 143,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -95,6 +95,7 @@
     "ab2eafba-8590-4a8c-bbee-4fe5b064d5c3": 39,
     "ab32e006-dd73-4de8-b968-3a4880686ffd": 104,
     "ab6eb2e6-0890-4a93-8d75-8954a4c84d61": 78,
+    "ad3dd0a6-e1ad-49aa-a39f-75a490799334": 142,
     "b65b2085-2121-4add-945d-707d3c375c64": 49,
     "b697b202-9540-459f-894e-a315ee5421c9": 84,
     "b9e52e0b-d793-4954-9a43-f3921beff008": 107,
@@ -2885,6 +2886,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABA3JVf5gGRsDrvXiDs4be9GdcUcVzp6YSsmYAhXlhZ/ZuUa5XhHPcHUZ6LInRFBwRLwgMnytMpZ91Oa2xeil3gBA=="
         }
       }
+    },
+    "ad3dd0a6-e1ad-49aa-a39f-75a490799334": {
+      "uuid": "ad3dd0a6-e1ad-49aa-a39f-75a490799334",
+      "display_id": 142,
+      "title": "Robustness: unterminated FET candidates rescanned to EOF (hang)",
+      "description": "fet.rs:214-291, :95-127, cli load.rs:38-41; every command hangs >120 s. Pinned by robust_fet.rs unterminated_candidates (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:21:50.769077583Z",
+      "updated_at": "2026-10-24T18:21:50.769077583Z"
     },
     "b65b2085-2121-4add-945d-707d3c375c64": {
       "uuid": "b65b2085-2121-4add-945d-707d3c375c64",
@@ -6842,11 +6854,16 @@
       "agent_id": "tLiK",
       "agent_seq": 467,
       "timestamp": "2026-10-24T18:21:45.124128884Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 468,
+      "timestamp": "2026-10-24T18:21:50.769077583Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:21:45.124128884Z",
+    "timestamp": "2026-10-24T18:21:50.769077583Z",
     "agent_id": "tLiK",
-    "agent_seq": 467
+    "agent_seq": 468
   }
 }
