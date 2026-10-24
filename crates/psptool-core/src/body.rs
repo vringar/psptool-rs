@@ -68,7 +68,7 @@ use rsa::signature::Verifier;
 use rsa::traits::PublicKeyParts;
 use rsa::{BigUint, RsaPublicKey};
 use sha2::{Digest, Sha256, Sha384};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use thiserror::Error;
 
@@ -730,10 +730,24 @@ impl CertifyingKeys {
     /// in the test corpus and is not ported here.
     pub fn from_blob(blob: &SourceBytes, ikek: Ikek) -> Self {
         let mut keys = Self::default();
+        // Spans (start -> end) of FETs already walked. A FET's slots cannot
+        // begin another FET, so a magic inside one is skipped; this keeps
+        // overlapping crafted candidates from re-parsing the same table.
+        let mut walked: BTreeMap<u64, u64> = BTreeMap::new();
         for position in scan_fet_candidates(blob) {
+            let pos = position.get();
+            if walked
+                .range(..=pos)
+                .next_back()
+                .is_some_and(|(_, &end)| pos < end)
+            {
+                continue;
+            }
             let Some(layout) = detect_rom_layout(blob, position) else {
                 continue;
             };
+            let start = layout.fet.source.offset().get();
+            walked.insert(start, start + layout.fet.source.len() as u64);
             for dir_ref in walk_directories(blob, &layout.fet, layout.rom_size, layout.rom_origin) {
                 let parsed: Vec<_> = match &dir_ref.directory {
                     Directory::Psp(p) => (0..p.entries.len())

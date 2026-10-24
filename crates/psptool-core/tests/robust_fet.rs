@@ -54,7 +54,6 @@ fn within_budget<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> O
 /// Expected: candidates inside an already-parsed FET's span (or past a sane
 /// ROM count) are not re-parsed, keeping discovery near-linear.
 #[test]
-#[ignore = "crosslink #143"]
 fn robust_fet_overlapping_candidates_certifying_keys_near_linear() {
     let blob = image_with_candidates(0x4_0000, true);
     let done = within_budget(move || {
