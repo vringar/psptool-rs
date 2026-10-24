@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Robustness: quadratic walk dedup and search_keys scan (#144)
+- Robustness: CertifyingKeys::from_blob re-parses overlapping candidates (hang) (#143)
 - Robustness: unterminated FET candidates rescanned to EOF (hang) (#142)
 - Bug: failed replace leaves 2 patches in editor despite all-or-nothing comment (#145)
 - Robustness: overlapping directory tables use O(tables x image) memory (#141)

@@ -588,10 +588,14 @@ pub struct DirectoryRef {
 struct Walk {
     /// Directories in visit order.
     out: Vec<DirectoryRef>,
+    /// Header offset -> index into `out`, so dedup is a lookup, not a scan.
+    by_offset: std::collections::HashMap<u64, usize>,
     /// Per directory (index into `out`): the directories its L2 pointers
     /// reach — upstream's `secondary_directory_offsets`, along which
     /// `update_zen_generation` cascades (`directory.py:247-249`).
     l2_children: Vec<Vec<usize>>,
+    /// The `(parent, child)` pairs already in `l2_children`.
+    l2_edges: std::collections::HashSet<(usize, usize)>,
     /// Directories whose pointers are still to be followed.
     work: Vec<usize>,
     /// Entry records the walk may still materialise: one per 16 bytes of the
@@ -611,12 +615,8 @@ impl Walk {
         provenance: DirectoryProvenance,
         generations: &[PspGenerationId],
     ) -> Option<usize> {
-        let offset = directory.source().offset();
-        if let Some(index) = self
-            .out
-            .iter()
-            .position(|d| d.directory.source().offset() == offset)
-        {
+        let offset = directory.source().offset().get();
+        if let Some(&index) = self.by_offset.get(&offset) {
             self.merge(index, generations);
             return Some(index);
         }
@@ -633,6 +633,7 @@ impl Walk {
         });
         self.l2_children.push(Vec::new());
         let index = self.out.len() - 1;
+        self.by_offset.insert(offset, index);
         self.work.push(index);
         Some(index)
     }
@@ -664,7 +665,7 @@ impl Walk {
         let Some(child) = self.visit(child, provenance, &generations) else {
             return;
         };
-        if !self.l2_children[parent].contains(&child) {
+        if self.l2_edges.insert((parent, child)) {
             self.l2_children[parent].push(child);
         }
     }

@@ -189,7 +189,6 @@ fn robust_walk_overlapping_directories_bounded_entries() {
 /// Expected: dedup by a hash/ordered set keyed on the header offset, so the
 /// walk is near-linear. The budget below is generous for 100k directories.
 #[test]
-#[ignore = "crosslink #144"]
 fn robust_walk_many_directories_near_linear_time() {
     const CHILDREN: usize = 100_000;
     const BUDGET: std::time::Duration = std::time::Duration::from_secs(10);

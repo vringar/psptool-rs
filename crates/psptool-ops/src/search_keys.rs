@@ -118,12 +118,18 @@ pub fn search_keys_with_directories(
     // — those are already in `out` with full directory provenance.
     let bytes = blob.as_bytes();
     let blob_start = blob.offset().get();
+    // Sort once and sweep: `covered_until` is the furthest end of any range
+    // starting at or before the current byte, so "inside some range" is
+    // `abs < covered_until`.
+    structured_ranges.sort_unstable_by_key(|r| r.start);
+    let mut pending = structured_ranges.iter().peekable();
+    let mut covered_until = 0u64;
     for local in 0..bytes.len() {
         let abs = blob_start + local as u64;
-        if structured_ranges
-            .iter()
-            .any(|r| r.start <= abs && abs < r.end)
-        {
+        while let Some(r) = pending.next_if(|r| r.start <= abs) {
+            covered_until = covered_until.max(r.end);
+        }
+        if abs < covered_until {
             continue;
         }
         if let Some(hit) = try_heuristic_at(bytes, local, blob_start) {
