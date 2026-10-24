@@ -632,13 +632,16 @@ impl Walk {
     /// reach. Upstream raises `TypeError` when the directory has no
     /// generation yet (`None`); the ids are adopted instead.
     fn merge(&mut self, index: usize, generations: &[PspGenerationId]) {
+        // Explicit stack: the L2 chain can be arbitrarily long. Pushing children
+        // in reverse keeps upstream's depth-first order.
         for &generation in generations {
-            if self.out[index].generations.contains(&generation) {
-                continue;
-            }
-            self.out[index].generations.push(generation);
-            for child in self.l2_children[index].clone() {
-                self.merge(child, &[generation]);
+            let mut stack = vec![index];
+            while let Some(node) = stack.pop() {
+                if self.out[node].generations.contains(&generation) {
+                    continue;
+                }
+                self.out[node].generations.push(generation);
+                stack.extend(self.l2_children[node].iter().rev());
             }
         }
     }

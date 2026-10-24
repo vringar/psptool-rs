@@ -298,29 +298,39 @@ impl Builder<'_> {
         offset: u64,
         generation: Option<String>,
     ) -> Vec<usize> {
-        if let Some(&id) = self.dir_cache.get(&offset) {
-            self.update_zen_generation(id, generation.as_deref());
-            return vec![id];
-        }
-        let Some(id) = self.parse_directory(rom, offset, generation.clone()) else {
-            return Vec::new();
-        };
-        self.dir_cache.insert(offset, id);
-        self.model.directories_by_offset.push((offset, id));
-
-        let mut created = vec![id];
-        for secondary in self.model.dirs[id].secondary.clone() {
-            created.extend(self.create_directories(rom, secondary, generation.clone()));
-        }
-        // `directory.py:86-99`: a tertiary entry points at a 32-byte block whose
-        // `[16:20]` is the directory offset and `[20:24]` its PSP id.
-        for tertiary in self.model.dirs[id].tertiary.clone() {
-            let Some(block) = self.rom_read(rom, tertiary, 32) else {
+        // Explicit stack (pre-order, children pushed in reverse): an L2 chain can
+        // be arbitrarily long.
+        let mut created = Vec::new();
+        let mut stack = vec![(offset, generation)];
+        while let Some((offset, generation)) = stack.pop() {
+            if let Some(&id) = self.dir_cache.get(&offset) {
+                self.update_zen_generation(id, generation.as_deref());
+                created.push(id);
+                continue;
+            }
+            let Some(id) = self.parse_directory(rom, offset, generation.clone()) else {
                 continue;
             };
-            let actual = u64::from(le_u32(&block[16..20]));
-            let label = generation_label(PspGenerationId(le_u32(&block[20..24])));
-            created.extend(self.create_directories(rom, actual, Some(label)));
+            self.dir_cache.insert(offset, id);
+            self.model.directories_by_offset.push((offset, id));
+            created.push(id);
+
+            let mut children: Vec<(u64, Option<String>)> = self.model.dirs[id]
+                .secondary
+                .iter()
+                .map(|&secondary| (secondary, generation.clone()))
+                .collect();
+            // `directory.py:86-99`: a tertiary entry points at a 32-byte block whose
+            // `[16:20]` is the directory offset and `[20:24]` its PSP id.
+            for tertiary in self.model.dirs[id].tertiary.clone() {
+                let Some(block) = self.rom_read(rom, tertiary, 32) else {
+                    continue;
+                };
+                let actual = u64::from(le_u32(&block[16..20]));
+                let label = generation_label(PspGenerationId(le_u32(&block[20..24])));
+                children.push((actual, Some(label)));
+            }
+            stack.extend(children.into_iter().rev());
         }
         created
     }
@@ -332,19 +342,23 @@ impl Builder<'_> {
         let Some(generation) = generation else {
             return;
         };
-        let current = &mut self.model.dirs[id].zen_generation;
-        match current {
-            Some(existing) if existing.contains(generation) => return,
-            Some(existing) => {
-                existing.push('\n');
-                existing.push_str(generation);
+        let mut stack = vec![id];
+        while let Some(id) = stack.pop() {
+            let current = &mut self.model.dirs[id].zen_generation;
+            match current {
+                Some(existing) if existing.contains(generation) => continue,
+                Some(existing) => {
+                    existing.push('\n');
+                    existing.push_str(generation);
+                }
+                None => *current = Some(generation.to_owned()),
             }
-            None => *current = Some(generation.to_owned()),
-        }
-        for secondary in self.model.dirs[id].secondary.clone() {
-            if let Some(&child) = self.dir_cache.get(&secondary) {
-                self.update_zen_generation(child, Some(generation));
-            }
+            let children: Vec<usize> = self.model.dirs[id]
+                .secondary
+                .iter()
+                .filter_map(|secondary| self.dir_cache.get(secondary).copied())
+                .collect();
+            stack.extend(children.into_iter().rev());
         }
     }
 

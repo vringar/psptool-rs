@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Robustness: stack overflow on long L2 generation chain (Walk::merge, py create_directories) (#139)
+- Robustness: zlib bomb, no output cap (zlib_decompress_strict) (#140)
 - Divergence: list.rs ls verbose 'MD5' column is full 32-char lowercase, upstream psptool.py:180 renders md5()[:4].upper() (4-char uppercase) (#87)
 - Divergence: list.rs ls verbose 'flags' column populated (0x..), upstream psptool.py:179 renders it empty ('') (#86)
 - Spillover: extract.rs:156-157 build_encrypted_header_body stamps header-inclusive size_signed (stale convention) (#80)
