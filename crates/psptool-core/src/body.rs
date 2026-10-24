@@ -935,7 +935,29 @@ impl HeaderEntry {
                 .get(..HEADER_FILE_LEN)
                 .zip(payload)
                 .map(|(header, payload)| [header, payload].concat());
-            keys.check(&self.signature_fingerprint, signed.as_deref(), signature)
+            let check = keys.check(&self.signature_fingerprint, signed.as_deref(), signature);
+            // Zen4/5 sign the stored zlib stream rather than the inflated body
+            // (#138; the Python oracle now tries both): retry on the stored bytes.
+            if check == SignatureCheck::Failed && !key_store && self.is_compressed {
+                let stored = if self.is_encrypted {
+                    self.get_decrypted_body(file, ikek).ok()
+                } else {
+                    self.data_region(file).ok().map(<[u8]>::to_vec)
+                };
+                let signed =
+                    file.get(..HEADER_FILE_LEN)
+                        .zip(stored.as_deref())
+                        .map(|(header, stored)| {
+                            let covered = &stored[..(self.size_signed as usize).min(stored.len())];
+                            [header, covered].concat()
+                        });
+                if keys.check(&self.signature_fingerprint, signed.as_deref(), signature)
+                    == SignatureCheck::Verified
+                {
+                    return SignatureCheck::Verified;
+                }
+            }
+            check
         });
 
         let sha256_ok = self.has_sha256_checksum()

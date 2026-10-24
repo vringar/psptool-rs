@@ -788,7 +788,11 @@ const UPSTREAM_IDENTITY_FALSE: usize = 5;
 /// Lenovo A285/A485 images. Upstream echoes it for the next record at the same
 /// offset (`file.py:47-50`); we parse that record fresh over the same bytes,
 /// to the same verdict.
-const ENTRY_SET_DELTA: [(&str, isize); 1] = [("signature-failed", 1)];
+///
+/// Deliberate decoupling (#138): when the inflated body fails the signature we
+/// retry on the stored zlib stream, which signs 24 compressed entries of the
+/// corpus (AORUS_X570_X57AOXT2) that upstream reports `signature-failed`.
+const ENTRY_SET_DELTA: [(&str, isize); 2] = [("signature-failed", 1 - 24), ("signature", 24)];
 
 /// Every HeaderFile-class verdict of one image, walked the way `ls` lists it:
 /// every ROM (FET candidate resolving to a layout), every directory, every

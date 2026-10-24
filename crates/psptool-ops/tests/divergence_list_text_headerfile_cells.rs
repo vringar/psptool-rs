@@ -282,9 +282,22 @@ fn corpus_row_pairs() -> Option<Vec<(String, RowKey, Row, Row)>> {
     Some(pairs)
 }
 
+/// Upstream verifies a compressed entry against the decompressed body only;
+/// we retry on the stored zlib stream (#138, intentional), so a compressed row
+/// upstream tags `veri-failed(X)` may be `verified(X)` here. Only that
+/// direction is excused.
+fn file_info_matches(reference: Option<&String>, ours: Option<&String>) -> bool {
+    if reference == ours {
+        return true;
+    }
+    let (Some(r), Some(o)) = (reference, ours) else {
+        return false;
+    };
+    r.contains("compressed") && r.replacen("veri-failed(", "verified(", 1) == *o
+}
+
 /// #120 corpus pin: the File Info of every upstream HeaderFile row (non-empty
-/// `size_signed`, `psptool.py:183`) equals ours. 4000+ rows differ today, all
-/// by the extra `signed` / `sha256` / `sha384` tokens.
+/// `size_signed`, `psptool.py:183`) equals ours, up to the #138 retry.
 ///
 /// Tracking: #120
 #[test]
@@ -296,7 +309,7 @@ fn divergence_corpus_headerfile_file_info_matches_reference() {
     let bad: Vec<String> = pairs
         .iter()
         .filter(|(_, _, ur, _)| ur.get("size_signed").is_some_and(|s| !s.is_empty()))
-        .filter(|(_, _, ur, or)| ur.get("File Info") != or.get("File Info"))
+        .filter(|(_, _, ur, or)| !file_info_matches(ur.get("File Info"), or.get("File Info")))
         .map(|(n, k, ur, or)| {
             format!(
                 "{n} dir {:#x} {} {}: reference {:?}, ours {:?}",
