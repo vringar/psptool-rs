@@ -198,6 +198,23 @@ fn apply(
     dir_source: Option<&SourceBytes>,
     new_body: &[u8],
 ) -> Result<(), ReplaceError> {
+    // All-or-nothing: the size/checksum/body patches are recorded one at a
+    // time, so a later failure (e.g. the body colliding with an earlier
+    // patch) must not leave the earlier ones behind. Snapshot and restore.
+    let snapshot = editor.clone();
+    let result = apply_patches(editor, entry, dir_source, new_body);
+    if result.is_err() {
+        *editor = snapshot;
+    }
+    result
+}
+
+fn apply_patches(
+    editor: &mut BlobEditor,
+    entry: &Entry,
+    dir_source: Option<&SourceBytes>,
+    new_body: &[u8],
+) -> Result<(), ReplaceError> {
     if matches!(entry.class, EntryClass::SoftFuseChain) {
         return Err(ReplaceError::SoftFuseChainEntry);
     }
@@ -211,10 +228,7 @@ fn apply(
     }
 
     // If the length changed, rewrite the directory record's `size` field
-    // first. Doing this before the body patch keeps the editor's recorded
-    // patches consistent even if the body patch fails downstream — but in
-    // practice both calls validate up-front against `BlobEditor::original`,
-    // so either both succeed or neither commits.
+    // first. A failure in any later step is rolled back by `apply`.
     if new_body.len() != original_len {
         let new_size_bytes = rewrite_size_field(editor, entry, new_body.len())?;
         // The `size` field lands inside the directory's checksummed region

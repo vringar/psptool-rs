@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Bug: failed replace leaves 2 patches in editor despite all-or-nothing comment (#145)
 - Robustness: overlapping directory tables use O(tables x image) memory (#141)
 - Robustness: stack overflow on long L2 generation chain (Walk::merge, py create_directories) (#139)
 - Robustness: zlib bomb, no output cap (zlib_decompress_strict) (#140)
