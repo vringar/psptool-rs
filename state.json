@@ -1,5 +1,5 @@
 {
-  "next_display_id": 139,
+  "next_display_id": 140,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -21,6 +21,7 @@
     "30ebeb09-6065-4482-a675-664a60fd2761": 8,
     "31bf0b30-eae6-49c8-973c-1bf41ed7f4c0": 112,
     "31f3c0b3-cdf0-4a17-b213-93e38140f828": 65,
+    "34537f1b-bc62-4553-b04b-7d0c90b0b2f0": 139,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "39fdab98-8c42-447e-b4f2-a335125d7d04": 129,
     "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": 133,
@@ -859,6 +860,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAtrVNsIc3n01sQe+sDaYMV3wtv1viOZaMeV4pOS0D9fszzMtgw7YkUA0jvWxlESSjkx0NobcxHxggsQLo6zwCAQ=="
         }
       }
+    },
+    "34537f1b-bc62-4553-b04b-7d0c90b0b2f0": {
+      "uuid": "34537f1b-bc62-4553-b04b-7d0c90b0b2f0",
+      "display_id": 139,
+      "title": "Robustness: stack overflow on long L2 generation chain (Walk::merge, py create_directories)",
+      "description": "directory.rs:634-644 recursion depth = chain length; psptool-py model.rs:295-349 same, aborts the interpreter. Pinned by robust_walk.rs generation_cascade + psptool-py robust_model.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:21:32.756767127Z",
+      "updated_at": "2026-10-24T18:21:32.756767127Z"
     },
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": {
       "uuid": "37adbfde-9107-49f0-8fa1-9ea76db4eaa3",
@@ -6791,11 +6803,16 @@
       "agent_id": "tLiK",
       "agent_seq": 464,
       "timestamp": "2026-10-24T17:44:30.197172843Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 465,
+      "timestamp": "2026-10-24T18:21:32.756767127Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T17:44:30.197172843Z",
+    "timestamp": "2026-10-24T18:21:32.756767127Z",
     "agent_id": "tLiK",
-    "agent_seq": 464
+    "agent_seq": 465
   }
 }
