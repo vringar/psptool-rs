@@ -1,5 +1,5 @@
 {
-  "next_display_id": 144,
+  "next_display_id": 145,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -15,6 +15,7 @@
     "1e1b514a-d3f0-4083-9e46-f6b55e0f47de": 35,
     "26c027e1-0f2c-4b92-b592-f49165dca17d": 6,
     "2797d073-2ce9-4dd9-932a-f643a2a95c56": 125,
+    "290ea975-8c82-4e7f-bfd3-bc25fd78e4d4": 144,
     "293b1344-0dcf-4e79-b0ae-f57bd981696f": 121,
     "2d160374-3435-423c-8649-a766236f51ac": 67,
     "307dce04-e751-4448-9772-84e7a8cb63b2": 41,
@@ -641,6 +642,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAElA/Go9CZivlXKd5EKCueusvMVDnq6/hlMnXmkpzkwxmx3O15GmGYBUd/Mi6qFQnBeBgNrfFwWl8vZa9U6pGCg=="
         }
       }
+    },
+    "290ea975-8c82-4e7f-bfd3-bc25fd78e4d4": {
+      "uuid": "290ea975-8c82-4e7f-bfd3-bc25fd78e4d4",
+      "display_id": 144,
+      "title": "Robustness: quadratic walk dedup and search_keys scan",
+      "description": "directory.rs:611-652 linear-scan dedup (160k dirs ~150 s); search_keys.rs:121-128 per-byte x per-range. Pinned by robust_walk.rs many_directories + robust_search_keys.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:22:01.654746460Z",
+      "updated_at": "2026-10-24T18:22:01.654746460Z"
     },
     "293b1344-0dcf-4e79-b0ae-f57bd981696f": {
       "uuid": "293b1344-0dcf-4e79-b0ae-f57bd981696f",
@@ -6876,11 +6888,16 @@
       "agent_id": "tLiK",
       "agent_seq": 469,
       "timestamp": "2026-10-24T18:21:56.097689980Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 470,
+      "timestamp": "2026-10-24T18:22:01.654746460Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:21:56.097689980Z",
+    "timestamp": "2026-10-24T18:22:01.654746460Z",
     "agent_id": "tLiK",
-    "agent_seq": 469
+    "agent_seq": 470
   }
 }
