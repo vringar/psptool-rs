@@ -1,5 +1,5 @@
 {
-  "next_display_id": 143,
+  "next_display_id": 144,
   "next_comment_id": 209,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -47,6 +47,7 @@
     "5c2c8d27-0025-4384-b9bd-bf847da32972": 130,
     "5de53d47-8827-431f-88a6-8320e361bdbf": 123,
     "5ec8cbe7-0ce3-428c-8b59-a45a90107616": 47,
+    "60b8d2d7-ef7f-4199-a699-a95e7e92e76c": 143,
     "626db84c-9c12-4491-81c6-bc7e4862fac1": 124,
     "6354088a-5c59-4f87-ba5b-6da7c3c870e8": 23,
     "648b742f-1539-41eb-9e77-108bd6b73994": 40,
@@ -1505,6 +1506,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAhSXy8RrVfzz0+GTe1xX18gFf+L3VQuameXYi9m/4WirmJMni0TowmipN2hXlx2lsxIXEJGRVykE5R4q4iIKbBA=="
         }
       }
+    },
+    "60b8d2d7-ef7f-4199-a699-a95e7e92e76c": {
+      "uuid": "60b8d2d7-ef7f-4199-a699-a95e7e92e76c",
+      "display_id": 143,
+      "title": "Robustness: CertifyingKeys::from_blob re-parses overlapping candidates (hang)",
+      "description": "body.rs:731-753; ls/verify/--metrics/py build hang. Pinned by robust_fet.rs certifying_keys (ignored until fixed). Report: scratch/review-c4.md (host-only).",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-24T18:21:56.097689980Z",
+      "updated_at": "2026-10-24T18:21:56.097689980Z"
     },
     "626db84c-9c12-4491-81c6-bc7e4862fac1": {
       "uuid": "626db84c-9c12-4491-81c6-bc7e4862fac1",
@@ -6859,11 +6871,16 @@
       "agent_id": "tLiK",
       "agent_seq": 468,
       "timestamp": "2026-10-24T18:21:50.769077583Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 469,
+      "timestamp": "2026-10-24T18:21:56.097689980Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:21:50.769077583Z",
+    "timestamp": "2026-10-24T18:21:56.097689980Z",
     "agent_id": "tLiK",
-    "agent_seq": 468
+    "agent_seq": 469
   }
 }
