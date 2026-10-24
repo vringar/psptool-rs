@@ -594,6 +594,10 @@ struct Walk {
     l2_children: Vec<Vec<usize>>,
     /// Directories whose pointers are still to be followed.
     work: Vec<usize>,
+    /// Entry records the walk may still materialise: one per 16 bytes of the
+    /// image. Well-formed tables never overlap, so they fit; overlapping
+    /// tables would otherwise cost `O(directories x image)` memory.
+    budget: usize,
 }
 
 impl Walk {
@@ -606,7 +610,7 @@ impl Walk {
         directory: Directory,
         provenance: DirectoryProvenance,
         generations: &[PspGenerationId],
-    ) -> usize {
+    ) -> Option<usize> {
         let offset = directory.source().offset();
         if let Some(index) = self
             .out
@@ -614,8 +618,14 @@ impl Walk {
             .position(|d| d.directory.source().offset() == offset)
         {
             self.merge(index, generations);
-            return index;
+            return Some(index);
         }
+        let records = match &directory {
+            Directory::Psp(d) => d.entries.len(),
+            Directory::Bios(d) => d.entries.len(),
+            Directory::Combo(d) => d.entries.len(),
+        };
+        self.budget = self.budget.checked_sub(records)?;
         self.out.push(DirectoryRef {
             directory,
             provenance,
@@ -624,7 +634,7 @@ impl Walk {
         self.l2_children.push(Vec::new());
         let index = self.out.len() - 1;
         self.work.push(index);
-        index
+        Some(index)
     }
 
     /// `update_zen_generation` (`directory.py:243-249`): append each id the
@@ -651,7 +661,9 @@ impl Walk {
     /// edge carries later additions (`:247-249`).
     fn visit_l2(&mut self, parent: usize, child: Directory, provenance: DirectoryProvenance) {
         let generations = self.out[parent].generations.clone();
-        let child = self.visit(child, provenance, &generations);
+        let Some(child) = self.visit(child, provenance, &generations) else {
+            return;
+        };
         if !self.l2_children[parent].contains(&child) {
             self.l2_children[parent].push(child);
         }
@@ -691,7 +703,10 @@ pub fn walk_directories(
     rom_size: RomSize,
     rom_origin: FlashOffset,
 ) -> Vec<DirectoryRef> {
-    let mut walk = Walk::default();
+    let mut walk = Walk {
+        budget: blob.len() / 16,
+        ..Walk::default()
+    };
 
     for (index, slot) in fet.slots.iter().enumerate() {
         let raw = match slot.slot {

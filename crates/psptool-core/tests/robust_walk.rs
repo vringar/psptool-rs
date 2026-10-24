@@ -142,7 +142,6 @@ fn robust_walk_generation_cascade_does_not_overflow_stack() {
 /// Expected: the walk keeps that bound (reject or share overlapping tables,
 /// or budget the total).
 #[test]
-#[ignore = "crosslink #141"]
 fn robust_walk_overlapping_directories_bounded_entries() {
     const IMAGE_LEN: usize = 0x4_0000; // 256 KiB keeps the failing case at ~70 MB
     const DIRS: usize = 64;
