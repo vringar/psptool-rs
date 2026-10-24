@@ -92,6 +92,8 @@ pub fn detect_rom_layout(blob: &SourceBytes, fet_position: FlashOffset) -> Optio
 
     let rom_size = assumed_rom_size(blob_len)?;
 
+    // The parse does not depend on `fet_offset`; do it at most once.
+    let mut parsed: Option<Result<Fet, ParseError>> = None;
     for &fet_offset in KNOWN_FET_OFFSETS {
         // rom_origin is `fet_position - fet_offset` — must lie at-or-after
         // the start of the blob.
@@ -117,12 +119,15 @@ pub fn detect_rom_layout(blob: &SourceBytes, fet_position: FlashOffset) -> Optio
         if rom_end > blob_end {
             continue;
         }
-        if let Ok(fet) = Fet::parse_at(blob, fet_position) {
-            return Some(RomLayout {
-                rom_origin: FlashOffset(rom_origin_abs),
-                rom_size,
-                fet,
-            });
+        match parsed.get_or_insert_with(|| Fet::parse_at(blob, fet_position)) {
+            Ok(fet) => {
+                return Some(RomLayout {
+                    rom_origin: FlashOffset(rom_origin_abs),
+                    rom_size,
+                    fet: fet.clone(),
+                });
+            }
+            Err(_) => return None,
         }
     }
     None
@@ -201,6 +206,61 @@ pub struct Fet {
     pub slots: Vec<FetSlotRecord>,
 }
 
+/// For each residue `r` of a start offset modulo [`FET_SLOT_SIZE`], the last
+/// offset `t ≡ r` at which 16 consecutive `0xFF` bytes begin, or `None`.
+/// One pass over the `0xFF` runs of `bytes`.
+fn last_terminator_starts(bytes: &[u8]) -> [Option<usize>; 4] {
+    let mut last = [None; 4];
+    let mut p = 0;
+    while let Some(off) = bytes[p..].iter().position(|&b| b == 0xFF) {
+        let start = p + off;
+        let end = bytes[start..]
+            .iter()
+            .position(|&b| b != 0xFF)
+            .map_or(bytes.len(), |n| start + n);
+        if end - start >= FET_TERMINATOR_SIZE {
+            let last_start = end - FET_TERMINATOR_SIZE;
+            for (r, slot) in last.iter_mut().enumerate() {
+                // Largest `t <= last_start` with `t % 4 == r`.
+                let delta = (last_start % FET_SLOT_SIZE + FET_SLOT_SIZE - r) % FET_SLOT_SIZE;
+                let Some(t) = last_start.checked_sub(delta) else {
+                    continue;
+                };
+                if t >= start {
+                    *slot = Some(t);
+                }
+            }
+        }
+        p = end;
+    }
+    last
+}
+
+/// First offset `>= from`, dword-aligned relative to `from`, at which 16
+/// consecutive `0xFF` bytes begin, i.e. the §1.2 terminator. A candidate with
+/// no terminator after it is rejected from the cached per-alignment index
+/// without scanning; otherwise the scan stops at the first terminator.
+fn find_terminator(blob: &SourceBytes, from: usize) -> Option<usize> {
+    let bytes = blob.as_bytes();
+    let last = blob.terminator_index(last_terminator_starts)[from % FET_SLOT_SIZE]?;
+    if last < from {
+        return None;
+    }
+    let mut p = from;
+    loop {
+        let start = p + bytes[p..].iter().position(|&b| b == 0xFF)?;
+        let end = bytes[start..]
+            .iter()
+            .position(|&b| b != 0xFF)
+            .map_or(bytes.len(), |n| start + n);
+        let aligned = start + (FET_SLOT_SIZE - (start - from) % FET_SLOT_SIZE) % FET_SLOT_SIZE;
+        if aligned + FET_TERMINATOR_SIZE <= end {
+            return Some(aligned);
+        }
+        p = end;
+    }
+}
+
 impl Fet {
     /// Parse a FET whose magic begins at `magic_offset` inside `blob`.
     ///
@@ -246,41 +306,31 @@ impl Fet {
             });
         }
 
-        let mut slots = Vec::new();
-        let mut cursor = local_start + FET_MAGIC_SIZE;
-
-        loop {
-            // Look ahead for the 16-byte terminator. If the remaining bytes
-            // start with four consecutive 0xFFFFFFFF dwords, we're done.
-            if cursor + FET_TERMINATOR_SIZE <= bytes.len()
-                && bytes[cursor..cursor + FET_TERMINATOR_SIZE]
-                    .iter()
-                    .all(|&b| b == 0xFF)
-            {
-                break;
-            }
-
-            // Otherwise we need at least one more dword.
-            if cursor + FET_SLOT_SIZE > bytes.len() {
-                return Err(ParseError::FetUnterminated {
-                    offset: magic_offset,
-                });
-            }
-            let raw = u32::from_le_bytes(
-                bytes[cursor..cursor + FET_SLOT_SIZE]
-                    .try_into()
-                    .expect("FET_SLOT_SIZE == 4"),
-            );
-            let addr = Address(raw);
-            let source = blob
-                .slice(cursor, FET_SLOT_SIZE)
-                .expect("cursor verified in-bounds above");
-            slots.push(FetSlotRecord {
-                slot: FetSlot::classify(addr),
-                source,
+        let first_slot = local_start + FET_MAGIC_SIZE;
+        // Locate the terminator before building any slot record, so a FET
+        // that never terminates fails without allocating per dword.
+        let Some(cursor) = find_terminator(blob, first_slot) else {
+            return Err(ParseError::FetUnterminated {
+                offset: magic_offset,
             });
-            cursor += FET_SLOT_SIZE;
-        }
+        };
+        let slots = (first_slot..cursor)
+            .step_by(FET_SLOT_SIZE)
+            .map(|at| {
+                let raw = u32::from_le_bytes(
+                    bytes[at..at + FET_SLOT_SIZE]
+                        .try_into()
+                        .expect("FET_SLOT_SIZE == 4"),
+                );
+                let source = blob
+                    .slice(at, FET_SLOT_SIZE)
+                    .expect("slot verified in-bounds by find_terminator");
+                FetSlotRecord {
+                    slot: FetSlot::classify(Address(raw)),
+                    source,
+                }
+            })
+            .collect();
 
         let total_len = cursor + FET_TERMINATOR_SIZE - local_start;
         let source = blob
@@ -342,6 +392,30 @@ pub fn scan_fet_candidates(blob: &SourceBytes) -> Vec<FlashOffset> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Brute-force reference for `find_terminator`.
+    fn naive_terminator(bytes: &[u8], from: usize) -> Option<usize> {
+        (from..bytes.len().saturating_sub(FET_TERMINATOR_SIZE - 1))
+            .step_by(FET_SLOT_SIZE)
+            .find(|&p| bytes[p..p + FET_TERMINATOR_SIZE].iter().all(|&b| b == 0xFF))
+    }
+
+    #[test]
+    fn find_terminator_matches_naive_scan_at_every_alignment() {
+        // 0xFF runs of assorted lengths and phases among non-FF bytes.
+        let mut buf = vec![0u8; 96];
+        buf[5..21].fill(0xFF); // exactly 16, unaligned start
+        buf[30..45].fill(0xFF); // 15: too short
+        buf[50..70].fill(0xFF); // 20: aligned start fits at some phases only
+        let blob = SourceBytes::from_blob(buf.clone());
+        for from in 0..buf.len() {
+            assert_eq!(
+                find_terminator(&blob, from),
+                naive_terminator(&buf, from),
+                "from {from}"
+            );
+        }
+    }
 
     fn empty_blob() -> SourceBytes {
         SourceBytes::from_blob(Vec::<u8>::new())

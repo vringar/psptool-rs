@@ -11,6 +11,7 @@
 //! "offset within this slice" and "offset within the original blob".
 
 use core::ops::Range;
+use std::sync::{Arc, OnceLock};
 
 use bytes::Bytes;
 
@@ -36,6 +37,11 @@ pub struct SourceBytes {
     bytes: Bytes,
     /// Absolute flash offset of byte zero of `bytes`.
     flash_offset: u64,
+    /// Per-window cache of the last FET terminator start for each dword
+    /// alignment (`fet.rs`), shared by clones. Lets a FET candidate with no
+    /// terminator after it be rejected without rescanning to the end of the
+    /// image.
+    terminators: Arc<OnceLock<[Option<usize>; 4]>>,
 }
 
 impl SourceBytes {
@@ -44,6 +50,7 @@ impl SourceBytes {
         Self {
             bytes: blob.into(),
             flash_offset: 0,
+            terminators: Arc::default(),
         }
     }
 
@@ -54,6 +61,7 @@ impl SourceBytes {
         Self {
             bytes: blob.into(),
             flash_offset: offset.get(),
+            terminators: Arc::default(),
         }
     }
 
@@ -94,6 +102,14 @@ impl SourceBytes {
         &self.bytes
     }
 
+    /// The window's cached terminator index, built by `build` on first use.
+    pub(crate) fn terminator_index(
+        &self,
+        build: impl FnOnce(&[u8]) -> [Option<usize>; 4],
+    ) -> &[Option<usize>; 4] {
+        self.terminators.get_or_init(|| build(&self.bytes))
+    }
+
     /// Construct a child `SourceBytes` covering `range` *within this slice*
     /// (i.e. `range` is relative to byte 0 of `self`, not absolute).
     ///
@@ -106,6 +122,7 @@ impl SourceBytes {
         Some(Self {
             bytes: self.bytes.slice(range),
             flash_offset: self.flash_offset + start as u64,
+            terminators: Arc::default(),
         })
     }
 
