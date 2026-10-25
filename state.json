@@ -2504,11 +2504,12 @@
       "display_id": 141,
       "title": "Robustness: overlapping directory tables use O(tables x image) memory",
       "description": "directory.rs:409-416 and BIOS/combo twins; 2000 overlapping headers OOM the CLI in 3 s. Pinned by robust_walk.rs overlapping_directories (ignored until fixed). Report: scratch/review-c4.md (host-only).",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-24T18:21:45.124128884Z",
-      "updated_at": "2026-10-24T18:21:45.124128884Z"
+      "updated_at": "2026-10-25T21:18:51.874709077Z",
+      "closed_at": "2026-10-25T21:18:51.874681124Z"
     },
     "9b196228-1911-43b8-9662-c9d1dde70cda": {
       "uuid": "9b196228-1911-43b8-9662-c9d1dde70cda",
@@ -6938,11 +6939,16 @@
       "agent_id": "tLiK",
       "agent_seq": 474,
       "timestamp": "2026-10-25T20:52:26.997024675Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 475,
+      "timestamp": "2026-10-25T21:18:51.874709077Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-25T20:52:26.997024675Z",
+    "timestamp": "2026-10-25T21:18:51.874709077Z",
     "agent_id": "tLiK",
-    "agent_seq": 474
+    "agent_seq": 475
   }
 }
