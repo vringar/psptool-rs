@@ -1091,11 +1091,12 @@
       "display_id": 145,
       "title": "Bug: failed replace leaves 2 patches in editor despite all-or-nothing comment",
       "description": "psptool-ops/src/replace.rs:213-238. Pinned by robust_replace.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-10-24T18:22:07.409747076Z",
-      "updated_at": "2026-10-24T18:22:07.409747076Z"
+      "updated_at": "2026-10-25T21:22:24.905959729Z",
+      "closed_at": "2026-10-25T21:22:24.905958226Z"
     },
     "47de77e3-bbbf-42a9-930a-eb46387697f5": {
       "uuid": "47de77e3-bbbf-42a9-930a-eb46387697f5",
@@ -6944,11 +6945,16 @@
       "agent_id": "tLiK",
       "agent_seq": 475,
       "timestamp": "2026-10-25T21:18:51.874709077Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 476,
+      "timestamp": "2026-10-25T21:22:24.905959729Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-25T21:18:51.874709077Z",
+    "timestamp": "2026-10-25T21:22:24.905959729Z",
     "agent_id": "tLiK",
-    "agent_seq": 475
+    "agent_seq": 476
   }
 }
