@@ -1,6 +1,6 @@
 {
   "next_display_id": 146,
-  "next_comment_id": 209,
+  "next_comment_id": 210,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
@@ -2302,7 +2302,18 @@
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-24T18:21:39.649240005Z",
-      "updated_at": "2026-10-24T18:21:39.649240005Z"
+      "updated_at": "2026-10-25T19:33:07.160681061Z",
+      "comments": {
+        "6b000702-10ee-4df8-ac5e-39749da4915d": {
+          "display_id": 209,
+          "author": "tLiK",
+          "content": "Fixer attempt reverted (no change landed). A strict cap at size_uncompressed in zlib_decompress_strict cannot land within body.rs. (1) Reject past the cap (BodyError::Zlib): the pin still fails, because decode() maps Zlib errors to upstream's fallback Ok((compressed_region,false)) (header_file.py:201-204), so decode_best_effort returns the 65199-byte compressed region, which is more than 0x1000. It also regresses body::tests::get_decompressed_body_preserves_pre_zlib_prefix and divergence_body_bounds::{get_decompressed_body_zlib_size_is_absolute_offset_not_length, get_decompressed_body_no_prefix_control_passes}. (2) Truncate at the cap: the pin passes, but the same 3 core tests regress, plus psptool-ops decode_verification::{compressed_body_signature_is_over_the_inflated_bytes, truncated_zlib_stream_is_decompress_failed}; truncation also hides truncated streams. Root cause: upstream never reads size_uncompressed when inflating a HeaderFile (utils.py:241-254, header_file.py:201); only KeyStoreFile cuts by it (key_store_file.py:40). Upstream-oracle fixtures that leave it at 0 (or smaller than the payload) are therefore valid and pinned. Orchestrator decision needed on the bound (absolute or ratio cap vs size_uncompressed), on reject vs truncate, and on whether the pin's assertion should accept the decompress-failed fallback.",
+          "created_at": "2026-10-25T19:33:06.807797518Z",
+          "kind": "observation",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAOc6aEdFN0lSE95yEt9KKtf1aMeKsZRfAx/it3yXR3ePvO9IqSY+2F8sh6QcHdZoqQBJeszl4np8dQQf9l5ejDg=="
+        }
+      }
     },
     "8c70f226-69d1-4f16-9468-1e51f93cf14e": {
       "uuid": "8c70f226-69d1-4f16-9468-1e51f93cf14e",
@@ -6910,11 +6921,16 @@
       "agent_id": "tLiK",
       "agent_seq": 471,
       "timestamp": "2026-10-24T18:22:07.409747076Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 472,
+      "timestamp": "2026-10-25T19:33:07.160681061Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-24T18:22:07.409747076Z",
+    "timestamp": "2026-10-25T19:33:07.160681061Z",
     "agent_id": "tLiK",
-    "agent_seq": 471
+    "agent_seq": 472
   }
 }
