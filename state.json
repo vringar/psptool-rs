@@ -2298,11 +2298,12 @@
       "display_id": 140,
       "title": "Robustness: zlib bomb, no output cap (zlib_decompress_strict)",
       "description": "body.rs:1207-1230 unbounded inflate; 16 MiB image tries 4 GiB on plain ls. 9922 corpus entries never exceed size_uncompressed, so capping there is safe. Pinned by robust_body.rs (ignored until fixed). Report: scratch/review-c4.md (host-only).",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-24T18:21:39.649240005Z",
-      "updated_at": "2026-10-25T19:33:07.160681061Z",
+      "updated_at": "2026-10-25T20:20:41.700820635Z",
+      "closed_at": "2026-10-25T20:20:41.700818551Z",
       "comments": {
         "6b000702-10ee-4df8-ac5e-39749da4915d": {
           "display_id": 209,
@@ -6926,11 +6927,16 @@
       "agent_id": "tLiK",
       "agent_seq": 472,
       "timestamp": "2026-10-25T19:33:07.160681061Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 473,
+      "timestamp": "2026-10-25T20:20:41.700820635Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-25T19:33:07.160681061Z",
+    "timestamp": "2026-10-25T20:20:41.700820635Z",
     "agent_id": "tLiK",
-    "agent_seq": 472
+    "agent_seq": 473
   }
 }
