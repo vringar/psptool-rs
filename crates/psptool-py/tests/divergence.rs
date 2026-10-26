@@ -149,7 +149,6 @@ fn listing_pads_control_whitespace_like_prettytable() {
 /// every submodule, so `import psptool; psptool.header_file.HeaderFile`
 /// works; the bindings' `__init__.py` imports only `_native`.
 #[test]
-#[ignore = "divergence: import psptool leaves psptool.header_file etc. unloaded (__init__.py:17); tracking #130"]
 fn import_psptool_loads_submodules() {
     assert_matches_reference("import_surface", None);
 }
