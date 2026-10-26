@@ -623,12 +623,13 @@
       "display_id": 125,
       "title": "Divergence: psptool-py PSPTool() of an input under 8 MiB returns an empty parse; upstream raises ValueError (blob.py:53-54)",
       "description": "Upstream PSPTool 241629b blob.py:53-54:\n    possible_rom_sizes = [32, 16, 8]\n    _rom_size = max(value for value in possible_rom_sizes if value * 1024 * 1024 <= self.buffer_size)\nFor len(rom_bytes) < 8 MiB the generator is empty, so PSPTool(...) and PSPTool.from_file(...) raise ValueError ('max() iterable argument is empty').\npsptool-py never raises: crates/psptool-py/src/tool.rs:137-156 (PSPTool.__new__ -> build -> model::build, model.rs:175-188 scan_fet_candidates/detect_rom_layout) returns a PSPTool whose blob.roms == [].\nLive oracle (reference interpreter, 241629b): sizes 0, 5, 1 MiB, 8 MiB-1 -> ValueError x4; bindings -> len(blob.roms) == 0 x4.\nConsumer impact: PSP-DB pspdb/actions/analyze.py:55-60 wraps PSPTool.from_file in 'except Exception: continue' to skip every non-firmware file of an extracted download; with the bindings every small file (readmes, flash utilities) is appended to parsed_psps and gets a FirmwareFile row plus a 'No ROMs found' warning. psp-etl ingest.py:149-159 records a parse_errors row upstream; with the bindings there is none.\nNot covered by crates/psptool-py/DEVIATIONS.md (item 5 is about malformed firmware nodes, not a missing ROM-size candidate).\nFailing test: crates/psptool-py/tests/divergence.rs::small_input_raises_value_error (case small_input of crates/psptool-py/tests/oracle_divergence.py).",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T03:44:45.670693508Z",
-      "updated_at": "2026-10-20T03:52:05.924899062Z",
+      "updated_at": "2026-10-26T01:53:19.693081776Z",
+      "closed_at": "2026-10-26T01:53:19.693079922Z",
       "labels": [
         "blocker"
       ],
@@ -6968,11 +6969,16 @@
       "agent_id": "tLiK",
       "agent_seq": 479,
       "timestamp": "2026-10-26T01:40:24.218613872Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 480,
+      "timestamp": "2026-10-26T01:53:19.693081776Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-26T01:40:24.218613872Z",
+    "timestamp": "2026-10-26T01:53:19.693081776Z",
     "agent_id": "tLiK",
-    "agent_seq": 479
+    "agent_seq": 480
   }
 }
