@@ -2616,11 +2616,12 @@
       "uuid": "9d9ce8bb-fbae-452b-a8a8-ce7b2baff0de",
       "display_id": 96,
       "title": "Divergence: psptool -h description differs from upstream __main__.py:63 ('Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.'); upstream tests/unit/test_cli.py fails against the Rust CLI",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-19T00:48:01.043877627Z",
-      "updated_at": "2026-10-19T00:48:03.728524884Z",
+      "updated_at": "2026-10-26T23:47:17.213859006Z",
+      "closed_at": "2026-10-26T23:47:17.213857273Z",
       "labels": [
         "bug"
       ]
@@ -6998,11 +6999,16 @@
       "agent_id": "tLiK",
       "agent_seq": 484,
       "timestamp": "2026-10-26T23:10:26.176577948Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 485,
+      "timestamp": "2026-10-26T23:47:17.213859006Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-26T23:10:26.176577948Z",
+    "timestamp": "2026-10-26T23:47:17.213859006Z",
     "agent_id": "tLiK",
-    "agent_seq": 484
+    "agent_seq": 485
   }
 }
