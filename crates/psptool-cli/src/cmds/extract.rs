@@ -236,7 +236,15 @@ fn extract_all(opened: &OpenedRom, outdir: &Path, args: &ExtractArgs) -> Result<
                 .class
                 .header()
                 .zip(entry.header_file_window(blob))
-                .map(|(h, file)| h.get_decrypted_body(file.as_bytes(), Ikek::ZenPlus))
+                .map(|(h, file)| {
+                    // Unencrypted: `self.body.get_bytes()`, the bare data
+                    // region (`header_file.py:286-288`).
+                    if h.is_encrypted {
+                        h.get_decrypted_body(file.as_bytes(), Ikek::ZenPlus)
+                    } else {
+                        h.data_region(file.as_bytes()).map(<[u8]>::to_vec)
+                    }
+                })
                 .and_then(Result::ok)
                 .unwrap_or_else(|| extract_raw(entry, blob))
         } else if args.pem_key {

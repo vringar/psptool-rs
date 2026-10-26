@@ -349,8 +349,8 @@ fn decompress_cases() -> Vec<(&'static str, Placed)> {
 
 /// `-c` cases: the committed `header_encrypted` fixture (signed RSA-2048,
 /// 0x10 cipher bytes, `rom_size` 0x210), whole and grown past its directory
-/// entry (#99). Only encrypted HeaderFiles: multi-file `-c` of an unencrypted
-/// one still writes the raw entry instead of the bare data region (#102).
+/// entry (#99). Unencrypted HeaderFiles are in `image_of`'s trailing entries
+/// (single-file `-c` rejects them, #102).
 fn decrypt_cases() -> Vec<(&'static str, Placed)> {
     let encrypted = psptool_fixtures::micro::header_encrypted().to_vec();
     vec![
@@ -425,12 +425,18 @@ fn argv<'a>(args: &[&'a str]) -> Vec<&'a str> {
 
 /// The image of `cases` plus trailing entries a single-file `-u`/`-c` rejects
 /// in both tools (`__main__.py:170`, `:174`), so only multi-file reaches them:
-/// a plain file and an uncompressed, unencrypted `KeyStoreFile` — the corpus'
-/// shape (#100).
+/// a plain file, an uncompressed, unencrypted `KeyStoreFile` — the corpus'
+/// shape (#100) — and an uncompressed, unencrypted `HeaderFile`, unsigned and
+/// signed, whose multi-file `-c` is the bare data region (`header_file.py:286-288`,
+/// #102).
 fn image_of(cases: &[(&str, Placed)]) -> Vec<u8> {
     let mut entries: Vec<Placed> = cases.iter().map(|(_, p)| p.clone()).collect();
     entries.push(Placed::plain(filler(0x40)));
     entries.push(Placed::key_store(key_store_file(&kdb())));
+    let mut plain_header = compressed_header_file(&filler(0x40), 0x40, 0x40);
+    plain_header[0x48..0x4C].fill(0);
+    entries.push(Placed::header_file(plain_header.clone()));
+    entries.push(Placed::header_file(signed(plain_header)));
     image(&entries)
 }
 

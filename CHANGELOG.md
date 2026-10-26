@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Translation unit: psptool-core/fletcher.rs (#42)
 
 ### Fixed
+- Divergence: psptool -h description differs from upstream __main__.py:63 ('Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.'); upstream tests/unit/test_cli.py fails against the Rust CLI (#96)
 - psptool-cli: `psptool sign` and `replace -p` / `-R -p` re-sign an encrypted HeaderFile: both pass the Zen+ IKEK to `sign_entry`, the key upstream's `get_decrypted_body` always unwraps with (`get_unwrapped_ikek`, `header_file.py:286-307`), instead of none, which failed every one of the 256 encrypted signed corpus HeaderFiles with `NotEncrypted`. `cmds/sign.rs` and `cmds/replace.rs` are now routed (#108)
 - psptool-ops: `sign_entry` (the `sign` and `replace -p` paths) refreshes a stale sha256 content checksum before signing like upstream's `resign_only` (`cert_tree.py:103-110` → `update_sha256`, `header_file.py:119-121`): when the header's sha256 bit is set and the digest at `0xd0` no longer matches the decoded body (a KeyStoreFile: its key store) — e.g. after `replace -s` — the fresh digest is written and the new signature covers it. Previously the header kept the old digest. A matching digest and a sha384 checksum are left alone. psptool-core's `entry::CHECKSUM_OFFSET` is now public (#109)
 - psptool-ops: for a ROM that does not start at file offset 0 — behind a capsule header (`0x800` on ASUS `.CAP` and the Milan KRPA-U16 images, `0x220` on HP, more on Lenovo `.iso`) or the upper ROM of a dual-ROM image — the `ls` ROM row shows upstream's `Addr` (where the ROM starts, `rom.get_address()`) and `Size` (the ROM window, `rom.buffer_size`: 16 MiB on Milan, not the `0x1000800`-byte file; `psptool.py:71-72`, `blob.py:65`, `:72-75`), and the `Secondary Directory` column / `ls -j` `secondaryAddresses` list ROM offsets like upstream's `entry.file_offset()` (`directory.py:156-161`, `entry.py:38-70`; Milan `$PSP` → `0x272000`, was `0x272800`). Directory and entry addresses and the roundtrip are unchanged; the ROM rows and secondary cells of the 54 corpus images, the 5 local Zen 4/5 images and both Milan images now match the reference (21 + 2 + 2 differed) (#113)
@@ -46,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: multi-file -X -c of an unencrypted HeaderFile writes the raw entry; upstream writes get_decrypted_body() = the bare data region (header_file.py:286-288, __main__.py:195-196) (#102)
 - Divergence: psptool -E on a 64 MiB image with no FET exits 1 'no FET found'; upstream prints nothing / '[]' and exits 0 (psptool.py ls/ls_json) (#133)
 - Divergence: psptool -E / -E -j list only ROM 0 of a multi-ROM blob; upstream ls()/ls_json() list every ROM (psptool.py:67-68, :205) (#132)
 - Divergence: psptool-py extracts BIOS entry destination as i64 - OverflowError for destination >= 2**63 in repr(), get_readable_destination_address(), ls(), ls_json() (entry.py:140, file.py:366,413) (#126)
