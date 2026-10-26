@@ -90,7 +90,6 @@ fn directory_addresses(json: &str) -> BTreeSet<u64> {
 /// Divergence: default `-E -j` omits the upper ROM's directories
 /// (`psptool.py:205`).
 #[test]
-#[ignore = "divergence: -E -j lists only ROM 0 of a multi-ROM blob, upstream every ROM (psptool.py:205); tracking #132"]
 fn json_listing_covers_every_rom() {
     let Some((reference, rom)) = setup() else {
         return;
@@ -112,7 +111,6 @@ fn json_listing_covers_every_rom() {
 /// Divergence: default `-E` prints one ROM table; upstream prints one per
 /// ROM (`psptool.py:67-76`).
 #[test]
-#[ignore = "divergence: -E prints only ROM 0's table of a multi-ROM blob, upstream one per ROM (psptool.py:67-76); tracking #132"]
 fn table_listing_covers_every_rom() {
     let Some((reference, rom)) = setup() else {
         return;

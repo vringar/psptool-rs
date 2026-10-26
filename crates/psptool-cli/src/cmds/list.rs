@@ -9,7 +9,7 @@ use psptool_core::{Directory, Entry, FlashOffset, RomSize, SourceBytes, scan_fet
 use psptool_ops::{RomListing, list_default, list_json, list_verbose};
 
 use crate::cli::ListArgs;
-use crate::load::{OpenedRom, open_rom};
+use crate::load::{OpenedRom, open_all_roms, open_rom};
 
 /// Run the `list` subcommand.
 pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
@@ -44,15 +44,33 @@ pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
         || std::env::var("PSPTOOL_LS_SPARSE")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
-    let listing = build_listing(&opened, args.rom_index, sparse);
+    // Upstream `ls()` / `ls_json()` walk every ROM and ignore `-r`
+    // (`psptool.py:67-68`, `:205`).
+    let roms = open_all_roms(&args.file)?;
+    let listings: Vec<_> = roms
+        .iter()
+        .enumerate()
+        .map(|(index, rom)| build_listing(rom, index, sparse))
+        .collect();
     if args.json {
-        let value = list_json(&listing, args.verbose);
+        let value: Vec<_> = listings
+            .iter()
+            .flat_map(|l| match list_json(l, args.verbose) {
+                serde_json::Value::Array(dirs) => dirs,
+                other => vec![other],
+            })
+            .collect();
         let s = serde_json::to_string(&value)?;
         writeln!(out, "{s}")?;
-    } else if args.verbose {
-        out.write_all(list_verbose(&listing).as_bytes())?;
     } else {
-        out.write_all(list_default(&listing).as_bytes())?;
+        for listing in &listings {
+            let text = if args.verbose {
+                list_verbose(listing)
+            } else {
+                list_default(listing)
+            };
+            out.write_all(text.as_bytes())?;
+        }
     }
     Ok(())
 }

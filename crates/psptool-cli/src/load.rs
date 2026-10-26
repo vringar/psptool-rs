@@ -48,6 +48,33 @@ pub fn open_rom(path: &Path, rom_index: usize) -> Result<OpenedRom> {
     Ok(opened_from_layout(blob, layout))
 }
 
+/// Read `path` and open every ROM of the blob in order (upstream
+/// `self.blob.roms`), as the listing does regardless of `-r`.
+pub fn open_all_roms(path: &Path) -> Result<Vec<OpenedRom>> {
+    let bytes = std::fs::read(path)
+        .with_context(|| format!("reading firmware image {}", path.display()))?;
+    let blob = SourceBytes::from_blob(bytes);
+    let candidates = scan_fet_candidates(&blob);
+    if candidates.is_empty() {
+        return Err(anyhow!(
+            "{}: no FET (Firmware Entry Table) found",
+            path.display()
+        ));
+    }
+    let roms: Vec<_> = candidates
+        .iter()
+        .filter_map(|pos| detect_rom_layout(&blob, *pos))
+        .map(|layout| opened_from_layout(blob.clone(), layout))
+        .collect();
+    if roms.is_empty() {
+        return Err(anyhow!(
+            "ROM index 0 out of range (found {} ROM(s))",
+            candidates.len()
+        ));
+    }
+    Ok(roms)
+}
+
 fn opened_from_layout(blob: SourceBytes, layout: RomLayout) -> OpenedRom {
     let RomLayout {
         rom_origin,

@@ -108,11 +108,6 @@ use std::process::Command;
 #[cfg(feature = "corpus")]
 const REFERENCE_ENV: &str = "PSPTOOL_REFERENCE";
 
-/// Upper bound on `-r` (ROM index) probing. Real corpus blobs top out at 2
-/// ROMs; the cap only guards against a hypothetical runaway loop.
-#[cfg(feature = "corpus")]
-const MAX_ROM_PROBE: usize = 8;
-
 /// Magics of *combo* directories — routing nodes that point at child
 /// directories via `secondaryAddresses` rather than holding firmware files.
 /// The reference tool flattens combos away and lists only leaf directories;
@@ -276,35 +271,24 @@ fn run_one(rom: &Path, reference: &Path) -> Result<(), Failed> {
     compare_structure(&ours, &theirs)
 }
 
-/// Run our `psptool -E -j` once per ROM index (`-r 0`, `-r 1`, …) until the
-/// index runs past the last ROM, merging every directory into one
-/// address-keyed map. Upstream's `-E -j` dumps every ROM's directories in one
-/// pass; iterating `-r` is how we cover the same ground.
+/// Run our `psptool -E -j` once — like upstream's, the default listing
+/// dumps every ROM's directories in a single pass.
 #[cfg(feature = "corpus")]
 fn collect_ours(rom: &Path) -> Result<BTreeMap<u64, DirModel>, Failed> {
-    let mut dirs = BTreeMap::new();
-    for rom_index in 0..MAX_ROM_PROBE {
-        let out = Command::new(env!("CARGO_BIN_EXE_psptool"))
-            .arg(rom)
-            .args(["-E", "-j", "-r"])
-            .arg(rom_index.to_string())
-            .output()
-            .map_err(|e| Failed::from(format!("spawning our psptool: {e}")))?;
-
-        if !out.status.success() {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            // A `-r` past the last ROM is the expected loop terminator.
-            if rom_index > 0 && stderr.contains("out of range") {
-                break;
-            }
-            return Err(Failed::from(format!(
-                "our psptool failed on `-r {rom_index}`: {}",
-                stderr.trim()
-            )));
-        }
-        parse_json_dirs(&out.stdout, &mut dirs)
-            .map_err(|e| Failed::from(format!("parsing our `-r {rom_index}` JSON: {e}")))?;
+    let out = Command::new(env!("CARGO_BIN_EXE_psptool"))
+        .arg(rom)
+        .args(["-E", "-j"])
+        .output()
+        .map_err(|e| Failed::from(format!("spawning our psptool: {e}")))?;
+    if !out.status.success() {
+        return Err(Failed::from(format!(
+            "our psptool failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        )));
     }
+    let mut dirs = BTreeMap::new();
+    parse_json_dirs(&out.stdout, &mut dirs)
+        .map_err(|e| Failed::from(format!("parsing our JSON: {e}")))?;
     Ok(dirs)
 }
 
