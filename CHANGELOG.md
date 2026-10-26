@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: psptool-py PSPTool() of an input under 8 MiB returns an empty parse; upstream raises ValueError (blob.py:53-54) (#125)
 - Robustness: quadratic walk dedup and search_keys scan (#144)
 - Robustness: CertifyingKeys::from_blob re-parses overlapping candidates (hang) (#143)
 - Robustness: unterminated FET candidates rescanned to EOF (hang) (#142)

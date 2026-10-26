@@ -79,7 +79,6 @@ fn assert_matches_reference(case: &str, rom: Option<&Path>) {
 /// self.buffer_size)`) raises `ValueError`, which PSP-DB's `analyze.py`
 /// relies on to skip non-firmware files.
 #[test]
-#[ignore = "divergence: PSPTool() of < 8 MiB does not raise ValueError (blob.py:53-54); tracking #125"]
 fn small_input_raises_value_error() {
     assert_matches_reference("small_input", None);
 }

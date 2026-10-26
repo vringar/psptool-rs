@@ -10,10 +10,11 @@
 
 use std::sync::Arc;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyList, PySet, PyTuple, PyType};
 
-use psptool_core::SourceBytes;
+use psptool_core::{SourceBytes, fet::assumed_rom_size};
 
 use crate::buffer::{self, NestedBuffer, to_bytes};
 use crate::cert_tree::CertificateTree;
@@ -271,6 +272,11 @@ impl PSPTool {
 /// Materialise the [`Model`] of `image` under `psptool`.
 fn build(psptool: &Bound<'_, PSPTool>, image: &Arc<Image>) -> PyResult<()> {
     let py = psptool.py();
+    // `blob.py:53-54`: `max()` over the empty candidate list raises before
+    // any FET is looked at.
+    if assumed_rom_size(image.len() as u64).is_none() {
+        return Err(PyValueError::new_err("max() iterable argument is empty"));
+    }
     let source = SourceBytes::from_blob(image.to_vec());
     let m = model::build(&source);
 

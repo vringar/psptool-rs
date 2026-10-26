@@ -208,6 +208,13 @@ class TestReadSurface(unittest.TestCase):
                 f.write(self.data)
             self.assertEqual(len(files(PSPTool.from_file(path))), 3)
 
+    def test_small_input_raises_value_error(self):
+        # blob.py:53-54: no ROM-size candidate below 8 MiB.
+        for size in (0, 5 << 20, ROM_SIZE - 1):
+            with self.assertRaises(ValueError):
+                PSPTool(bytes(size))
+        self.assertEqual(len(PSPTool(self.data).blob.roms[0]), ROM_SIZE)
+
 
 class TestEditSurface(unittest.TestCase):
     @classmethod
