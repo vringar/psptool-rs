@@ -26,7 +26,7 @@ use clap::{ArgAction, Args, Parser, Subcommand};
 #[command(
     name = "psptool",
     version,
-    about = "Inspect and modify AMD PSP firmware images.",
+    about = "Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.",
     long_about = None,
     disable_version_flag = true,
 )]

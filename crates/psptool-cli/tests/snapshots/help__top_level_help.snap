@@ -2,7 +2,7 @@
 source: crates/psptool-cli/tests/help.rs
 expression: "render_help(&[\"--help\"])"
 ---
-Inspect and modify AMD PSP firmware images.
+Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.
 
 Usage: psptool [OPTIONS] [FILE] [COMMAND]
 

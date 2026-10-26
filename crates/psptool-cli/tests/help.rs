@@ -26,6 +26,16 @@ fn render_help(args: &[&str]) -> String {
     String::new()
 }
 
+/// Upstream `__main__.py:63` description (divergence #96).
+#[test]
+fn top_level_help_description_matches_upstream() {
+    let help = render_help(&["--help"]);
+    assert_eq!(
+        help.lines().next(),
+        Some("Display, extract, and manipulate AMD PSP firmware inside BIOS ROMs.")
+    );
+}
+
 #[test]
 fn top_level_help() {
     insta::assert_snapshot!("top_level_help", render_help(&["--help"]));
