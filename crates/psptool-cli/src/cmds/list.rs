@@ -31,8 +31,8 @@ pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
             "-n/--no-duplicates is not yet implemented for list (requires unique_files core API; tracked separately)"
         );
     }
-    let opened = open_rom(&args.file, args.rom_index)?;
     if args.metrics {
+        let opened = open_rom(&args.file, args.rom_index)?;
         write_metrics(&args.file, &opened, out)?;
         return Ok(());
     }
@@ -47,6 +47,14 @@ pub fn run(args: &ListArgs, out: &mut dyn Write) -> Result<()> {
     // Upstream `ls()` / `ls_json()` walk every ROM and ignore `-r`
     // (`psptool.py:67-68`, `:205`).
     let roms = open_all_roms(&args.file)?;
+    if roms.is_empty() {
+        // Upstream `blob.py:94` warns and carries on: `ls()` prints nothing
+        // and `ls_json()` prints `[]`.
+        eprintln!("Warning: Could not find any Firmware Entry Table!");
+    } else {
+        // `-r` is otherwise ignored; an out-of-range index still errors.
+        open_rom(&args.file, args.rom_index)?;
+    }
     let listings: Vec<_> = roms
         .iter()
         .enumerate()

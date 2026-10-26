@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: psptool -E on a 64 MiB image with no FET exits 1 'no FET found'; upstream prints nothing / '[]' and exits 0 (psptool.py ls/ls_json) (#133)
 - Divergence: psptool -E / -E -j list only ROM 0 of a multi-ROM blob; upstream ls()/ls_json() list every ROM (psptool.py:67-68, :205) (#132)
 - Divergence: psptool-py extracts BIOS entry destination as i64 - OverflowError for destination >= 2**63 in repr(), get_readable_destination_address(), ls(), ls_json() (entry.py:140, file.py:366,413) (#126)
 - Divergence: import psptool does not load psptool.header_file and the other submodules; upstream __init__.py:17 imports them all (#130)
