@@ -1538,11 +1538,12 @@
       "display_id": 143,
       "title": "Robustness: CertifyingKeys::from_blob re-parses overlapping candidates (hang)",
       "description": "body.rs:731-753; ls/verify/--metrics/py build hang. Pinned by robust_fet.rs certifying_keys (ignored until fixed). Report: scratch/review-c4.md (host-only).",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-24T18:21:56.097689980Z",
-      "updated_at": "2026-10-24T18:21:56.097689980Z"
+      "updated_at": "2026-10-26T01:40:17.964041486Z",
+      "closed_at": "2026-10-26T01:40:17.964040154Z"
     },
     "626db84c-9c12-4491-81c6-bc7e4862fac1": {
       "uuid": "626db84c-9c12-4491-81c6-bc7e4862fac1",
@@ -6956,11 +6957,16 @@
       "agent_id": "tLiK",
       "agent_seq": 477,
       "timestamp": "2026-10-26T00:11:39.928662642Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 478,
+      "timestamp": "2026-10-26T01:40:17.964041486Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-26T00:11:39.928662642Z",
+    "timestamp": "2026-10-26T01:40:17.964041486Z",
     "agent_id": "tLiK",
-    "agent_seq": 477
+    "agent_seq": 478
   }
 }
