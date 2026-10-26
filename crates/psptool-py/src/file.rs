@@ -29,7 +29,7 @@ use sha2::{Sha256, Sha384};
 use psptool_core::body::DecodeVerification;
 use psptool_core::{Entry, EntryClass, EntryRecord, EntryType, HeaderEntry, Ikek, SourceBytes};
 
-use crate::buffer::{self, NestedBuffer, hex_lower, py_hex, to_bytes};
+use crate::buffer::{self, NestedBuffer, hex_lower, py_hex, py_hex_wide, to_bytes};
 use crate::directory::BiosDirectoryEntry;
 use crate::errors;
 use crate::image::IKEK;
@@ -187,8 +187,8 @@ impl File {
     }
 
     fn get_readable_destination_address(slf: &Bound<'_, Self>) -> PyResult<String> {
-        let destination: i64 = slf.getattr("entry")?.getattr("destination")?.extract()?;
-        Ok(py_hex(destination))
+        let destination: i128 = slf.getattr("entry")?.getattr("destination")?.extract()?;
+        Ok(py_hex_wide(destination))
     }
 
     fn get_readable_version(&self) -> &'static str {
@@ -299,16 +299,16 @@ impl BiosFile {
 
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         let base = file_repr(slf.as_any())?;
-        let destination: i64 = slf.getattr("destination")?.extract()?;
+        let destination: i128 = slf.getattr("destination")?.extract()?;
         Ok(format!(
             "{}, destination={})",
             &base[..base.len() - 1],
-            py_hex(destination)
+            py_hex_wide(destination)
         ))
     }
 
     fn get_readable_destination_address(slf: &Bound<'_, Self>) -> PyResult<String> {
-        Ok(py_hex(slf.getattr("destination")?.extract()?))
+        Ok(py_hex_wide(slf.getattr("destination")?.extract()?))
     }
 }
 
@@ -1415,11 +1415,11 @@ impl MicrocodeFile {
     /// included.
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         let base = file_repr(slf.as_any())?;
-        let destination: i64 = slf.getattr("destination")?.extract()?;
+        let destination: i128 = slf.getattr("destination")?.extract()?;
         let bios = format!(
             "{}, destination={})",
             &base[..base.len() - 1],
-            py_hex(destination)
+            py_hex_wide(destination)
         );
         let version: String = slf.call_method0("get_readable_version")?.extract()?;
         let date: String = slf.call_method0("get_readable_date")?.extract()?;

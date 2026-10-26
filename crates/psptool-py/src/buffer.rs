@@ -526,6 +526,11 @@ fn size_exceeds(size: i64, offset: i64) -> bool {
 
 /// `hex()` of an `int`.
 pub(crate) fn py_hex(v: i64) -> String {
+    py_hex_wide(v.into())
+}
+
+/// `hex()` of an `int` wide enough for any unsigned 64-bit value.
+pub(crate) fn py_hex_wide(v: i128) -> String {
     if v < 0 {
         format!("-0x{:x}", v.unsigned_abs())
     } else {

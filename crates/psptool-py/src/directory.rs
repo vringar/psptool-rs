@@ -12,7 +12,7 @@ use pyo3::types::{PyBytes, PyDict, PyList, PyTuple, PyType};
 
 use psptool_core::{EntryType, fletcher32};
 
-use crate::buffer::{self, NestedBuffer, py_hex, to_bytes};
+use crate::buffer::{self, NestedBuffer, py_hex, py_hex_wide, to_bytes};
 use crate::file::{File, view};
 use crate::model;
 
@@ -444,11 +444,11 @@ impl BiosDirectoryEntry {
 
     fn __repr__(slf: &Bound<'_, Self>) -> PyResult<String> {
         let base = DirectoryEntry::repr_fields(slf.as_any())?;
-        let destination: i64 = slf.getattr("destination")?.extract()?;
+        let destination: i128 = slf.getattr("destination")?.extract()?;
         Ok(format!(
             "{}, self.destination={})",
             &base[..base.len() - 1],
-            py_hex(destination)
+            py_hex_wide(destination)
         ))
     }
 

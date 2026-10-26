@@ -89,7 +89,6 @@ fn small_input_raises_value_error() {
 /// `entry.py:139-140`, `file.py:365-366`, `file.py:412-413` render
 /// `0xffffffffffffffff`.
 #[test]
-#[ignore = "divergence: destination >= 2**63 raises OverflowError in repr/get_readable_destination_address (entry.py:140, file.py:366,413); tracking #126"]
 fn destination_renders_as_unsigned_hex() {
     let Some(rom) = corpus_rom("H12SSW9.719") else {
         return;
@@ -101,7 +100,6 @@ fn destination_renders_as_unsigned_hex() {
 /// upstream `ls()` (`psptool.py:149-158`) and `ls_json()`
 /// (`psptool.py:257-258`) list it; the bindings raise `OverflowError`.
 #[test]
-#[ignore = "divergence: ls()/ls_json() raise OverflowError for a BIOS destination >= 2**63 (psptool.py:150,258); tracking #126"]
 fn destination_listing_survives_u64_max() {
     let Some(rom) = corpus_rom("ASRock-A520M-HSV-1.31.ROM") else {
         return;
