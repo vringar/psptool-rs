@@ -966,12 +966,13 @@
       "display_id": 133,
       "title": "Divergence: psptool -E on a 64 MiB image with no FET exits 1 'no FET found'; upstream prints nothing / '[]' and exits 0 (psptool.py ls/ls_json)",
       "description": "Bulk differential vs PSPTool 241629b over the psp-etl corpus (1350 ROMs, checkout dcfec1f). sha c248eac28fc5530d018cdbc048221560aab22978b0982297ea55f1d74be3b126 (67109128 bytes = 0x4000108, ARM reset-vector image, no FET at any probed offset). Upstream: stderr 'Warning: Input file is 0x4000108, will assume ROM size of 32M' + 'Warning: Could not find any Firmware Entry Table!', exit 0, -E stdout empty, -E -j stdout '[]'. Ours: 'psptool -E -j -r 0' exits 1 with 'psptool: <path>: no FET (Firmware Entry Table) found', no stdout. This is the only ours-crashed ROM of 1350 (no panics anywhere). Expected: exit 0 with empty ls / '[]' for -j (warning on stderr is fine). Note the sha 412449d3 (128 KB blob that upstream crashes on at blob.py:54) also gives a clean exit-1 error on ours, no panic. Harness: scratchpad diffloop.py.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-20T04:12:44.158932173Z",
-      "updated_at": "2026-10-20T04:12:52.461194444Z",
+      "updated_at": "2026-10-26T23:10:26.176577948Z",
+      "closed_at": "2026-10-26T23:10:26.176566376Z",
       "labels": [
         "blocker"
       ]
@@ -6992,11 +6993,16 @@
       "agent_id": "tLiK",
       "agent_seq": 483,
       "timestamp": "2026-10-26T02:54:03.837562210Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 484,
+      "timestamp": "2026-10-26T23:10:26.176577948Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-26T02:54:03.837562210Z",
+    "timestamp": "2026-10-26T23:10:26.176577948Z",
     "agent_id": "tLiK",
-    "agent_seq": 483
+    "agent_seq": 484
   }
 }
