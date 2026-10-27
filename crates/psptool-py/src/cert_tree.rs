@@ -13,7 +13,7 @@
 
 use pyo3::exceptions::{PyAssertionError, PyException};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PySet, PyType};
+use pyo3::types::{PyDict, PyList, PySet, PyType};
 
 use crate::buffer::{self, py_hex};
 use crate::crypto::{PrivateKeyDict, key_type};
@@ -52,6 +52,9 @@ impl SignedEntity {
         obj.setattr("signature", signature)?;
         obj.setattr("certifying_keys", py.None())?;
         obj.setattr("contained_keys", PySet::empty(py)?)?;
+        // which candidate form of the file the last verification matched
+        // (None if it failed)
+        obj.setattr("verified_form", py.None())?;
         Ok(obj)
     }
 
@@ -121,12 +124,14 @@ impl SignedEntity {
     }
 
     fn is_verified_by(slf: &Bound<'_, Self>, pubkey: &Bound<'_, PyAny>) -> PyResult<bool> {
+        slf.setattr("verified_form", slf.py().None())?;
         Self::verify_with_pubkey(slf, &pubkey.call_method0("get_public_key")?)
     }
 
     /// `verify_with_tree` (`cert_tree.py:78-95`): verified by at least one
     /// certifying key; `NoCertifyingKey` without any.
     fn verify_with_tree(slf: &Bound<'_, Self>) -> PyResult<bool> {
+        slf.setattr("verified_form", slf.py().None())?;
         let keys = slf.getattr("certifying_keys")?;
         if keys.is_none() || !keys.is_truthy()? {
             return Err(errors::no_certifying_key(slf.as_any())?);
@@ -140,11 +145,27 @@ impl SignedEntity {
     }
 
     fn verify_with_pubkey(slf: &Bound<'_, Self>, pubkey: &Bound<'_, PyAny>) -> PyResult<bool> {
-        let signed = slf.getattr("file")?.call_method0("get_signed_bytes")?;
-        let signature = slf.getattr("signature")?.call_method0("get_bytes")?;
-        pubkey
-            .call_method1("verify_blob", (signed, signature))?
-            .extract()
+        let py = slf.py();
+        let file = slf.getattr("file")?;
+        // `get_signed_bytes_forms()` if the file has one, else the decoded form
+        let forms = if file.hasattr("get_signed_bytes_forms")? {
+            file.call_method0("get_signed_bytes_forms")?
+        } else {
+            let decoded = file.call_method0("get_signed_bytes")?;
+            PyList::new(py, [("decoded".into_pyobject(py)?.into_any(), decoded)])?.into_any()
+        };
+        for form in forms.try_iter()? {
+            let (name, signed): (Bound<'_, PyAny>, Bound<'_, PyAny>) = form?.extract()?;
+            let signature = slf.getattr("signature")?.call_method0("get_bytes")?;
+            if pubkey
+                .call_method1("verify_blob", (signed, signature))?
+                .extract()?
+            {
+                slf.setattr("verified_form", name)?;
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     /// `resign_only(privkey)` (`cert_tree.py:100-117`): refresh the sha256

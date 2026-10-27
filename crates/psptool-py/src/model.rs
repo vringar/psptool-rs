@@ -190,8 +190,8 @@ pub fn build(image: &SourceBytes) -> Model {
 struct Builder<'a> {
     image: &'a SourceBytes,
     model: Model,
-    dir_cache: HashMap<u64, usize>,
-    file_cache: HashMap<u64, usize>,
+    dir_cache: HashMap<(usize, u64), usize>,
+    file_cache: HashMap<(usize, u64), usize>,
 }
 
 /// The ROM a FET walk is running in.
@@ -303,15 +303,15 @@ impl Builder<'_> {
         let mut created = Vec::new();
         let mut stack = vec![(offset, generation)];
         while let Some((offset, generation)) = stack.pop() {
-            if let Some(&id) = self.dir_cache.get(&offset) {
-                self.update_zen_generation(id, generation.as_deref());
+            if let Some(&id) = self.dir_cache.get(&(rom.id, offset)) {
+                self.update_zen_generation(rom.id, id, generation.as_deref());
                 created.push(id);
                 continue;
             }
             let Some(id) = self.parse_directory(rom, offset, generation.clone()) else {
                 continue;
             };
-            self.dir_cache.insert(offset, id);
+            self.dir_cache.insert((rom.id, offset), id);
             self.model.directories_by_offset.push((offset, id));
             created.push(id);
 
@@ -338,7 +338,7 @@ impl Builder<'_> {
     /// `Directory.update_zen_generation` (`directory.py:243-249`). Upstream
     /// raises `TypeError` when the cached directory has no generation yet; we
     /// adopt the incoming one instead.
-    fn update_zen_generation(&mut self, id: usize, generation: Option<&str>) {
+    fn update_zen_generation(&mut self, rom: usize, id: usize, generation: Option<&str>) {
         let Some(generation) = generation else {
             return;
         };
@@ -356,7 +356,7 @@ impl Builder<'_> {
             let children: Vec<usize> = self.model.dirs[id]
                 .secondary
                 .iter()
-                .filter_map(|secondary| self.dir_cache.get(secondary).copied())
+                .filter_map(|secondary| self.dir_cache.get(&(rom, *secondary)).copied())
                 .collect();
             stack.extend(children.into_iter().rev());
         }
@@ -447,12 +447,12 @@ impl Builder<'_> {
         if node.bios && record.entry_type().get() == 0x61 {
             return self.parse_file(rom, dir, index, fo);
         }
-        if let Some(&file) = self.file_cache.get(&fo) {
+        if let Some(&file) = self.file_cache.get(&(rom.id, fo)) {
             self.model.files[file].references.push(dir);
             return Some(file);
         }
         let file = self.parse_file(rom, dir, index, fo)?;
-        self.file_cache.insert(fo, file);
+        self.file_cache.insert((rom.id, fo), file);
         self.model.files_by_offset.push((fo, file));
         Some(file)
     }

@@ -208,11 +208,11 @@ class TestReadSurface(unittest.TestCase):
                 f.write(self.data)
             self.assertEqual(len(files(PSPTool.from_file(path))), 3)
 
-    def test_small_input_raises_value_error(self):
-        # blob.py:53-54: no ROM-size candidate below 8 MiB.
+    def test_small_input_has_no_roms(self):
+        # blob.py:53-55: below 8 MiB the smallest ROM size is assumed
+        # (``default=min(possible_rom_sizes)``); no ROM fits, so none is found.
         for size in (0, 5 << 20, ROM_SIZE - 1):
-            with self.assertRaises(ValueError):
-                PSPTool(bytes(size))
+            self.assertEqual(len(PSPTool(bytes(size)).blob.roms), 0)
         self.assertEqual(len(PSPTool(self.data).blob.roms[0]), ROM_SIZE)
 
 
@@ -323,6 +323,8 @@ class LadderFake(FakeHeaderFile):
         self.has_sha384_checksum = 0
         self.sha256_ok = sha256
         self._signed = FakeBuffer(bytes(4))
+        # header_file.py:207: the zlib bomb ceiling is ``len(self.blob)``.
+        self.blob = bytes(1 << 20)
 
     def verify_sha256(self, print_warning=True):
         return self.sha256_ok

@@ -297,24 +297,43 @@ impl HeaderEntry {
         decrypt(self.data_region(body)?, &self.wrapped_key, ikek, &self.iv)
     }
 
-    /// The zlib step of upstream `_decrypted_decompressed_body`:
-    /// `zlib_decompress(output[:self.zlib_size])` (`header_file.py:181`).
+    /// The zlib step of upstream `_decrypted_decompressed_body`
+    /// (`header_file.py:190-194`).
     ///
     /// `plaintext` is the data region — either [`Self::data_region`] directly
     /// (when `!is_encrypted`) or the output of [`Self::get_decrypted_body`].
-    /// `zlib_size` is an ABSOLUTE end offset into it, and a Python slice: it
-    /// stops at the end of `plaintext`. [`zlib_decompress`] then finds the
-    /// stream with upstream's per-magic priority search (`zlib_find_header`,
-    /// `utils.py:218-234`), inflates it strictly and prepends the bytes before
-    /// the magic (`utils.py:245-252`); without a magic the slice comes back
-    /// unchanged (`utils.py:254`). Fails with [`BodyError::Zlib`] exactly where
-    /// `zlib.decompress` raises: on a corrupt or truncated stream.
+    /// `zlib_size` is an ABSOLUTE end offset into it: the stream is
+    /// `output[:zlib_size]`, or the whole region when `zlib_size == 0` (Zen 1
+    /// era images leave the length unrecorded; the stream then runs to its end
+    /// marker within the body). A `zlib_size` past the region, or no zlib magic
+    /// in the stream (`zlib_find_header`, `utils.py:218-234`), is an error.
+    /// [`zlib_decompress`] then inflates the stream strictly under a ceiling of
+    /// the whole ROM ([`HeaderEntry::rom_len`]: a larger entry is a zlib bomb,
+    /// not firmware) and prepends the bytes before the magic
+    /// (`utils.py:241-260`). Fails with [`BodyError::Zlib`] exactly where
+    /// upstream raises.
     pub fn get_decompressed_body(&self, plaintext: &[u8]) -> Result<Vec<u8>, BodyError> {
         if !self.is_compressed {
             return Err(BodyError::NotCompressed);
         }
-        let s = &plaintext[..(self.zlib_size as usize).min(plaintext.len())];
-        zlib_decompress(s).ok_or_else(|| BodyError::Zlib("corrupt or truncated stream".into()))
+        let zlib_size = self.zlib_size as usize;
+        if zlib_size > plaintext.len() {
+            return Err(BodyError::Zlib("zlib_size past the body".into()));
+        }
+        let stream = if zlib_size == 0 {
+            plaintext
+        } else {
+            &plaintext[..zlib_size]
+        };
+        if zlib_find_header(stream).is_none() {
+            return Err(BodyError::Zlib("no zlib stream within the body".into()));
+        }
+        let max_length = match self.rom_len {
+            0 => ZLIB_MAX_OUTPUT,
+            n => usize::try_from(n).unwrap_or(usize::MAX),
+        };
+        zlib_decompress(stream, max_length)
+            .ok_or_else(|| BodyError::Zlib("corrupt, truncated or oversized stream".into()))
     }
 
     /// Upstream `_decrypted_decompressed_body` (`header_file.py:172-186`): the
@@ -808,34 +827,54 @@ impl CertifyingKeys {
         }
     }
 
-    /// `SignedEntity.verify_with_tree` (`cert_tree.py:78-95`) over the signed
-    /// bytes and signature, when both could be cut from the file.
+    /// `SignedEntity.verify_with_tree` (`cert_tree.py:78-95`) over the candidate
+    /// signed forms (`get_signed_bytes_forms`, `header_file.py:182-190`) and the
+    /// signature, when both could be cut from the file. Per key the forms are
+    /// tried in order and the first that verifies counts (`verify_with_pubkey`,
+    /// `cert_tree.py:101-108`); the second element is whether the verifying
+    /// form of the last verifying key was the stored zlib stream
+    /// (`verified_form == 'stored'`).
     fn check(
         &self,
         certifying_id: &[u8; 16],
-        signed: Option<&[u8]>,
+        forms: Option<&SignedForms>,
         signature: Option<&[u8]>,
-    ) -> SignatureCheck {
+    ) -> (SignatureCheck, bool) {
         // `cert_tree.py:79-80`: an empty key set raises NoCertifyingKey.
         let Some(candidates) = self.by_id.get(certifying_id) else {
-            return SignatureCheck::NoCertifyingKey;
+            return (SignatureCheck::NoCertifyingKey, false);
         };
         if candidates.unusable {
-            return SignatureCheck::Error;
+            return (SignatureCheck::Error, false);
         }
-        let (Some(signed), Some(signature)) = (signed, signature) else {
-            return SignatureCheck::Error;
+        let (Some(forms), Some(signature)) = (forms, signature) else {
+            return (SignatureCheck::Error, false);
         };
-        if candidates
-            .keys
-            .iter()
-            .any(|key| verify_blob(key, signed, signature))
-        {
-            SignatureCheck::Verified
-        } else {
-            SignatureCheck::Failed
+        let mut verified = None;
+        for key in &candidates.keys {
+            if verify_blob(key, &forms.decoded, signature) {
+                verified = Some(false);
+            } else if forms
+                .stored
+                .as_deref()
+                .is_some_and(|stored| verify_blob(key, stored, signature))
+            {
+                verified = Some(true);
+            }
+        }
+        match verified {
+            Some(stored) => (SignatureCheck::Verified, stored),
+            None => (SignatureCheck::Failed, false),
         }
     }
+}
+
+/// The candidate signed regions of one HeaderFile (`get_signed_bytes_forms`,
+/// `header_file.py:182-190`): older generations sign the decoded body, Zen4/5
+/// sign the stored zlib stream of a compressed entry.
+struct SignedForms {
+    decoded: Vec<u8>,
+    stored: Option<Vec<u8>>,
 }
 
 impl Entry {
@@ -944,35 +983,32 @@ impl HeaderEntry {
         };
 
         // A KeyStoreFile is always signed (`key_store_file.py:62-64`).
-        let signature_check = (key_store || self.is_signed()).then(|| {
-            let signed = file
-                .get(..HEADER_FILE_LEN)
+        let (signature_check, stored_form) = if key_store || self.is_signed() {
+            let header = file.get(..HEADER_FILE_LEN);
+            let decoded = header
                 .zip(payload)
                 .map(|(header, payload)| [header, payload].concat());
-            let check = keys.check(&self.signature_fingerprint, signed.as_deref(), signature);
             // Zen4/5 sign the stored zlib stream rather than the inflated body
-            // (#138; the Python oracle now tries both): retry on the stored bytes.
-            if check == SignatureCheck::Failed && !key_store && self.is_compressed {
-                let stored = if self.is_encrypted {
-                    self.get_decrypted_body(file, ikek).ok()
-                } else {
-                    self.data_region(file).ok().map(<[u8]>::to_vec)
-                };
-                let signed =
-                    file.get(..HEADER_FILE_LEN)
-                        .zip(stored.as_deref())
-                        .map(|(header, stored)| {
-                            let covered = &stored[..(self.size_signed as usize).min(stored.len())];
-                            [header, covered].concat()
-                        });
-                if keys.check(&self.signature_fingerprint, signed.as_deref(), signature)
-                    == SignatureCheck::Verified
-                {
-                    return SignatureCheck::Verified;
-                }
-            }
-            check
-        });
+            // (`get_signed_bytes_forms`): the stored form is the decrypted,
+            // still-compressed region.
+            let stored = header
+                .filter(|_| decoded.is_some() && self.is_compressed)
+                .and_then(|header| {
+                    let stored = if self.is_encrypted {
+                        self.get_decrypted_body(file, ikek).ok()?
+                    } else {
+                        self.data_region(file).ok()?.to_vec()
+                    };
+                    let covered = &stored[..(self.size_signed as usize).min(stored.len())];
+                    Some([header, covered].concat())
+                });
+            let forms = decoded.map(|decoded| SignedForms { decoded, stored });
+            let (check, stored_form) =
+                keys.check(&self.signature_fingerprint, forms.as_ref(), signature);
+            (Some(check), stored_form)
+        } else {
+            (None, false)
+        };
 
         let sha256_ok = self.has_sha256_checksum()
             && checksummed.is_some_and(|c| Sha256::digest(c).as_slice() == self.sha256_checksum());
@@ -996,7 +1032,15 @@ impl HeaderEntry {
                 Some(SignatureCheck::Error) => DecodeBasis::SignatureError,
                 Some(SignatureCheck::Failed) => DecodeBasis::SignatureFailed,
                 Some(SignatureCheck::Verified) => {
-                    if self.size_signed as usize >= body.len() {
+                    // A signature over the zlib stream makes the inflated body a
+                    // deterministic function of the signed bytes, so the stream's
+                    // extent is what `size_signed` must span.
+                    let signed_extent = match (stored_form, self.zlib_size as usize) {
+                        (false, _) => body.len(),
+                        (true, 0) => self.data_region(file).map_or(0, <[u8]>::len),
+                        (true, n) => n,
+                    };
+                    if self.size_signed as usize >= signed_extent {
                         DecodeBasis::Signature
                     } else if sha256_ok {
                         DecodeBasis::SignatureSha256
@@ -1214,20 +1258,26 @@ pub fn decrypt(
     Ok(buf)
 }
 
-/// `utils.zlib_decompress(s)` (`utils.py:241-254`): inflate the zlib stream
-/// at the first magic `zlib_find_header` locates and prepend the bytes
-/// before it; `s` unchanged when there is no magic. `None` where
-/// `zlib.decompress` raises — a corrupt or truncated stream
-/// (`zlib_decompress_strict`). Consumers: [`HeaderEntry::get_decompressed_body`]
+/// `utils.zlib_decompress(s, max_length)` (`utils.py:241-260`): inflate the
+/// zlib stream at the first magic `zlib_find_header` locates and prepend the
+/// bytes before it; `s` unchanged when there is no magic. `max_length == 0` is
+/// unlimited. `None` where upstream
+/// raises `zlib.error` — a corrupt or incomplete stream, or one that inflates
+/// to more than `max_length` bytes. Consumers: [`HeaderEntry::get_decompressed_body`]
 /// (the decode behind decode verification and the `-X -u` extract path) and
-/// the `psptool-py` `HeaderFile` subclass ladder, both on `output[:zlib_size]`
-/// (`header_file.py:181`).
-pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
+/// the `psptool-py` `HeaderFile` subclass ladder (`header_file.py:191-193`).
+pub fn zlib_decompress(s: &[u8], max_length: usize) -> Option<Vec<u8>> {
     let Some(start) = zlib_find_header(s) else {
         return Some(s.to_vec());
     };
     let mut out = s[..start].to_vec();
-    out.extend_from_slice(&zlib_decompress_strict(&s[start..])?);
+    // `max_length == 0` is unlimited (`zlib.decompressobj.decompress`).
+    let max_length = if max_length == 0 {
+        usize::MAX
+    } else {
+        max_length
+    };
+    out.extend_from_slice(&zlib_decompress_capped(&s[start..], max_length)?);
     Some(out)
 }
 
@@ -1235,24 +1285,16 @@ pub fn zlib_decompress(s: &[u8]) -> Option<Vec<u8>> {
 // helpers
 // ---------------------------------------------------------------------------
 
-/// `zlib.decompress(s)` (`utils.py:250`): inflate one complete zlib stream,
-/// ignoring any bytes after its end, and fail (`None`) on a corrupt OR
-/// truncated stream — Python raises `incomplete or truncated stream` there.
-/// `flate2`'s `Read` adapter returns the partial output of a truncated stream
-/// as success, so drive [`Decompress`] directly and demand `StreamEnd`.
-fn zlib_decompress_strict(stream: &[u8]) -> Option<Vec<u8>> {
-    zlib_decompress_capped(stream, ZLIB_MAX_OUTPUT)
-}
-
-/// Absolute ceiling on one inflated zlib stream (64 MiB). Deflate reaches
-/// ~1000:1, so without a ceiling a small crafted image inflates to GiBs (zlib
-/// bomb) on the default `ls` path. Upstream never consults `size_uncompressed`
-/// when inflating a HeaderFile (`utils.py:241-254`, `header_file.py:201`), so
-/// the bound is absolute rather than header-declared. Exceeding it fails like
-/// a corrupt stream, and `decode` then falls back to the compressed bytes.
+/// Ceiling on one inflated zlib stream (64 MiB) when the ROM length is unknown
+/// ([`HeaderEntry::rom_len`] is `0`). Deflate reaches ~1000:1, so without a
+/// ceiling a small crafted image inflates to GiBs (zlib bomb) on the default
+/// `ls` path. Upstream bounds the stream by the whole ROM
+/// (`header_file.py:193`) and never consults `size_uncompressed`. Exceeding it
+/// fails like a corrupt stream, and `decode` then falls back to the compressed
+/// bytes.
 const ZLIB_MAX_OUTPUT: usize = 64 << 20;
 
-/// [`zlib_decompress_strict`] with an explicit output ceiling; `None` once the
+/// Inflate one complete zlib stream under an explicit output ceiling; `None` once the
 /// inflated size would exceed `max_output`. Output room is grown in bounded
 /// steps, so memory never exceeds roughly `max_output` plus one step.
 fn zlib_decompress_capped(stream: &[u8], max_output: usize) -> Option<Vec<u8>> {
@@ -1474,19 +1516,66 @@ mod tests {
 
     #[test]
     fn zlib_decompress_follows_utils_zlib_decompress() -> Result<(), Box<dyn std::error::Error>> {
-        // `utils.py:241-254`: prefix + inflated stream; the input unchanged
-        // when there is no magic; `zlib.decompress` raises (None here) on a
-        // truncated stream.
+        // `utils.py:241-257`: prefix + inflated stream; the input unchanged
+        // when there is no magic; upstream raises (None here) on an incomplete
+        // stream or one past `max_length` (0: unlimited).
         let bytes = psptool_fixtures::micro::header_compressed().to_vec();
         let stream_len = HeaderEntry::parse(&SourceBytes::from_blob(bytes.clone()))?.zlib_size;
         let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + stream_len as usize];
         let mut prefixed = vec![0x55u8; 32];
         prefixed.extend_from_slice(stream);
-        let out = zlib_decompress(&prefixed).ok_or("prefixed stream did not inflate")?;
+        let out = zlib_decompress(&prefixed, 0).ok_or("prefixed stream did not inflate")?;
         assert_eq!(&out[..32], &[0x55u8; 32]);
         assert_eq!(&out[32..], b"hello, psptool-rs");
-        assert_eq!(zlib_decompress(&[0x55u8; 32]), Some(vec![0x55u8; 32]));
-        assert_eq!(zlib_decompress(&stream[..stream.len() - 1]), None);
+        assert_eq!(zlib_decompress(&[0x55u8; 32], 0), Some(vec![0x55u8; 32]));
+        assert_eq!(zlib_decompress(&stream[..stream.len() - 1], 0), None);
+        // 17 inflated bytes fit exactly; one byte less is past `max_length`.
+        assert_eq!(zlib_decompress(stream, 17).map(|v| v.len()), Some(17));
+        assert_eq!(zlib_decompress(stream, 16), None);
+        Ok(())
+    }
+
+    #[test]
+    fn get_decompressed_body_stream_extent_follows_header_file_py()
+    -> Result<(), Box<dyn std::error::Error>> {
+        // `header_file.py:203-207`: `zlib_size == 0` runs the stream to its end
+        // marker within the body; a `zlib_size` past the body, or a stream
+        // without a magic, is a failed decompression (not "returned as is").
+        let bytes = psptool_fixtures::micro::header_compressed().to_vec();
+        let zlib_size = HeaderEntry::parse(&SourceBytes::from_blob(bytes.clone()))?.zlib_size;
+        let stream = &bytes[HEADER_FILE_LEN..HEADER_FILE_LEN + zlib_size as usize];
+        let mut region = stream.to_vec();
+        region.extend_from_slice(&[0xEE; 7]);
+        let with_size = |zlib_size: u32| -> Result<HeaderEntry, Box<dyn std::error::Error>> {
+            let mut h = bytes[..HEADER_FILE_LEN].to_vec();
+            h[0x54..0x58].copy_from_slice(&zlib_size.to_le_bytes());
+            Ok(HeaderEntry::parse(&SourceBytes::from_blob(h))?)
+        };
+        assert_eq!(
+            with_size(0)?.get_decompressed_body(&region)?,
+            b"hello, psptool-rs"
+        );
+        assert!(matches!(
+            with_size(region.len() as u32 + 1)?.get_decompressed_body(&region),
+            Err(BodyError::Zlib(_))
+        ));
+        assert!(matches!(
+            with_size(0x20)?.get_decompressed_body(&[0x55; 0x40]),
+            Err(BodyError::Zlib(_))
+        ));
+        // The ceiling is the whole ROM (`len(self.blob)`).
+        assert!(matches!(
+            with_size(0)?
+                .with_rom_len(16)
+                .get_decompressed_body(&region),
+            Err(BodyError::Zlib(_))
+        ));
+        assert_eq!(
+            with_size(0)?
+                .with_rom_len(17)
+                .get_decompressed_body(&region)?,
+            b"hello, psptool-rs"
+        );
         Ok(())
     }
 

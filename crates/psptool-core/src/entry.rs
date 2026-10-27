@@ -165,9 +165,22 @@ pub struct HeaderEntry {
     pub rom_size: u32,
     /// AES-128 wrapped-key at +0x80..+0x90 (significant only when `is_encrypted`).
     pub wrapped_key: [u8; 16],
+    /// Length of the ROM the file belongs to (upstream `len(self.blob)`), the
+    /// ceiling on one inflated zlib stream (`header_file.py:191-193`). `0`
+    /// when the ROM is unknown ([`Self::parse`] alone): the absolute
+    /// `body::ZLIB_MAX_OUTPUT` applies then.
+    pub rom_len: u64,
 }
 
 impl HeaderEntry {
+    /// This header with the length of the ROM its file belongs to
+    /// ([`Self::rom_len`]).
+    #[must_use]
+    pub fn with_rom_len(mut self, rom_len: u64) -> Self {
+        self.rom_len = rom_len;
+        self
+    }
+
     /// Parse a `HeaderFile` from the start of `body`. The header consumes the
     /// first 0x100 bytes; the rest of `body` is the (possibly encrypted /
     /// compressed) data plus trailing signature bytes.
@@ -219,6 +232,7 @@ impl HeaderEntry {
             load_addr,
             rom_size,
             wrapped_key,
+            rom_len: 0,
         })
     }
 
@@ -456,7 +470,13 @@ impl Entry {
             rom_size,
             rom_origin,
         )?;
-        let class = classify(record.entry_type, /* is_bios */ false, blob, &body);
+        let class = classify(
+            record.entry_type,
+            /* is_bios */ false,
+            blob,
+            &body,
+            rom_size,
+        );
         Ok(Self {
             record: EntryRecord::Psp(record),
             body,
@@ -498,7 +518,13 @@ impl Entry {
             rom_size,
             rom_origin,
         )?;
-        let class = classify(record.entry_type, /* is_bios */ true, blob, &body);
+        let class = classify(
+            record.entry_type,
+            /* is_bios */ true,
+            blob,
+            &body,
+            rom_size,
+        );
         Ok(Self {
             record: EntryRecord::Bios(record),
             body,
@@ -615,7 +641,7 @@ fn resolve_body(
 /// Returns `None` when no magic is found. Also the magic search of
 /// `body::zlib_decompress`, which `HeaderEntry::get_decompressed_body` feeds
 /// `output[:zlib_size]` exactly as `utils.py:245` does.
-pub(crate) fn zlib_find_header(s: &[u8]) -> Option<usize> {
+pub fn zlib_find_header(s: &[u8]) -> Option<usize> {
     // `utils.py:210-214` — `ZLIB_TYPES`, tried in order; `:222` the window.
     let window = &s[..s.len().min(ZLIB_SEARCH_WINDOW)];
     for magic in ZLIB_MAGICS {
@@ -655,7 +681,13 @@ fn header_buffer(blob: &SourceBytes, body: &SourceBytes) -> SourceBytes {
 /// richer information than just `Plain` for those. `blob` is the image `body`
 /// was cut from: a HeaderFile-class header can lie past a short `body`
 /// ([`header_buffer`]).
-fn classify(t: EntryType, is_bios: bool, blob: &SourceBytes, body: &SourceBytes) -> EntryClass {
+fn classify(
+    t: EntryType,
+    is_bios: bool,
+    blob: &SourceBytes,
+    body: &SourceBytes,
+    rom_size: RomSize,
+) -> EntryClass {
     if t.is_secondary_directory_pointer() {
         return EntryClass::SecondaryDirectoryPointer;
     }
@@ -674,7 +706,7 @@ fn classify(t: EntryType, is_bios: bool, blob: &SourceBytes, body: &SourceBytes)
     }
     if t.is_key_store() {
         return HeaderEntry::parse(&header_buffer(blob, body))
-            .map(EntryClass::KeyStore)
+            .map(|h| EntryClass::KeyStore(h.with_rom_len(rom_size.bytes())))
             .unwrap_or(EntryClass::Plain);
     }
     if is_bios && t.get() == 0x66 {
@@ -682,7 +714,7 @@ fn classify(t: EntryType, is_bios: bool, blob: &SourceBytes, body: &SourceBytes)
     }
     if !t.has_no_header() {
         return HeaderEntry::parse(&header_buffer(blob, body))
-            .map(EntryClass::Header)
+            .map(|h| EntryClass::Header(h.with_rom_len(rom_size.bytes())))
             .unwrap_or(EntryClass::Plain);
     }
     EntryClass::Plain

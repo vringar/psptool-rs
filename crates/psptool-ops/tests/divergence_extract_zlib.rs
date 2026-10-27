@@ -165,9 +165,10 @@ fn corrupt_stream_falls_back_to_the_still_compressed_body() {
 }
 
 #[test]
-fn missing_magic_returns_the_zlib_size_prefix_unchanged() {
-    // No magic in `output[:zlib_size]`: `zlib_decompress` returns its input
-    // (`utils.py:254`) — the `zlib_size` prefix, decompression "succeeded".
+fn missing_magic_falls_back_to_the_still_compressed_body() {
+    // No magic in `output[:zlib_size]`: `_decrypted_decompressed_body` raises
+    // 'No zlib stream within the body' (`header_file.py:204-205`), so the body
+    // is the untruncated `output`.
     let region = filler(0x40);
     let zlib_size = 0x20;
     let size_signed = 0x30;
@@ -175,16 +176,13 @@ fn missing_magic_returns_the_zlib_size_prefix_unchanged() {
 
     let (blob, entry) = header_entry(&file);
     let got = extract_decompressed(&entry, &blob).ok();
-    assert_eq!(
-        got,
-        Some(signed_bytes(&file, &region[..zlib_size], size_signed))
-    );
+    assert_eq!(got, Some(signed_bytes(&file, &region, size_signed)));
 }
 
 #[test]
-fn zlib_size_past_the_data_region_reads_to_its_end() {
-    // `output[:zlib_size]` clamps at the end of the body; the stream inflates
-    // and `zlib.decompress` ignores the bytes after its end.
+fn zlib_size_past_the_data_region_falls_back_to_the_still_compressed_body() {
+    // `self.zlib_size > len(output)` raises (`header_file.py:204-205`): the
+    // slice no longer clamps, so the body is the untruncated `output`.
     let mut region = fixture_stream().to_vec();
     region.extend_from_slice(&[0xEE; 7]);
     let size_signed = FIXTURE_PLAINTEXT.len();
@@ -192,10 +190,7 @@ fn zlib_size_past_the_data_region_reads_to_its_end() {
 
     let (blob, entry) = header_entry(&file);
     let got = extract_decompressed(&entry, &blob).ok();
-    assert_eq!(
-        got,
-        Some(signed_bytes(&file, FIXTURE_PLAINTEXT, size_signed))
-    );
+    assert_eq!(got, Some(signed_bytes(&file, &region, size_signed)));
 }
 
 #[test]

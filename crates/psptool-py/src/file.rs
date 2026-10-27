@@ -410,7 +410,9 @@ impl HeaderFile {
     /// The live file buffer and its parsed header.
     fn window(slf: &Bound<'_, PyAny>) -> PyResult<(Vec<u8>, HeaderEntry)> {
         let window = view(slf)?.read_all(slf.py())?;
-        let header = parse_header(&window)?;
+        // `len(self.blob)`, the ceiling on one inflated zlib stream.
+        let rom_len = slf.getattr("blob")?.len()?;
+        let header = parse_header(&window)?.with_rom_len(rom_len as u64);
         Ok((window, header))
     }
 
@@ -467,8 +469,9 @@ impl HeaderFile {
             .source()
             .subslice_at(start..start + len)
             .ok_or_else(|| PyValueError::new_err("file buffer lies outside the image"))?;
-        let header =
-            HeaderEntry::parse(&window).map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let header = HeaderEntry::parse(&window)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?
+            .with_rom_len(slf.getattr("blob")?.len()? as u64);
         let class = if slf.is_instance_of::<KeyStoreFile>() {
             EntryClass::KeyStore(header)
         } else {
@@ -516,9 +519,22 @@ impl HeaderFile {
         }
         let inflate = || -> PyResult<Option<Vec<u8>>> {
             let zlib_size = slf.getattr("zlib_size")?;
-            let head = py.get_type::<PySlice>().call1((py.None(), zlib_size))?;
-            let stream = to_bytes(&output.get_item(head)?)?;
-            Ok(psptool_core::body::zlib_decompress(&stream))
+            // `output[:self.zlib_size] if self.zlib_size else output`
+            let stream = if zlib_size.is_truthy()? {
+                let head = py.get_type::<PySlice>().call1((py.None(), &zlib_size))?;
+                to_bytes(&output.get_item(head)?)?
+            } else {
+                to_bytes(&output)?
+            };
+            // `self.zlib_size > len(output) or zlib_find_header(stream) == -1`
+            if zlib_size.gt(output.len()?)?
+                || psptool_core::entry::zlib_find_header(&stream).is_none()
+            {
+                return Ok(None);
+            }
+            // `zlib_decompress(stream, len(self.blob))`
+            let rom_len = slf.getattr("blob")?.len()?;
+            Ok(psptool_core::body::zlib_decompress(&stream, rom_len))
         };
         match inflate() {
             Ok(Some(body)) => return Ok((PyBytes::new(py, &body).into_any(), true)),
@@ -540,8 +556,19 @@ impl HeaderFile {
     ) -> PyResult<(bool, &'static str)> {
         let py = slf.py();
         let kwargs = warning_kwargs(py, print_warning)?;
-        let (body, decompress_ok) =
-            unpack2(&slf.call_method("_decrypted_decompressed_body", (), Some(&kwargs))?)?;
+        let decoded = slf
+            .call_method("_decrypted_decompressed_body", (), Some(&kwargs))
+            .and_then(|pair| unpack2(&pair));
+        let (body, decompress_ok) = match decoded {
+            Ok(decoded) => decoded,
+            Err(e) => {
+                caught(py, e)?;
+                if print_warning {
+                    Self::warn_with_type(slf, "Decoding failed on file")?;
+                }
+                return Ok((false, "decode-error"));
+            }
+        };
         if !decompress_ok.is_truthy()? {
             return Ok((false, "decompress-failed"));
         }
@@ -568,7 +595,23 @@ impl HeaderFile {
             if !verified.is_truthy()? {
                 return Ok((false, "signature-failed"));
             }
-            if slf.getattr("size_signed")?.ge(body.len()?)? {
+            // If the signature covers the zlib stream, the decompressed body is
+            // a deterministic function of the signed bytes.
+            let stored = slf
+                .getattr("signed_entity")?
+                .getattr("verified_form")?
+                .eq("stored")?;
+            let signed_extent = if stored {
+                let zlib_size = slf.getattr("zlib_size")?;
+                if zlib_size.is_truthy()? {
+                    zlib_size
+                } else {
+                    slf.getattr("body")?.len()?.into_pyobject(py)?.into_any()
+                }
+            } else {
+                body.len()?.into_pyobject(py)?.into_any()
+            };
+            if slf.getattr("size_signed")?.ge(signed_extent)? {
                 return Ok((true, "signature"));
             }
             if slf.getattr("has_sha256_checksum")?.is_truthy()? && verify("verify_sha256")? {
@@ -726,6 +769,24 @@ impl HeaderFile {
         let size_signed: usize = slf.getattr("size_signed")?.extract()?;
         out.truncate(header_len + size_signed);
         Ok(PyBytes::new(slf.py(), &out))
+    }
+
+    /// Candidate `(form, bytes)` pairs the signature may cover
+    /// (`header_file.py:182-190`): the decoded body, and for a compressed
+    /// entry the stored zlib stream.
+    fn get_signed_bytes_forms<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyList>> {
+        let py = slf.py();
+        let forms = PyList::empty(py);
+        forms.append(("decoded", slf.call_method0("get_signed_bytes")?))?;
+        if slf.getattr("compressed")?.is_truthy()? {
+            let mut stored = attr_bytes(slf.as_any(), "header")?;
+            stored.extend_from_slice(&to_bytes(&slf.call_method0("get_decrypted_body")?)?);
+            let header_len = slf.getattr("header")?.len()?;
+            let size_signed: usize = slf.getattr("size_signed")?.extract()?;
+            stored.truncate(header_len + size_signed);
+            forms.append(("stored", PyBytes::new(py, &stored)))?;
+        }
+        Ok(forms)
     }
 
     #[pyo3(signature = (print_warning = true))]

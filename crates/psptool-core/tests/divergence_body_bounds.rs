@@ -7,7 +7,7 @@
 //! side (R-CHAR-3). Both are `#[ignore]`d with their tracking blocker; per
 //! R-DEFER-3 the fixer flips them to plain `#[test]` when the fix lands.
 
-use psptool_core::body::Ikek;
+use psptool_core::body::{BodyError, Ikek};
 use psptool_core::{HeaderEntry, SourceBytes};
 
 const HEADER_FILE_LEN: usize = 0x100;
@@ -264,12 +264,14 @@ fn get_decompressed_body_zlib_size_is_absolute_offset_not_length() {
 ///
 /// Expected value derived from upstream: `output[:zlib_size]` here is 0x40
 /// bytes of 0x00, so `zlib_find_header(output[:zlib_size])` finds NO magic and
-/// `zlib_decompress` returns its input unchanged (`utils.py:254`: `return s`).
-/// The target must reach the same result — `output[:zlib_size]` — and must NOT
-/// locate the magic that lives at offset 0x50 (past `zlib_size`).
+/// `_decrypted_decompressed_body` raises 'No zlib stream within the body'
+/// (`header_file.py:204-205`), a failed decompression. The target must reach the
+/// same result and must NOT locate the magic that lives at offset 0x50 (past
+/// `zlib_size`).
 ///
 /// Tracking: #84 (fixed — pin now live); the no-magic result moved from an
-/// error to upstream's passthrough with #91.
+/// error to upstream's passthrough with #91, and back to an error with the
+/// oracle's `header_file.py:204-205` check.
 #[test]
 fn find_zlib_start_ignores_magic_beyond_zlib_size() {
     // Data region: 0x50 non-magic bytes, then a zlib magic (0x78 0xDA) at
@@ -294,17 +296,17 @@ fn find_zlib_start_ignores_magic_beyond_zlib_size() {
     let entry = HeaderEntry::parse(&src).expect("header parses");
     assert!(entry.is_compressed);
 
-    // Upstream searches output[:zlib_size], finds NO magic and returns that
-    // slice unchanged. Locating the magic at 0x50 (past zlib_size) would
-    // instead inflate (and fail on) the fake stream there.
-    let out = entry
+    // Upstream searches output[:zlib_size], finds NO magic and raises
+    // ('No zlib stream within the body', `header_file.py:204-205`): a failed
+    // decompression. Locating the magic at 0x50 (past zlib_size) would instead
+    // inflate (and fail on) the fake stream there; the error text tells the two
+    // apart.
+    let err = entry
         .get_decompressed_body(&plaintext)
-        .expect("no zlib magic within output[:zlib_size]: zlib_decompress returns its input");
-    assert_eq!(
-        out,
-        &plaintext[..zlib_size as usize],
-        "expected output[:zlib_size] unchanged (utils.py:254); the scan must not \
-         look beyond zlib_size, which upstream never inspects"
+        .expect_err("no zlib magic within output[:zlib_size] is a failed decompression");
+    assert!(
+        matches!(&err, BodyError::Zlib(m) if m.contains("no zlib stream")),
+        "the scan must not look beyond zlib_size, which upstream never inspects: {err}"
     );
 }
 
