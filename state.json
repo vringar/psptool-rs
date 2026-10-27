@@ -1,6 +1,6 @@
 {
   "next_display_id": 149,
-  "next_comment_id": 210,
+  "next_comment_id": 211,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0670b3bd-ec27-47d0-9b9d-e94ec8b3fc4f": 146,
@@ -986,7 +986,18 @@
       "priority": "medium",
       "created_by": "tLiK",
       "created_at": "2026-10-27T19:14:43.136073452Z",
-      "updated_at": "2026-10-27T19:14:43.136073452Z"
+      "updated_at": "2026-10-27T19:20:49.991713019Z",
+      "comments": {
+        "99d01c47-36a2-4e63-aac2-579f04fa4670": {
+          "display_id": 210,
+          "author": "tLiK",
+          "content": "Option from psptool (board 11294): fork branch claude-main-upstream @ d14d3de3 = same fixes rebased onto upstream master 50554038 (upstream parity incl. #77 replace, #88). Entry modes 1-3 stay unmasked. Decide at #148 time which one to pin; claude-main@37244fac is the current oracle target.",
+          "created_at": "2026-10-27T19:20:49.952508308Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAAhskarMv2NxzFRABR0zSRKZJPU270+R371/Ph0txaF2v2L7G47lx9W7Tn/TdBBylhAnP+mZ7qhKTTLSfWmaSBQ=="
+        }
+      }
     },
     "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": {
       "uuid": "3b98f619-1a78-4106-b47d-d7fcffb8c9e6",
@@ -7074,11 +7085,16 @@
       "agent_id": "tLiK",
       "agent_seq": 491,
       "timestamp": "2026-10-27T19:14:43.136073452Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 492,
+      "timestamp": "2026-10-27T19:20:49.991713019Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-27T19:14:43.136073452Z",
+    "timestamp": "2026-10-27T19:20:49.991713019Z",
     "agent_id": "tLiK",
-    "agent_seq": 491
+    "agent_seq": 492
   }
 }
