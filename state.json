@@ -3233,12 +3233,13 @@
       "display_id": 102,
       "title": "Divergence: multi-file -X -c of an unencrypted HeaderFile writes the raw entry; upstream writes get_decrypted_body() = the bare data region (header_file.py:286-288, __main__.py:195-196)",
       "description": "Spillover from #99/#100. Upstream multi-file -c writes file.get_decrypted_body() for every HeaderFile (exact type); for is_encrypted == 0 that is self.body.get_bytes(), the data region without header or signature (header_file.py:286-288, body = header_file.py:106). psptool-cli cmds/extract.rs extract_all calls HeaderEntry::get_decrypted_body, which returns BodyError::NotEncrypted for those, and falls back to extract_raw (header + body + signature). Corpus: 3763 unencrypted HeaderFiles. extract_oracle.rs's multi-file -c image deliberately holds only encrypted HeaderFiles until this lands.",
-      "status": "open",
+      "status": "closed",
       "priority": "medium",
       "parent_uuid": "525d7258-de71-4087-8d5a-f7dd155266b5",
       "created_by": "tLiK",
       "created_at": "2026-10-19T14:27:52.588645831Z",
-      "updated_at": "2026-10-19T14:27:58.497275141Z",
+      "updated_at": "2026-10-27T00:10:02.948509848Z",
+      "closed_at": "2026-10-27T00:10:02.948508024Z",
       "labels": [
         "blocker"
       ]
@@ -7004,11 +7005,16 @@
       "agent_id": "tLiK",
       "agent_seq": 485,
       "timestamp": "2026-10-26T23:47:17.213859006Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 486,
+      "timestamp": "2026-10-27T00:10:02.948509848Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-26T23:47:17.213859006Z",
+    "timestamp": "2026-10-27T00:10:02.948509848Z",
     "agent_id": "tLiK",
-    "agent_seq": 485
+    "agent_seq": 486
   }
 }
