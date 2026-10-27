@@ -666,8 +666,8 @@ for path in sys.argv[1:]:
 /// it applies `get_signed_bytes()` only when `type(file) is HeaderFile`
 /// (`__main__.py:193`, #100). Runs both CLIs on every corpus ROM holding one
 /// and compares the key-store files (`BL_PUBLIC_KEY~0x50`,
-/// `TOS_PUBLIC_KEY~0x51`, `file.py:244`) by name without the `dNN_` prefix —
-/// the directory index differs (#104) — and content.
+/// `TOS_PUBLIC_KEY~0x51`, `file.py:244`) by full name — the `dNN_eNN_` prefix
+/// indexes `rom.directories` (#104) — and content.
 #[test]
 fn corpus_multi_file_key_store_matches_reference() {
     let Some(reference) = reference() else { return };
@@ -702,7 +702,6 @@ fn corpus_multi_file_key_store_matches_reference() {
             if !(name.contains("~0x50") || name.contains("~0x51")) {
                 continue;
             }
-            let name = name.split_once('_').map_or(name.clone(), |(_, n)| n.into());
             *files
                 .entry((name, format!("{:x}", Sha256::digest(&bytes))))
                 .or_default() += 1;
@@ -736,6 +735,41 @@ fn corpus_multi_file_key_store_matches_reference() {
         with_key_store.len()
     );
     assert!(compared > 0, "the reference extracted no key-store file");
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// The single-file `-d`/`-e` selector indexes `rom.directories` too
+/// (`__main__.py:165`, #104): every `(d, e)` of the first 12 directories of
+/// three corpus ROMs and ASRock-A520M-HSV-1.31 must yield the reference's bytes (or both must fail).
+#[test]
+fn corpus_single_file_directory_index_matches_reference() {
+    let Some(reference) = reference() else { return };
+    let roms = psptool_fixtures::corpus_rom_paths();
+    if roms.is_empty() {
+        eprintln!("PSPTOOL_TEST_CORPUS unset or empty — skipping the corpus differential");
+        return;
+    }
+    let mut failures = Vec::new();
+    let sample = roms
+        .iter()
+        .enumerate()
+        .filter(|(i, r)| *i < 3 || r.to_string_lossy().contains("ASRock-A520M-HSV-1.31"))
+        .map(|(_, r)| r.to_str().expect("utf-8 corpus path"));
+    for rom in sample {
+        for (d, e) in (0..12).flat_map(|d| (0..3).map(move |e| (d, e))) {
+            let (d, e) = (d.to_string(), e.to_string());
+            let mine = run(ours(), &["-X", "-d", &d, "-e", &e, rom]);
+            let theirs = run(
+                &reference,
+                &["-m", "psptool", "-X", "-d", &d, "-e", &e, rom],
+            );
+            if mine.status.success() != theirs.status.success()
+                || (theirs.status.success() && mine.stdout != theirs.stdout)
+            {
+                failures.push(format!("{rom} -d {d} -e {e}"));
+            }
+        }
+    }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 

@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - psptool-core: follow tertiary (0x48/0x4A) L2 directory pointers — Zen 4 double-indirection (#51)
 
 ### Changed
+- Divergence: multi-file -X dNN / -d directory index differs from upstream rom.directories order (e.g. ASRock-A520M-HSV-1.31.ROM KeyStoreFiles: ours d09/d10/d11, upstream d01/d03/d04) (#104)
 - Divergence: multi-file -X -c of an unencrypted HeaderFile writes the raw entry; upstream writes get_decrypted_body() = the bare data region (header_file.py:286-288, __main__.py:195-196) (#102)
 - Divergence: psptool -E on a 64 MiB image with no FET exits 1 'no FET found'; upstream prints nothing / '[]' and exits 0 (psptool.py ls/ls_json) (#133)
 - Divergence: psptool -E / -E -j list only ROM 0 of a multi-ROM blob; upstream ls()/ls_json() list every ROM (psptool.py:67-68, :205) (#132)

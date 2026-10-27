@@ -70,11 +70,10 @@
 //! and is compared for every entry.
 //!
 //! Raw per-entry `extract` is not tested here: `get_bytes()` is the file's
-//! buffer of that `size`, and the `-X -d` directory index space
-//! differs between the tools (ours numbers combo directories, upstream's
-//! does not), so a naive `-d N` extract comparison is ill-defined.
-//! `extract_oracle.rs` compares `get_bytes()` by flash address instead, and
-//! `synthetic.rs` covers the `-X` argv path.
+//! buffer of that `size`. `extract_oracle.rs` compares `get_bytes()` by flash
+//! address and the `-X -d` / `dNN_` index space (which `extract` numbers like
+//! upstream's `rom.directories`, #104), and `synthetic.rs` covers the `-X`
+//! argv path.
 //!
 //! ## Gating
 //!

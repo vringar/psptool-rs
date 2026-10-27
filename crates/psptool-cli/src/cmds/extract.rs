@@ -17,13 +17,14 @@
 //! pubkeys; every other entry — a `KeyStoreFile` included — is written raw
 //! (`__main__.py:199-200`).
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow, bail};
 use psptool_core::{
-    Directory, Entry, EntryClass, EntryRecord, Ikek, SourceBytes, walk_directories,
+    Directory, DirectoryProvenance, DirectoryRef, Entry, EntryClass, EntryRecord, Ikek, SourceBytes,
 };
 use psptool_ops::{extract_decompressed, extract_decrypted, extract_raw, readable_type};
 use regex::RegexBuilder;
@@ -327,9 +328,9 @@ fn header_version_suffix(entry: &Entry) -> Option<String> {
 }
 
 fn parse_entry_at(opened: &OpenedRom, dir: usize, file: usize) -> Result<Entry> {
-    let dir_ref = opened
-        .directories
-        .get(dir)
+    let dir_ref = upstream_directories(&opened.directories)
+        .into_iter()
+        .nth(dir)
         .ok_or_else(|| anyhow!("directory index {dir} out of range"))?;
     match &dir_ref.directory {
         Directory::Psp(p) => {
@@ -346,14 +347,67 @@ fn parse_entry_at(opened: &OpenedRom, dir: usize, file: usize) -> Result<Entry> 
     }
 }
 
+/// `rom.directories` as upstream indexes it (`__main__.py:165`, `:185`,
+/// `:191`): depth-first from each FET slot in order, a directory before the
+/// directories it points at (L2 pointers, then tertiary ones; a combo's
+/// entries in order), first sighting wins, and combo directories themselves
+/// absent (`fet.py:78-92`, `directory.py:58-101`). Rebuilt from each
+/// directory's first-reaching link, so a directory two parents point at is
+/// placed under whichever of them the walk met first.
+fn upstream_directories(walked: &[DirectoryRef]) -> Vec<&DirectoryRef> {
+    // (parent header offset, rank, index) -> the walked directory it reaches.
+    let mut children: BTreeMap<Option<u64>, Vec<(u8, usize, &DirectoryRef)>> = BTreeMap::new();
+    for dr in walked {
+        let (parent, rank, index) = match dr.provenance {
+            DirectoryProvenance::FetSlot { index } => (None, 0, index),
+            DirectoryProvenance::ComboEntry {
+                combo_offset,
+                index,
+            } => (Some(combo_offset.get()), 0, index),
+            DirectoryProvenance::L2Pointer {
+                parent_offset,
+                index,
+            } => (Some(parent_offset.get()), 0, index),
+            DirectoryProvenance::Tertiary {
+                parent_offset,
+                index,
+            } => (Some(parent_offset.get()), 1, index),
+        };
+        children.entry(parent).or_default().push((rank, index, dr));
+    }
+    for list in children.values_mut() {
+        list.sort_by_key(|&(rank, index, _)| (rank, index));
+    }
+    let mut out = Vec::new();
+    let mut stack: Vec<&DirectoryRef> = children
+        .get(&None)
+        .into_iter()
+        .flatten()
+        .rev()
+        .map(|&(_, _, dr)| dr)
+        .collect();
+    while let Some(dr) = stack.pop() {
+        if !matches!(dr.directory, Directory::Combo(_)) {
+            out.push(dr);
+        }
+        let key = Some(dr.directory.source().offset().get());
+        stack.extend(
+            children
+                .get(&key)
+                .into_iter()
+                .flatten()
+                .rev()
+                .map(|&(_, _, child)| child),
+        );
+    }
+    out
+}
+
 fn for_each_entry(opened: &OpenedRom, mut f: impl FnMut(&Entry, usize, usize, bool)) {
-    let dirs = walk_directories(
-        &opened.blob,
-        &opened.fet,
-        opened.rom_size,
-        opened.rom_origin,
-    );
-    for (di, dr) in dirs.iter().enumerate() {
+    for (di, dr) in upstream_directories(&opened.directories)
+        .into_iter()
+        .enumerate()
+    {
         match &dr.directory {
             Directory::Psp(p) => {
                 for ei in 0..p.entries.len() {
