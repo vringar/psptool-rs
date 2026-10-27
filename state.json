@@ -1,8 +1,9 @@
 {
-  "next_display_id": 146,
+  "next_display_id": 147,
   "next_comment_id": 210,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
+    "0670b3bd-ec27-47d0-9b9d-e94ec8b3fc4f": 146,
     "085676e5-2e21-4681-9268-d4d848235525": 76,
     "0a794c8f-9560-46de-873f-4d9cd633e09e": 138,
     "0b2e6ea5-c7c5-43f0-b554-8f8f23477ccf": 72,
@@ -291,6 +292,16 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAD0TTpFaxenp96z8tUa6UBNuAXt5HMERDV1zurjpU/AfuVjh9ZIZE9QzW0n0VoShkYE9peqciRd9F8cN+hYhtCw=="
         }
       }
+    },
+    "0670b3bd-ec27-47d0-9b9d-e94ec8b3fc4f": {
+      "uuid": "0670b3bd-ec27-47d0-9b9d-e94ec8b3fc4f",
+      "display_id": 146,
+      "title": "Divergence: ls -j directory indexes (walk_directories order, combo dirs included) differ from upstream rom.directories; needs psptool-core change (follow-up to #104, e.g. ASRock-A520M-HSV-1.31.ROM)",
+      "status": "open",
+      "priority": "low",
+      "created_by": "tLiK",
+      "created_at": "2026-10-27T01:23:37.851282287Z",
+      "updated_at": "2026-10-27T01:23:37.851282287Z"
     },
     "085676e5-2e21-4681-9268-d4d848235525": {
       "uuid": "085676e5-2e21-4681-9268-d4d848235525",
@@ -7016,11 +7027,16 @@
       "agent_id": "tLiK",
       "agent_seq": 487,
       "timestamp": "2026-10-27T01:23:23.780450533Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 488,
+      "timestamp": "2026-10-27T01:23:37.851282287Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-27T01:23:23.780450533Z",
+    "timestamp": "2026-10-27T01:23:37.851282287Z",
     "agent_id": "tLiK",
-    "agent_seq": 487
+    "agent_seq": 488
   }
 }
