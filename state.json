@@ -1,5 +1,5 @@
 {
-  "next_display_id": 148,
+  "next_display_id": 149,
   "next_comment_id": 210,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -26,6 +26,7 @@
     "34537f1b-bc62-4553-b04b-7d0c90b0b2f0": 139,
     "37adbfde-9107-49f0-8fa1-9ea76db4eaa3": 45,
     "39fdab98-8c42-447e-b4f2-a335125d7d04": 129,
+    "3b94064c-dffc-4774-b95f-6ee0c9e0d6c1": 148,
     "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": 133,
     "3ce1b9ad-59b3-434b-8ca7-3f78e59bc49b": 117,
     "40caf313-88c8-4453-9818-6ade46d69119": 74,
@@ -975,6 +976,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAd2yrbbIB3k+hwj0f0q37jbkSnZL4Xwxk4ij4fWMKqovgj+BQwosnx8OhZXCba6h3A1JEUX3w4vxfj0Pk7T31AA=="
         }
       }
+    },
+    "3b94064c-dffc-4774-b95f-6ee0c9e0d6c1": {
+      "uuid": "3b94064c-dffc-4774-b95f-6ee0c9e0d6c1",
+      "display_id": 148,
+      "title": "Port PSPTool 37244fac resource caps (FET<=0x100, combo<=64, <=16 ROMs, 4096 dirs/65536 entries, inline-pubkey crash fix)",
+      "description": "Follow-up to #147: oracle claude-main moved 64c21462 -> 37244fac (psptool board 11286). Port after #147 lands, then bump default.nix pin.",
+      "status": "open",
+      "priority": "medium",
+      "created_by": "tLiK",
+      "created_at": "2026-10-27T19:14:43.136073452Z",
+      "updated_at": "2026-10-27T19:14:43.136073452Z"
     },
     "3b98f619-1a78-4106-b47d-d7fcffb8c9e6": {
       "uuid": "3b98f619-1a78-4106-b47d-d7fcffb8c9e6",
@@ -7057,11 +7069,16 @@
       "agent_id": "tLiK",
       "agent_seq": 490,
       "timestamp": "2026-10-27T18:46:30.847245044Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 491,
+      "timestamp": "2026-10-27T19:14:43.136073452Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-27T18:46:30.847245044Z",
+    "timestamp": "2026-10-27T19:14:43.136073452Z",
     "agent_id": "tLiK",
-    "agent_seq": 490
+    "agent_seq": 491
   }
 }
