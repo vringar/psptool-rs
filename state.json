@@ -1,5 +1,5 @@
 {
-  "next_display_id": 147,
+  "next_display_id": 148,
   "next_comment_id": 210,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
@@ -45,6 +45,7 @@
     "5346afaa-652e-4838-a5c1-851082a0f96f": 69,
     "53d3c3c2-bb6f-4eb5-b245-a88eb3518b0e": 137,
     "54e6baa0-7637-4170-925c-b3cdea587722": 15,
+    "54fa70a7-f61c-4d7d-bd42-71738df7dd77": 147,
     "58ab16e7-59ab-4168-b6e1-d1708dc511e5": 7,
     "58c3ac9f-6818-420d-9fb0-13146e78ebb0": 60,
     "5c2c8d27-0025-4384-b9bd-bf847da32972": 130,
@@ -1420,6 +1421,17 @@
           "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAX3aK34/h4vP+Nm3rMFRb8IlF8vTW1QhemwRCokoQAD7+Ok31GQYfhswNVY6gM3coa5GDCLw263fSl8pt/Jp/BA=="
         }
       }
+    },
+    "54fa70a7-f61c-4d7d-bd42-71738df7dd77": {
+      "uuid": "54fa70a7-f61c-4d7d-bd42-71738df7dd77",
+      "display_id": 147,
+      "title": "Port PSPTool 64c21462 hardening: zlib_size==0 streams, zlib bomb cap, parse-bounds errors, decode-error, stored-form basis (oracle pin bump)",
+      "description": "Oracle pin bump (bookmark oracle-64c21462, default.nix) turns red: extract_oracle (synthetic_rom, synthetic_rom_multi_file, corpus_grown_headerfile_window, corpus_get_signed_bytes: -u on 13/32 grown HeaderFiles + ZLIB warning on no-magic/zlib-size-past-body), sign_oracle corpus_resigned_grown_headerfiles (bad-signature), plus unknown results for the rest of the gauntlet. Source: PSPTool diff 241629b..64c21462 header_file.py/utils.py/directory.py/fet.py/rom.py + tests/unit/test_malformed_images.py. Overlaps C4 review findings (scratch/review-c4.md #3 zlib bomb). Push pin only when green.",
+      "status": "open",
+      "priority": "high",
+      "created_by": "tLiK",
+      "created_at": "2026-10-27T18:46:30.847245044Z",
+      "updated_at": "2026-10-27T18:46:30.847245044Z"
     },
     "58ab16e7-59ab-4168-b6e1-d1708dc511e5": {
       "uuid": "58ab16e7-59ab-4168-b6e1-d1708dc511e5",
@@ -7040,11 +7052,16 @@
       "agent_id": "tLiK",
       "agent_seq": 489,
       "timestamp": "2026-10-27T01:23:43.363483076Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 490,
+      "timestamp": "2026-10-27T18:46:30.847245044Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-27T01:23:43.363483076Z",
+    "timestamp": "2026-10-27T18:46:30.847245044Z",
     "agent_id": "tLiK",
-    "agent_seq": 489
+    "agent_seq": 490
   }
 }
