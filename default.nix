@@ -46,13 +46,13 @@ let
   # bindings' parity test (`psptool-py/tests/corpus_parity.rs`).
   referencePsptool = pkgs.python3Packages.buildPythonPackage {
     pname = "psptool";
-    version = "3.4.0"; # vringar/PSPTool claude-main @ 64c21462 (decode-verified + try-both signature verify)
+    version = "3.4.0"; # vringar/PSPTool claude-main-upstream @ d14d3de3 (rebased on upstream master)
     format = "pyproject";
     src = pkgs.fetchFromGitHub {
       owner = "vringar";
       repo = "PSPTool";
-      rev = "64c2146292d69825a52fb8a2d45f3f3110ee1e10";
-      hash = "sha256-pMa58+D+Kj2M9vHDAMK3JtxOJ0gdC/QzcTNFuPTKJxc=";
+      rev = "d14d3de327bdc7ef3b4a2892c213c2236a4915bd";
+      hash = "sha256-FKDnbHwex6N6s92U3fiATwmWcPndUPTgqHKARpWM4ic=";
     };
     nativeBuildInputs = with pkgs.python3Packages; [ hatchling hatch-vcs ];
     propagatedBuildInputs = with pkgs.python3Packages; [ cryptography prettytable ];
