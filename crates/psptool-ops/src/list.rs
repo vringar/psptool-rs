@@ -179,9 +179,10 @@ fn render_text(rom: &RomListing<'_>, verbose: bool, sparse: bool) -> String {
     let mut out = String::new();
     out.push_str(&render_rom_table(rom));
     out.push('\n');
+    let backfill = bootloader_generation(rom);
     for (idx, dir_ref) in rom.directories.iter().enumerate() {
         let parsed = entries_for_directory(rom, &dir_ref.directory);
-        out.push_str(&render_directory_header_table(idx, dir_ref, rom));
+        out.push_str(&render_directory_header_table(idx, dir_ref, rom, backfill));
         out.push_str(&render_entries_table(
             &dir_ref.directory,
             &parsed,
@@ -232,6 +233,7 @@ fn render_directory_header_table(
     idx: usize,
     dir_ref: &DirectoryRef,
     rom: &RomListing<'_>,
+    backfill: Option<&'static str>,
 ) -> String {
     let mut t = Table::new(
         [
@@ -247,7 +249,10 @@ fn render_directory_header_table(
     let dir = &dir_ref.directory;
     let header = dir.header();
     let magic = magic_string(header.magic.as_bytes());
-    let generation = directory_generation(dir_ref);
+    let generation = match (&dir_ref.directory, backfill) {
+        (Directory::Combo(_), _) | (_, None) => directory_generation(dir_ref),
+        (_, Some(bare)) => bare.to_string(),
+    };
     let secondary = secondary_addresses(rom, dir)
         .iter()
         .map(|a| format_hex_u64(*a))
@@ -761,7 +766,8 @@ fn magic_string(bytes: &[u8; 4]) -> String {
 }
 
 /// Generation cell of a directory without a generation: Python's `str(None)`
-/// as PrettyTable prints `directory.zen_generation` (`psptool.py:84`).
+/// as PrettyTable prints `directory.zen_generation` (`psptool.py:84`), for a
+/// ROM whose boot loader does not back-fill one ([`bootloader_generation`]).
 const NO_GENERATION: &str = "None";
 
 /// Generation column for a directory: upstream's `directory.zen_generation`
@@ -771,7 +777,9 @@ const NO_GENERATION: &str = "None";
 ///
 /// * `$PSP`/`$BHD` directories: the ids the walk threaded through the
 ///   directory graph ([`DirectoryRef::generations`]: combo entry, tertiary
-///   block, L2 parent). A directory only FET slots reach has none: upstream's
+///   block, L2 parent); a ROM where none has one takes the bare `Zen N` of
+///   its boot loader instead ([`bootloader_generation`]). A directory only
+///   FET slots reach has none: upstream's
 ///   `zen_generation` is then `None` (`fet.py:89` passes no generation,
 ///   `directory.py:58`/`:124` default and store it) and PrettyTable prints its
 ///   `str()`, `None`.
@@ -796,6 +804,47 @@ fn directory_generation(dir_ref: &DirectoryRef) -> String {
         .map(generation_label)
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// `Directory.BOOTLOADER_VERSION_TO_ZEN` (`directory.py:49-57`): the
+/// `PSP_FW_BOOT_LOADER` version major byte to a bare generation name.
+const fn bootloader_zen(major: u8) -> Option<&'static str> {
+    match major {
+        0x07 | 0x09 | 0x0A => Some("Zen 1"),
+        0x0B | 0x0C => Some("Zen 2"),
+        0x13 => Some("Zen 3"),
+        0x29 => Some("Zen 4"),
+        0x3D => Some("Zen 5"),
+        _ => None,
+    }
+}
+
+/// `PSPTool._backfill_zen_generation_from_bootloader` (`psptool.py:56-95`):
+/// when no `$PSP`/`$BHD` directory of the ROM has a generation (combo
+/// directories are not upstream `Directory` objects, so they do not count),
+/// the first `HeaderFile` of type `0x01` in directory order names one through
+/// its version major byte (`header[0x62]`), applied to every directory of the
+/// ROM as a bare `Zen N`. An unmapped major only warns upstream.
+fn bootloader_generation(rom: &RomListing<'_>) -> Option<&'static str> {
+    let unclassified = rom
+        .directories
+        .iter()
+        .all(|d| matches!(d.directory, Directory::Combo(_)) || d.generations.is_empty());
+    if !unclassified {
+        return None;
+    }
+    let major = rom.directories.iter().find_map(|d| {
+        entries_for_directory(rom, &d.directory)
+            .into_iter()
+            .find_map(|row| match row {
+                Ok(e) if e.entry_type().get() == 0x01 => match e.class {
+                    EntryClass::Header(h) => Some(h.version[2]),
+                    _ => None,
+                },
+                _ => None,
+            })
+    })?;
+    bootloader_zen(major)
 }
 
 /// The label upstream threads into `zen_generation`:

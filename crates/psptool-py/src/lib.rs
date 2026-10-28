@@ -75,6 +75,7 @@ fn _native(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<file::File>()?;
     m.add_class::<file::BiosFile>()?;
     m.add_class::<file::HeaderFile>()?;
+    m.add_class::<file::SignatureType>()?;
     m.add_class::<file::KeyStoreFile>()?;
     m.add_class::<file::KeyStoreFileHeader>()?;
     m.add_class::<file::KeyStore>()?;

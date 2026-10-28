@@ -21,9 +21,7 @@
 use md5::{Digest as _, Md5};
 use pyo3::exceptions::{PyAssertionError, PyException, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{
-    PyBool, PyByteArray, PyBytes, PyDict, PyInt, PyList, PySet, PySlice, PyTuple, PyType,
-};
+use pyo3::types::{PyBool, PyByteArray, PyBytes, PyDict, PyList, PySet, PySlice, PyTuple, PyType};
 use sha2::{Sha256, Sha384};
 
 use psptool_core::body::DecodeVerification;
@@ -416,6 +414,17 @@ impl HeaderFile {
         Ok((window, header))
     }
 
+    /// `_decrypted_decompressed_body(max_size=...)` (`header_file.py:222-243`):
+    /// the decode with the inflated size capped at `max_size` instead of the
+    /// ROM length. Uncached: the cache holds the default cap only.
+    fn decode_capped(slf: &Bound<'_, PyAny>, max_size: u64) -> PyResult<(Vec<u8>, bool)> {
+        let (window, header) = Self::window(slf)?;
+        header
+            .with_rom_len(max_size)
+            .decode_best_effort(&window, IKEK)
+            .map_err(body_error)
+    }
+
     /// `_decrypted_decompressed_body` (`header_file.py:172-186`).
     pub(crate) fn decode(slf: &Bound<'_, PyAny>) -> PyResult<(Vec<u8>, bool)> {
         let key = cache_key(slf)?;
@@ -511,6 +520,7 @@ impl HeaderFile {
     fn decrypted_decompressed_py<'py>(
         slf: &Bound<'py, PyAny>,
         print_warning: bool,
+        max_size: Option<usize>,
     ) -> PyResult<(Bound<'py, PyAny>, bool)> {
         let py = slf.py();
         let output = slf.call_method0("get_decrypted_body")?;
@@ -532,9 +542,12 @@ impl HeaderFile {
             {
                 return Ok(None);
             }
-            // `zlib_decompress(stream, len(self.blob))`
-            let rom_len = slf.getattr("blob")?.len()?;
-            Ok(psptool_core::body::zlib_decompress(&stream, rom_len))
+            // `zlib_decompress(stream, len(self.blob) if max_size is None else max_size)`
+            let cap = match max_size {
+                Some(max_size) => max_size,
+                None => slf.getattr("blob")?.len()?,
+            };
+            Ok(psptool_core::body::zlib_decompress(&stream, cap))
         };
         match inflate() {
             Ok(Some(body)) => return Ok((PyBytes::new(py, &body).into_any(), true)),
@@ -652,6 +665,44 @@ impl HeaderFile {
     }
 }
 
+/// `header_file.SignatureType` (`header_file.py:27-48`): one of `NONE`,
+/// `SHA256` (type word 0, 0x100 bytes) and `SHA384` (type word 2, 0x200 bytes).
+#[pyclass(frozen, module = "psptool.header_file")]
+pub struct SignatureType {
+    #[pyo3(get, name = "type")]
+    word: Option<u32>,
+    #[pyo3(get)]
+    len: i64,
+}
+
+impl SignatureType {
+    /// The member whose signature is `len` bytes long.
+    const fn of_len(len: i64) -> Self {
+        let word = match len {
+            0x100 => Some(0),
+            0x200 => Some(2),
+            _ => None,
+        };
+        Self { word, len }
+    }
+}
+
+#[pymethods]
+impl SignatureType {
+    #[getter]
+    const fn is_signed(&self) -> bool {
+        self.word.is_some()
+    }
+
+    fn __repr__(&self) -> &'static str {
+        match self.word {
+            None => "<SignatureType.NONE: (None, 0)>",
+            Some(0) => "<SignatureType.SHA256: (0, 256)>",
+            Some(_) => "<SignatureType.SHA384: (2, 512)>",
+        }
+    }
+}
+
 #[pymethods]
 impl HeaderFile {
     #[new]
@@ -714,24 +765,13 @@ impl HeaderFile {
         Ok(ok)
     }
 
-    /// `is_signed` (`header_file.py:130-135`):
-    /// `int.from_bytes(self._signed.get_bytes(), 'little')`, a live view of
-    /// header `0x30` on a parsed file.
+    /// `is_signed` (`header_file.py:174-176`): `self.signature.type.is_signed`.
     #[getter]
     fn is_signed(slf: &Bound<'_, Self>) -> PyResult<bool> {
-        let py = slf.py();
-        let raw = slf.getattr("_signed")?.call_method0("get_bytes")?;
-        let signed = py
-            .get_type::<PyInt>()
-            .call_method1("from_bytes", (raw, "little"))?;
-        let value = signed.extract::<u64>().ok();
-        if !matches!(value, Some(0 | 1 | 0xFFFF_0000)) {
-            return Err(errors::ParseError::new_err(format!(
-                "Did not expect signed to be 0x{}",
-                signed.call_method1("__format__", ("x",))?
-            )));
-        }
-        Ok(value != Some(0))
+        slf.getattr("signature")?
+            .getattr("type")?
+            .getattr("is_signed")?
+            .is_truthy()
     }
 
     /// `'.'.join(hex(b)[2:].upper() ...)` over `version` (`header_file.py:137-138`).
@@ -789,15 +829,19 @@ impl HeaderFile {
         Ok(forms)
     }
 
-    #[pyo3(signature = (print_warning = true))]
+    #[pyo3(signature = (print_warning = true, max_size = None))]
     fn _decrypted_decompressed_body<'py>(
         slf: &Bound<'py, Self>,
         print_warning: bool,
+        max_size: Option<usize>,
     ) -> PyResult<(Bound<'py, PyAny>, bool)> {
         if !is_native(slf.as_any()) {
-            return Self::decrypted_decompressed_py(slf.as_any(), print_warning);
+            return Self::decrypted_decompressed_py(slf.as_any(), print_warning, max_size);
         }
-        let (body, ok) = Self::decode(slf.as_any())?;
+        let (body, ok) = match max_size {
+            Some(max_size) => Self::decode_capped(slf.as_any(), max_size as u64)?,
+            None => Self::decode(slf.as_any())?,
+        };
         if !ok && print_warning {
             let kind = readable_type(slf.as_any())?;
             warn(
@@ -808,14 +852,18 @@ impl HeaderFile {
         Ok((PyBytes::new(slf.py(), &body).into_any(), ok))
     }
 
-    /// `get_decrypted_decompressed_body` (`header_file.py:188-189`).
-    fn get_decrypted_decompressed_body<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
-        if !is_native(slf.as_any()) {
-            return slf
-                .call_method0("_decrypted_decompressed_body")?
-                .get_item(0);
-        }
-        Ok(Self::_decrypted_decompressed_body(slf, true)?.0)
+    /// `get_decrypted_decompressed_body` (`header_file.py:245-246`): always
+    /// forwards `max_size=` to `_decrypted_decompressed_body`, so an override
+    /// without that parameter raises `TypeError` like upstream.
+    #[pyo3(signature = (max_size = None))]
+    fn get_decrypted_decompressed_body<'py>(
+        slf: &Bound<'py, Self>,
+        max_size: Option<usize>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let kwargs = PyDict::new(slf.py());
+        kwargs.set_item("max_size", max_size)?;
+        slf.call_method("_decrypted_decompressed_body", (), Some(&kwargs))?
+            .get_item(0)
     }
 
     /// `_verify_decode` (`header_file.py:198-243`). Parsed files run the core
@@ -1569,8 +1617,6 @@ pub(crate) fn header_file<'py>(
     obj.setattr("encrypted", u32_at(0x18) == 1)?;
     obj.setattr("_sha256_checksum", buffer::nested(&obj, 0x20, 0xD0)?)?;
     obj.setattr("_sha384_checksum", buffer::nested(&obj, 0x30, 0xD0)?)?;
-    obj.setattr("_signed", buffer::nested(&obj, 4, 0x30)?)?;
-    obj.setattr("signature_type", u32_at(0x34))?;
     obj.setattr(
         "signature_fingerprint",
         PyBytes::new(py, hex_lower(&h[0x38..0x48]).as_bytes()),
@@ -1590,13 +1636,15 @@ pub(crate) fn header_file<'py>(
     obj.setattr("unknown_field_3", u32_at(0x7C))?;
     obj.setattr("has_sha256_checksum", bitfield & 0b01)?;
     obj.setattr("has_sha384_checksum", bitfield & 0b10)?;
-    obj.setattr("signature_len", signature_len)?;
-    if signature_len != 0 {
-        obj.setattr(
-            "signature",
-            buffer::nested(&obj, signature_len, a.size - signature_len)?,
-        )?;
-    }
+    // `Signature(self, SignatureType.from_header(..))` (`header_file.py:92`).
+    let signature_type = Bound::new(py, SignatureType::of_len(signature_len))?;
+    let signature = buffer::signature(
+        buffer::nested(&obj, signature_len, a.size - signature_len)?.as_any(),
+        false,
+    )?;
+    signature.setattr("type", signature_type)?;
+    signature.setattr("len", signature_len)?;
+    obj.setattr("signature", signature)?;
     if u32_at(0x18) == 1 {
         obj.setattr("iv", PyByteArray::new(py, &h[0x20..0x30]))?;
         obj.setattr("key", PyByteArray::new(py, &h[0x80..0x90]))?;

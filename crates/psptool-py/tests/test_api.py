@@ -15,6 +15,7 @@ import json
 import os
 import struct
 import tempfile
+import types
 import unittest
 import weakref
 import zlib
@@ -322,7 +323,8 @@ class LadderFake(FakeHeaderFile):
         self.has_sha256_checksum = int(sha256 is not None)
         self.has_sha384_checksum = 0
         self.sha256_ok = sha256
-        self._signed = FakeBuffer(bytes(4))
+        # header_file.py:174: `is_signed` is `signature.type.is_signed`.
+        self.signature = types.SimpleNamespace(type=types.SimpleNamespace(is_signed=False))
         # header_file.py:207: the zlib bomb ceiling is ``len(self.blob)``.
         self.blob = bytes(1 << 20)
 

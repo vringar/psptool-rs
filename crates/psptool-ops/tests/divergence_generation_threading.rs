@@ -631,8 +631,9 @@ fn divergence_corpus_multi_generation_matches_reference() {
 
 /// Exact-text corpus pin: every directory's Generation cell is the reference's
 /// `str(zen_generation)` (`psptool.py:84`) — label, PSP id, line order, and
-/// `None` for the FET-only directories of most Zen 1/2 images (e.g.
-/// `Tesla_zen-recovery.bin` `$PSP` 0x30000 / `$BHD` 0x152000).
+/// `None` for the FET-only directories of a ROM whose boot loader major is
+/// unmapped, and the bare back-filled `Zen N` (no PSP id) for an otherwise
+/// unclassified ROM (`psptool.py:56-95`, e.g. `Tesla_zen-recovery.bin`).
 ///
 /// Tracking: #122
 #[test]

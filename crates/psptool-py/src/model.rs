@@ -184,7 +184,21 @@ pub fn build(image: &SourceBytes) -> Model {
             b.add_rom(position, layout);
         }
     }
+    b.backfill_zen_generation_from_bootloader();
     b.model
+}
+
+/// `Directory.BOOTLOADER_VERSION_TO_ZEN` (`directory.py:49-57`): the
+/// `PSP_FW_BOOT_LOADER` version major byte to a bare generation name.
+const fn bootloader_zen(major: u8) -> Option<&'static str> {
+    match major {
+        0x07 | 0x09 | 0x0A => Some("Zen 1"),
+        0x0B | 0x0C => Some("Zen 2"),
+        0x13 => Some("Zen 3"),
+        0x29 => Some("Zen 4"),
+        0x3D => Some("Zen 5"),
+        _ => None,
+    }
 }
 
 struct Builder<'a> {
@@ -209,6 +223,44 @@ impl RomCtx {
 }
 
 impl Builder<'_> {
+    /// `PSPTool._backfill_zen_generation_from_bootloader`
+    /// (`psptool.py:56-95`): a ROM whose directories are all unclassified
+    /// takes its generation from the first `HeaderFile` of type `0x01`.
+    fn backfill_zen_generation_from_bootloader(&mut self) {
+        for rom_id in 0..self.model.roms.len() {
+            let rom = &self.model.roms[rom_id];
+            if !rom
+                .directories
+                .iter()
+                .all(|&d| self.model.dirs[d].zen_generation.is_none())
+            {
+                continue;
+            }
+            let origin = rom.offset;
+            let major = rom.directories.iter().find_map(|&d| {
+                self.model.dirs[d].files.iter().find_map(|&f| {
+                    let file = &self.model.files[f];
+                    let entry = &self.model.dirs[file.dir].records[file.entry];
+                    if entry.entry_type().get() != 0x01
+                        || !matches!(file.kind, FileKind::Header { .. })
+                    {
+                        return None;
+                    }
+                    // `version` is `header[0x63:0x5f:-1]`; its `[1]` is `header[0x62]`.
+                    self.read(origin + file.offset + 0x62, 1).map(|b| b[0])
+                })
+            });
+            let Some(major) = major else { continue };
+            // An unmapped major only warns upstream (`psptool.py:84-90`).
+            let Some(label) = bootloader_zen(major) else {
+                continue;
+            };
+            for d in self.model.roms[rom_id].directories.clone() {
+                self.model.dirs[d].zen_generation = Some(label.to_owned());
+            }
+        }
+    }
+
     /// `blob.py:59-78` + `rom.py:8-22`.
     fn add_rom(&mut self, position: FlashOffset, layout: psptool_core::RomLayout) {
         let origin = layout.rom_origin.get();
@@ -326,6 +378,16 @@ impl Builder<'_> {
                 let Some(block) = self.rom_read(rom, tertiary, 32) else {
                     continue;
                 };
+                // Some ROMs point straight at the L2 directory: nothing to
+                // resolve, and it keeps the inherited generation (`:90-93`).
+                if PSP_MAGICS
+                    .iter()
+                    .chain(&BIOS_MAGICS)
+                    .any(|m| m[..] == block[..4])
+                {
+                    children.push((tertiary, generation.clone()));
+                    continue;
+                }
                 let actual = u64::from(le_u32(&block[16..20]));
                 let label = generation_label(PspGenerationId(le_u32(&block[20..24])));
                 children.push((actual, Some(label)));
@@ -473,20 +535,20 @@ impl Builder<'_> {
             self.check_pubkey(rom, offset, base_size)?;
             (FileKind::Pubkey, base_size)
         } else if t.is_key_store() {
-            let sizing = self.header_sizing(rom, offset, base_size, true)?;
+            let sizing = self.header_sizing(rom, offset, base_size)?;
             self.check_key_store(rom, offset, sizing)?;
             let kind = FileKind::KeyStore {
                 signature_len: sizing.signature_len,
             };
             (kind, sizing.buffer_size)
         } else if !(t.has_no_header() || t.is_secondary_directory_pointer()) {
-            let sizing = self.header_sizing(rom, offset, base_size, false)?;
+            let sizing = self.header_sizing(rom, offset, base_size)?;
             let kind = FileKind::Header {
                 signature_len: sizing.signature_len,
             };
             (kind, sizing.buffer_size)
         } else if node.bios && t.get() == 0x66 {
-            let header = self.header_sizing(rom, offset, base_size, false);
+            let header = self.header_sizing(rom, offset, base_size);
             (FileKind::Microcode { header }, base_size)
         } else if node.bios {
             (FileKind::Bios, base_size)
@@ -541,16 +603,9 @@ impl Builder<'_> {
     }
 
     /// `HeaderFile._parse` / `_parse_hdr` sizing and its `ParseError`s
-    /// (`header_file.py:31-106`). `key_store` selects `KeyStoreFile`, whose
-    /// `is_signed` is unconditionally true (`key_store_file.py:62-64`), so the
-    /// `signed` dword is neither validated nor consulted.
-    fn header_sizing(
-        &self,
-        rom: RomCtx,
-        offset: u64,
-        size: u64,
-        key_store: bool,
-    ) -> Option<HeaderSizing> {
+    /// (`header_file.py:31-106`); `KeyStoreFile._parse` runs it first
+    /// (`key_store_file.py:32`), so a key store is validated the same way.
+    fn header_sizing(&self, rom: RomCtx, offset: u64, size: u64) -> Option<HeaderSizing> {
         // `header_file.py:32-33`.
         let buffer_size = size.max(HEADER_LEN);
         let header = self.rom_read(rom, offset, HEADER_LEN)?;
@@ -565,12 +620,13 @@ impl Builder<'_> {
             0 => buffer_size,
             n => n,
         };
-        // `header_file.py:131-135`: an undocumented `signed` value is a
-        // ParseError raised from `_parse`.
-        if !key_store && !h.signed_value_is_documented() {
+        // `SignatureType.from_header` (`header_file.py:37-47`): an
+        // undocumented `signed` word, or an unknown signature type behind a
+        // set one, is a ParseError raised from `_parse`.
+        if !h.signed_value_is_documented() {
             return None;
         }
-        let signature_len = if key_store || h.is_signed() {
+        let signature_len = if h.is_signed() {
             h.signature_len()? as u64
         } else {
             0

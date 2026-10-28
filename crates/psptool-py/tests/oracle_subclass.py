@@ -19,6 +19,7 @@ import hashlib
 import io
 import json
 import zlib
+from types import SimpleNamespace
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
@@ -150,14 +151,15 @@ class LadderFile(FakeHeaderFile):
     """Sets every attribute `_verify_decode` reads (header_file.py:198-243)
     and overrides both checksum checks, as a fake for the ladder would."""
 
-    def __init__(self, body, signed=None, size_signed=0, sha256=None, sha384=None, signed_word=0, **kwargs):
+    def __init__(self, body, signed=None, size_signed=0, sha256=None, sha384=None, signature_signed=False, **kwargs):
         super().__init__(body, **kwargs)
         self.signed_entity = signed
         self.size_signed = size_signed
         self.has_sha256_checksum = int(sha256 is not None)
         self.has_sha384_checksum = int(sha384 is not None) << 1
         self.sha256_ok, self.sha384_ok = sha256, sha384
-        self._signed = FakeBuffer(signed_word.to_bytes(4, "little"))
+        # header_file.py:174: `is_signed` reads `self.signature.type.is_signed`.
+        self.signature = SimpleNamespace(type=SimpleNamespace(is_signed=signature_signed))
         self.calls = []
 
     def verify_sha256(self, print_warning=True):
@@ -260,8 +262,7 @@ def cases():
     corrupt[-1] ^= 0xFF
     rungs = {
         "plain": dict(),
-        "plain_signed_word": dict(signed_word=1),
-        "bad_signed_word": dict(signed_word=2),
+        "plain_signed_type": dict(signature_signed=True),
         "unverifiable_encrypted": dict(encrypted=True, decrypted=PLAIN),
         "compressed_ok": dict(compressed=True, zlib_size=len(COMPRESSED), decrypted=COMPRESSED),
         "compressed_corrupt": dict(compressed=True, zlib_size=len(corrupt), decrypted=bytes(corrupt)),

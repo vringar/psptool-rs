@@ -811,7 +811,12 @@ pub fn walk_directories(
                         parent_offset,
                         index,
                     };
-                    walk.visit(child, provenance, &[generation]);
+                    // `None`: the pointer targets the L2 directory directly
+                    // (`directory.py:90-93`), so it keeps the generation the
+                    // pointer inherited from its parent (`:123-124`).
+                    let generations = generation
+                        .map_or_else(|| walk.out[parent].generations.clone(), |g| vec![g]);
+                    walk.visit(child, provenance, &generations);
                 }
             }
         }
@@ -845,15 +850,27 @@ pub fn walk_directories(
 /// [`DirectoryRef::generations`]. Returns `None` when the block is out of
 /// bounds (the pointer is skipped, matching the surrounding bad-offset
 /// handling).
+///
+/// Some ROMs point straight at the L2 directory instead of at a block holding
+/// its offset: when the 32 bytes start with a `$PSP`/`$PL2`/`$BHD`/`$BL2`
+/// magic there is nothing to resolve (`directory.py:90-93`), and the result is
+/// `block_at` itself with no generation of its own (`None`).
 fn tertiary_actual_offset(
     blob: &SourceBytes,
     block_at: FlashOffset,
     rom_size: RomSize,
     rom_origin: FlashOffset,
-) -> Option<(FlashOffset, PspGenerationId)> {
+) -> Option<(FlashOffset, Option<PspGenerationId>)> {
     const TERTIARY_BLOCK_SIZE: usize = 32;
     let local = local_offset(blob, block_at, "tertiary block", TERTIARY_BLOCK_SIZE).ok()?;
     let block = blob.as_bytes();
+    if [PSP_MAGICS, BIOS_MAGICS]
+        .concat()
+        .iter()
+        .any(|m| m.as_bytes()[..] == block[local..local + 4])
+    {
+        return Some((block_at, None));
+    }
     // `local_offset` guarantees `local + TERTIARY_BLOCK_SIZE <= blob.len()`,
     // so bytes `[local + 16 ..= local + 23]` are in bounds.
     let actual = Address(u32::from_le_bytes([
@@ -881,7 +898,7 @@ fn tertiary_actual_offset(
     let rom_flash = (actual.0 as u64) & rom_size.addr_mask();
     Some((
         FlashOffset(rom_origin.0.wrapping_add(rom_flash)),
-        generation,
+        Some(generation),
     ))
 }
 
