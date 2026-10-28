@@ -1,6 +1,6 @@
 {
   "next_display_id": 149,
-  "next_comment_id": 212,
+  "next_comment_id": 213,
   "display_id_map": {
     "0601f918-9265-4943-bbc0-30f769e4616f": 14,
     "0670b3bd-ec27-47d0-9b9d-e94ec8b3fc4f": 146,
@@ -3096,10 +3096,21 @@
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-10-19T22:55:40.874814897Z",
-      "updated_at": "2026-10-19T22:55:46.032440658Z",
+      "updated_at": "2026-10-28T22:40:17.716009742Z",
       "labels": [
         "kaizen"
-      ]
+      ],
+      "comments": {
+        "bf2386bb-3493-4019-ae63-1102b8d7991a": {
+          "display_id": 212,
+          "author": "tLiK",
+          "content": "Fixed in worktree commit 027750e (doc comments only); cargo doc --workspace clean, fmt/clippy/build green. Unpushed.",
+          "created_at": "2026-10-28T22:40:17.609890368Z",
+          "kind": "note",
+          "signed_by": "SHA256:pi2rgM6dRaTX7StyiUVj9BegTQChW341Fra5MXz4iKc",
+          "signature": "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgOi3VkKr4Jd4JgqerRa/w7ChR2ooa2tu6OIM/yho/EaUAAAARY3Jvc3NsaW5rLWNvbW1lbnQAAAAAAAAABnNoYTUxMgAAAFMAAAALc3NoLWVkMjU1MTkAAABAhc1VRcKWg5ZoR9DBPjOjFyk3pKvNom7MkBNEEk+1E8MckMopVkSNbzx9YzTmfY34cUN7TaLlxtmqYsQbsY32Aw=="
+        }
+      }
     },
     "ba4c84df-86af-4f9e-89c3-9a87e00dce5d": {
       "uuid": "ba4c84df-86af-4f9e-89c3-9a87e00dce5d",
@@ -7106,11 +7117,16 @@
       "agent_id": "tLiK",
       "agent_seq": 493,
       "timestamp": "2026-10-27T22:45:21.267579179Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 494,
+      "timestamp": "2026-10-28T22:40:17.716009742Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-27T22:45:21.267579179Z",
+    "timestamp": "2026-10-28T22:40:17.716009742Z",
     "agent_id": "tLiK",
-    "agent_seq": 493
+    "agent_seq": 494
   }
 }
