@@ -3093,11 +3093,12 @@
       "display_id": 107,
       "title": "Lint: 5 rustdoc warnings outside psptool-core (fixtures lib.rs:10 ambiguous corpus; ops search_keys.rs:60 PubkeyEntry::source, verify.rs:43 HeaderEntry::signature_fingerprint unresolved; py file.rs:14 private buffer::detached, lib.rs:16 ambiguous file)",
       "description": "Found while closing #106: after it, cargo doc -p psptool-core is clean but cargo doc --workspace --no-deps still warns 5x. psptool-fixtures/src/lib.rs:10 [`corpus`] is both a fn and a module (use mod@corpus); psptool-ops/src/search_keys.rs:60 [`PubkeyEntry::source`] and verify.rs:43 [`HeaderEntry::signature_fingerprint`] are not in scope (full path psptool_core::...); psptool-py/src/file.rs:14 public doc links private buffer::detached; psptool-py/src/lib.rs:16 [`file`] is both a module and a macro (mod@file). Note: search_keys.rs has no route in tooling/translate-routes.toml, so its edit needs a route first (R-XLATE-2). CI does not run cargo doc today.",
-      "status": "open",
+      "status": "closed",
       "priority": "low",
       "created_by": "tLiK",
       "created_at": "2026-10-19T22:55:40.874814897Z",
-      "updated_at": "2026-10-28T22:40:17.716009742Z",
+      "updated_at": "2026-10-28T23:42:20.086590785Z",
+      "closed_at": "2026-10-28T23:42:20.086587329Z",
       "labels": [
         "kaizen"
       ],
@@ -7128,11 +7129,16 @@
       "agent_id": "tLiK",
       "agent_seq": 495,
       "timestamp": "2026-10-28T23:42:14.315570654Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 496,
+      "timestamp": "2026-10-28T23:42:20.086590785Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-28T23:42:14.315570654Z",
+    "timestamp": "2026-10-28T23:42:20.086590785Z",
     "agent_id": "tLiK",
-    "agent_seq": 495
+    "agent_seq": 496
   }
 }
