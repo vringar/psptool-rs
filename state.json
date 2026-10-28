@@ -1450,11 +1450,12 @@
       "display_id": 147,
       "title": "Port PSPTool 64c21462 hardening: zlib_size==0 streams, zlib bomb cap, parse-bounds errors, decode-error, stored-form basis (oracle pin bump)",
       "description": "Oracle pin bump (bookmark oracle-64c21462, default.nix) turns red: extract_oracle (synthetic_rom, synthetic_rom_multi_file, corpus_grown_headerfile_window, corpus_get_signed_bytes: -u on 13/32 grown HeaderFiles + ZLIB warning on no-magic/zlib-size-past-body), sign_oracle corpus_resigned_grown_headerfiles (bad-signature), plus unknown results for the rest of the gauntlet. Source: PSPTool diff 241629b..64c21462 header_file.py/utils.py/directory.py/fet.py/rom.py + tests/unit/test_malformed_images.py. Overlaps C4 review findings (scratch/review-c4.md #3 zlib bomb). Push pin only when green.",
-      "status": "open",
+      "status": "closed",
       "priority": "high",
       "created_by": "tLiK",
       "created_at": "2026-10-27T18:46:30.847245044Z",
-      "updated_at": "2026-10-27T22:45:21.267579179Z",
+      "updated_at": "2026-10-28T23:42:14.315570654Z",
+      "closed_at": "2026-10-28T23:42:14.315569251Z",
       "comments": {
         "f43534d3-c941-4bcf-a1fb-f3ecd67fc58a": {
           "display_id": 211,
@@ -7122,11 +7123,16 @@
       "agent_id": "tLiK",
       "agent_seq": 494,
       "timestamp": "2026-10-28T22:40:17.716009742Z"
+    },
+    {
+      "agent_id": "tLiK",
+      "agent_seq": 495,
+      "timestamp": "2026-10-28T23:42:14.315570654Z"
     }
   ],
   "watermark": {
-    "timestamp": "2026-10-28T22:40:17.716009742Z",
+    "timestamp": "2026-10-28T23:42:14.315570654Z",
     "agent_id": "tLiK",
-    "agent_seq": 494
+    "agent_seq": 495
   }
 }
