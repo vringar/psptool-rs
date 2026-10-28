@@ -13,7 +13,7 @@
 //!   graph, classes, buffer sizes), pure Rust over the `psptool-core` parsers.
 //! * [`image`] — the one mutable buffer every view shares.
 //! * [`buffer`] — `NestedBuffer` and its small subclasses.
-//! * [`tool`], [`directory`], [`file`] — the object model.
+//! * [`tool`], [`directory`], [`mod@file`] — the object model.
 //! * [`cert_tree`], [`crypto`] — certificate tree, keys, re-signing.
 //! * [`listing`] — `ls` / `ls_json`.
 //! * [`memory`] — native buffers the cycle collector cannot see, and the

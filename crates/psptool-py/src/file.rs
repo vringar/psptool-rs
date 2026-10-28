@@ -11,7 +11,7 @@
 //! `HeaderEntry::get_decrypted_body`, `Entry::decode_verification`).
 //!
 //! Every class can be subclassed from Python and the subclass instantiated
-//! without a parse ([`buffer::detached`]). On such an instance the
+//! without a parse (`buffer::detached`). On such an instance the
 //! `HeaderFile` decode / verification methods run upstream's call structure
 //! through attribute lookup on `self` (`header_file.py:109-292`), so the
 //! subclass's overrides (`get_decrypted_body`, `verify_sha256`, ...) and

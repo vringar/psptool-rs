@@ -40,7 +40,7 @@ use psptool_core::{
 };
 
 /// 16-byte key fingerprint — matches PSPTool's `key_id` ([`PubkeyEntry::key_id`])
-/// and [`HeaderEntry::signature_fingerprint`].
+/// and [`psptool_core::HeaderEntry::signature_fingerprint`].
 pub type KeyId = [u8; 16];
 
 /// Per-entry verification outcome.

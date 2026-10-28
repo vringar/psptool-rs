@@ -7,7 +7,7 @@
 //!   `crates/psptool-fixtures/data/`. They cover every parser branch (FET,
 //!   directory, entry kinds, signed entry, encrypted body, compressed body,
 //!   pubkey) without requiring the private corpus.
-//! * [`corpus`] — a loader for the optional `vendor/test-corpus` submodule,
+//! * [`mod@corpus`] — a loader for the optional `vendor/test-corpus` submodule,
 //!   keyed off the `PSPTOOL_TEST_CORPUS` environment variable. When the
 //!   variable is unset, [`corpus()`] returns `None` and corpus-gated tests
 //!   skip cleanly — by design, not a stub.

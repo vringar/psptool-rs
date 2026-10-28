@@ -57,7 +57,7 @@ pub enum KeyHitLocation {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct KeyHit {
     /// Absolute flash offset of byte zero of the pubkey blob (its
-    /// [`PubkeyEntry::source`] start, equivalently the version dword).
+    /// [`psptool_core::PubkeyEntry::source`] start, equivalently the version dword).
     pub offset: FlashOffset,
     /// 16-byte `key_id` fingerprint (offset +0x04 of the pubkey blob).
     pub key_id: KeyId,
